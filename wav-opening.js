@@ -13,6 +13,7 @@
     const location = options.location || globalThis.location;
     const request = options.fetch || globalThis.fetch.bind(globalThis);
     const onStatus = options.onStatus || (() => {});
+    const onPreferencesChange = options.onPreferencesChange || (() => {});
     let storage = options.storage;
     if (storage === undefined) try { storage = globalThis.localStorage; } catch { storage = null; }
     const node = id => doc.getElementById(id);
@@ -24,6 +25,7 @@
     const localLauncher = Boolean(token) && location?.origin === 'http://127.0.0.1:4174';
     let viewer = 'kaleidoscope';
     let executables = { kaleidoscope: '', chirosurf: '' };
+    let preferences = { debugMode: false, includeCommonPipistrelle: true };
     let draftViewer, drafts, opening = false;
 
     function savedPreferences() {
@@ -41,6 +43,9 @@
         }
       }
       if (typeof saved?.wavViewer === 'string') try { viewer = K.viewerInfo(saved.wavViewer).id; } catch {}
+      for (const name of ['debugMode', 'includeCommonPipistrelle']) {
+        if (typeof saved[name] === 'boolean') preferences[name] = saved[name];
+      }
     } catch {}
 
     function showError(message) {
@@ -64,6 +69,8 @@
       draftViewer = viewer;
       drafts = { ...executables };
       renderSettings();
+      node('settings-debug-mode').checked = preferences.debugMode;
+      node('settings-common-pipistrelle').value = preferences.includeCommonPipistrelle ? 'yes' : 'no';
       showError(message);
       if (!dialog.open) dialog.showModal();
     }
@@ -82,18 +89,29 @@
           return;
         }
       }
+      const previousPreferences = getPreferences();
       viewer = K.viewerInfo(select.value).id;
       executables = next;
+      preferences = {
+        debugMode: node('settings-debug-mode').checked === true,
+        includeCommonPipistrelle: node('settings-common-pipistrelle').value === 'yes'
+      };
       let stored = false;
       try {
         if (storage) {
           storage.setItem(preferencesKey, JSON.stringify({ ...savedPreferences(), wavViewer: viewer,
-            kaleidoscopeExecutable: next.kaleidoscope, chirosurfExecutable: next.chirosurf }));
+            kaleidoscopeExecutable: next.kaleidoscope, chirosurfExecutable: next.chirosurf,
+            ...preferences }));
           stored = true;
         }
       } catch {}
       dialog.close();
+      onPreferencesChange(getPreferences(), previousPreferences);
       onStatus(stored ? 'Réglages enregistrés dans ce navigateur.' : 'Réglages conservés pour cette session. Le stockage du navigateur est indisponible.', !stored);
+    }
+
+    function getPreferences() {
+      return { ...preferences };
     }
 
     function contactPath(imported, best) {
@@ -158,7 +176,7 @@
       showError('');
     });
 
-    return Object.freeze({ openSettings, openContact });
+    return Object.freeze({ openSettings, openContact, getPreferences });
   }
 
   return Object.freeze({ init });

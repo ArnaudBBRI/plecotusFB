@@ -178,6 +178,34 @@
 .settings-actions button.primary { border-color: #33452b; background: #33452b; color: #fff; }
 .settings-actions button.primary:hover { background: #26351f; }
 
+.settings-general {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #e1e7dc;
+  border-radius: .5rem;
+}
+
+.settings-general legend { padding: 0 .35rem; color: #535a4c; font-size: .85rem; }
+.wav-settings .settings-checkbox { display: flex; align-items: center; gap: .65rem; margin: .25rem 0 1rem; cursor: pointer; }
+.wav-settings .settings-checkbox input { width: 1rem; height: 1rem; margin: 0; padding: 0; accent-color: #33452b; }
+
+.debug-review-actions { margin-top: 1.25rem; }
+.debug-review-actions button {
+  padding: .7rem 1rem;
+  border: 1px dashed #996535;
+  border-radius: .4rem;
+  background: #fcf7f0;
+  color: #704a28;
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.debug-review-actions button:hover { background: #f5eadb; }
+.debug-review-actions button:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.debug-review-actions button:disabled { opacity: .5; cursor: default; }
+.debug-review-actions p { margin: .5rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.5; }
+
 @media (max-width: 480px) {
   .wav-settings { padding: 1.25rem; }
   .settings-actions button { flex: 1; }

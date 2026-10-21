@@ -22,6 +22,8 @@
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const reviewSaveStatus = document.getElementById('review-save-status');
+  const debugReviewActions = document.getElementById('debug-review-actions');
+  const debugValidateAll = document.getElementById('debug-validate-all');
   const wavOpeningStatus = document.getElementById('wav-opening-status');
   const wavOpening = PlecotusWavOpening.init({
     document,
@@ -29,8 +31,18 @@
       wavOpeningStatus.textContent = message;
       wavOpeningStatus.dataset.error = String(Boolean(isError));
       wavOpeningStatus.hidden = !message;
+    },
+    onPreferencesChange(next, previous) {
+      uiPreferences = next;
+      updateDebugControls();
+      if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
+        applyPipistrelleDefault();
+        chartStatus.textContent = '';
+        renderDistribution();
+      }
     }
   });
+  let uiPreferences = wavOpening.getPreferences();
   const numbers = new Intl.NumberFormat('fr-FR');
   const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -39,12 +51,43 @@
   let currentFile = null;
   let currentImport = null;
   let currentDecisions = null;
+  let currentBestContacts = [];
   let importVersion = 0;
   let chartMode = 'pie';
   let chartData = null;
   let chartExporting = false;
   const hiddenChartKeys = new Set();
   const chartTitle = 'Répartition des contacts selon les AUTO-ID';
+
+  function applyPipistrelleDefault() {
+    if (!chartData) return;
+    const otherRows = new Set(BatSpeciesNames.chartRows(chartData.rows, false).rows);
+    for (const row of chartData.rows) {
+      if (otherRows.has(row)) continue;
+      const key = BatActivityChart.rowKey(row);
+      if (uiPreferences.includeCommonPipistrelle) hiddenChartKeys.delete(key);
+      else hiddenChartKeys.add(key);
+    }
+  }
+
+  function updateDebugControls() {
+    debugReviewActions.hidden = !uiPreferences.debugMode;
+    debugValidateAll.disabled = !currentBestContacts.length;
+  }
+
+  function refreshContactDecision(row, recordIndex) {
+    const decision = currentDecisions.get(recordIndex);
+    row.dataset.reviewStatus = decision ? decision.status : 'pending';
+    for (const control of row.querySelectorAll('button[data-decision]')) {
+      control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
+    }
+  }
+
+  function decisionPersistenceMessage() {
+    return currentDecisions.persistenceAvailable
+      ? ' Décision enregistrée dans ce navigateur.'
+      : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.';
+  }
 
   function renderDistribution() {
     if (!chartData) return;
@@ -131,6 +174,7 @@
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
     chartData = PlecotusImportChart.build(result);
     hiddenChartKeys.clear();
+    applyPipistrelleDefault();
     chartStatus.textContent = '';
     renderDistribution();
     overview.hidden = false;
@@ -141,6 +185,8 @@
     currentFile = file;
     currentImport = null;
     currentDecisions = null;
+    currentBestContacts = [];
+    updateDebugControls();
     chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
@@ -196,6 +242,8 @@
       return;
     }
     const list = document.getElementById('species-groups');
+    currentBestContacts = review.groups.flatMap(group => group.best ? [group.best] : []);
+    updateDebugControls();
     list.replaceChildren();
     document.getElementById('species-review-summary').textContent = numbers.format(review.groups.length)
       + (review.groups.length === 1 ? ' groupe AUTO-ID' : ' groupes AUTO-ID')
@@ -272,12 +320,6 @@
         const actionGroup = document.createElement('div');
         actionGroup.setAttribute('role', 'group');
         actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + best.lineNumber);
-        const controls = [];
-        const refreshDecision = () => {
-          const decision = currentDecisions.get(best.recordIndex);
-          row.dataset.reviewStatus = decision ? decision.status : 'pending';
-          for (const control of controls) control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
-        };
         for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
           const control = document.createElement('button');
           control.type = 'button';
@@ -287,18 +329,17 @@
           control.addEventListener('click', () => {
             currentDecisions.set(best.recordIndex, status);
             currentImport.reviewDecisions = currentDecisions.snapshot();
-            refreshDecision();
+            refreshContactDecision(row, best.recordIndex);
             reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(best.lineNumber)
               + (status === 'validated' ? ' validé.' : ' invalidé.')
-              + (currentDecisions.persistenceAvailable ? ' Décision enregistrée dans ce navigateur.' : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.');
+              + decisionPersistenceMessage();
             reviewSaveStatus.hidden = false;
           });
-          controls.push(control);
           actionGroup.append(control);
         }
-        refreshDecision();
         actions.append(actionGroup);
         row.append(actions);
+        refreshContactDecision(row, best.recordIndex);
         body.append(row);
         table.append(header, body);
         wrapper.append(table);
@@ -396,6 +437,19 @@
     if (currentFile && contactSheet.value) readFile(currentFile, contactSheet.value);
   });
   startReview.addEventListener('click', showSpecies);
+  debugValidateAll.addEventListener('click', () => {
+    if (!uiPreferences.debugMode || speciesOverview.hidden || !currentDecisions || !currentBestContacts.length) return;
+    currentDecisions.setMany(currentBestContacts.map(best => best.recordIndex), 'validated');
+    currentImport.reviewDecisions = currentDecisions.snapshot();
+    for (const row of speciesOverview.querySelectorAll('tr[data-contact-index]')) {
+      refreshContactDecision(row, Number(row.dataset.contactIndex));
+    }
+    reviewSaveStatus.textContent = numbers.format(currentBestContacts.length)
+      + (currentBestContacts.length === 1 ? ' meilleur contact validé.' : ' meilleurs contacts validés.')
+      + decisionPersistenceMessage();
+    reviewSaveStatus.hidden = false;
+  });
+  updateDebugControls();
   for (const button of chartModes) button.addEventListener('click', () => {
     chartMode = button.dataset.chartMode;
     chartStatus.textContent = '';

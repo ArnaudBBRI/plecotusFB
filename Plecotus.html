@@ -712,6 +712,34 @@ body { margin: 0; min-height: 100svh; }
 .settings-actions button.primary { border-color: #33452b; background: #33452b; color: #fff; }
 .settings-actions button.primary:hover { background: #26351f; }
 
+.settings-general {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #e1e7dc;
+  border-radius: .5rem;
+}
+
+.settings-general legend { padding: 0 .35rem; color: #535a4c; font-size: .85rem; }
+.wav-settings .settings-checkbox { display: flex; align-items: center; gap: .65rem; margin: .25rem 0 1rem; cursor: pointer; }
+.wav-settings .settings-checkbox input { width: 1rem; height: 1rem; margin: 0; padding: 0; accent-color: #33452b; }
+
+.debug-review-actions { margin-top: 1.25rem; }
+.debug-review-actions button {
+  padding: .7rem 1rem;
+  border: 1px dashed #996535;
+  border-radius: .4rem;
+  background: #fcf7f0;
+  color: #704a28;
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.debug-review-actions button:hover { background: #f5eadb; }
+.debug-review-actions button:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.debug-review-actions button:disabled { opacity: .5; cursor: default; }
+.debug-review-actions p { margin: .5rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.5; }
+
 @media (max-width: 480px) {
   .wav-settings { padding: 1.25rem; }
   .settings-actions button { flex: 1; }
@@ -800,6 +828,10 @@ body { margin: 0; min-height: 100svh; }
       </section>
       <section class="species-overview" id="species-overview" aria-labelledby="species-heading" hidden>
         <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
+        <div class="debug-review-actions" id="debug-review-actions" hidden>
+          <button id="debug-validate-all" type="button">Valider tous les meilleurs contacts</button>
+          <p>Mode débogage : valide les meilleurs contacts affichés, hors Noise.</p>
+        </div>
         <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
         <p class="species-review-summary" id="species-review-summary"></p>
         <p class="review-save-status" id="review-save-status" role="status" hidden></p>
@@ -828,6 +860,15 @@ body { margin: 0; min-height: 100svh; }
   <dialog class="wav-settings" id="wav-settings" aria-labelledby="wav-settings-heading">
     <form id="wav-settings-form">
       <header><h2 id="wav-settings-heading">Réglages</h2></header>
+      <fieldset class="settings-general">
+        <legend>Options de l’interface</legend>
+        <label class="settings-checkbox" for="settings-debug-mode"><input id="settings-debug-mode" type="checkbox"> Mode débogage</label>
+        <label for="settings-common-pipistrelle">Afficher la Pipistrelle commune par défaut dans les graphiques</label>
+        <select id="settings-common-pipistrelle">
+          <option value="yes">Oui</option>
+          <option value="no">Non</option>
+        </select>
+      </fieldset>
       <label for="wav-settings-viewer">Logiciel d’ouverture des WAV</label>
       <select id="wav-settings-viewer">
         <option value="kaleidoscope">Kaleidoscope</option>
@@ -2415,6 +2456,29 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })) };
     }
 
+    function setMany(recordIndices, status) {
+      if (!denseArray(recordIndices)) throw new TypeError('La sélection des contacts doit être une liste complète de numéros.');
+      if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
+      // Check the entire selection before replacing any existing decisions.
+      for (const recordIndex of recordIndices) checkIndex(recordIndex);
+      const indices = [...new Set(recordIndices)];
+      const updatedAt = new Date().toISOString();
+      const changes = [];
+      const result = indices.map(recordIndex => {
+        const previous = decisions.get(recordIndex);
+        if (previous && previous.status === status) return previous;
+        const decision = decisionFor(recordIndex, status, updatedAt);
+        changes.push(decision);
+        return decision;
+      });
+      for (const decision of changes) decisions.set(decision.recordIndex, decision);
+      if (changes.length && persistenceAvailable) {
+        try { storage.setItem(key, JSON.stringify(snapshot())); }
+        catch { persistenceAvailable = false; }
+      }
+      return Object.freeze(result);
+    }
+
     return Object.freeze({
       get persistenceAvailable() { return persistenceAvailable; },
       get(recordIndex) {
@@ -2423,17 +2487,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       },
       set(recordIndex, status) {
         checkIndex(recordIndex);
-        if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
-        const previous = decisions.get(recordIndex);
-        if (previous && previous.status === status) return previous;
-        const decision = decisionFor(recordIndex, status, new Date().toISOString());
-        decisions.set(recordIndex, decision);
-        if (persistenceAvailable) {
-          try { storage.setItem(key, JSON.stringify(snapshot())); }
-          catch { persistenceAvailable = false; }
-        }
-        return decision;
+        return setMany([recordIndex], status)[0];
       },
+      setMany,
       snapshot
     });
   }
@@ -2458,6 +2514,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const location = options.location || globalThis.location;
     const request = options.fetch || globalThis.fetch.bind(globalThis);
     const onStatus = options.onStatus || (() => {});
+    const onPreferencesChange = options.onPreferencesChange || (() => {});
     let storage = options.storage;
     if (storage === undefined) try { storage = globalThis.localStorage; } catch { storage = null; }
     const node = id => doc.getElementById(id);
@@ -2469,6 +2526,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const localLauncher = Boolean(token) && location?.origin === 'http://127.0.0.1:4174';
     let viewer = 'kaleidoscope';
     let executables = { kaleidoscope: '', chirosurf: '' };
+    let preferences = { debugMode: false, includeCommonPipistrelle: true };
     let draftViewer, drafts, opening = false;
 
     function savedPreferences() {
@@ -2486,6 +2544,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         }
       }
       if (typeof saved?.wavViewer === 'string') try { viewer = K.viewerInfo(saved.wavViewer).id; } catch {}
+      for (const name of ['debugMode', 'includeCommonPipistrelle']) {
+        if (typeof saved[name] === 'boolean') preferences[name] = saved[name];
+      }
     } catch {}
 
     function showError(message) {
@@ -2509,6 +2570,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       draftViewer = viewer;
       drafts = { ...executables };
       renderSettings();
+      node('settings-debug-mode').checked = preferences.debugMode;
+      node('settings-common-pipistrelle').value = preferences.includeCommonPipistrelle ? 'yes' : 'no';
       showError(message);
       if (!dialog.open) dialog.showModal();
     }
@@ -2527,18 +2590,29 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           return;
         }
       }
+      const previousPreferences = getPreferences();
       viewer = K.viewerInfo(select.value).id;
       executables = next;
+      preferences = {
+        debugMode: node('settings-debug-mode').checked === true,
+        includeCommonPipistrelle: node('settings-common-pipistrelle').value === 'yes'
+      };
       let stored = false;
       try {
         if (storage) {
           storage.setItem(preferencesKey, JSON.stringify({ ...savedPreferences(), wavViewer: viewer,
-            kaleidoscopeExecutable: next.kaleidoscope, chirosurfExecutable: next.chirosurf }));
+            kaleidoscopeExecutable: next.kaleidoscope, chirosurfExecutable: next.chirosurf,
+            ...preferences }));
           stored = true;
         }
       } catch {}
       dialog.close();
+      onPreferencesChange(getPreferences(), previousPreferences);
       onStatus(stored ? 'Réglages enregistrés dans ce navigateur.' : 'Réglages conservés pour cette session. Le stockage du navigateur est indisponible.', !stored);
+    }
+
+    function getPreferences() {
+      return { ...preferences };
     }
 
     function contactPath(imported, best) {
@@ -2603,7 +2677,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       showError('');
     });
 
-    return Object.freeze({ openSettings, openContact });
+    return Object.freeze({ openSettings, openContact, getPreferences });
   }
 
   return Object.freeze({ init });
@@ -2635,6 +2709,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const reviewSaveStatus = document.getElementById('review-save-status');
+  const debugReviewActions = document.getElementById('debug-review-actions');
+  const debugValidateAll = document.getElementById('debug-validate-all');
   const wavOpeningStatus = document.getElementById('wav-opening-status');
   const wavOpening = PlecotusWavOpening.init({
     document,
@@ -2642,8 +2718,18 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       wavOpeningStatus.textContent = message;
       wavOpeningStatus.dataset.error = String(Boolean(isError));
       wavOpeningStatus.hidden = !message;
+    },
+    onPreferencesChange(next, previous) {
+      uiPreferences = next;
+      updateDebugControls();
+      if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
+        applyPipistrelleDefault();
+        chartStatus.textContent = '';
+        renderDistribution();
+      }
     }
   });
+  let uiPreferences = wavOpening.getPreferences();
   const numbers = new Intl.NumberFormat('fr-FR');
   const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -2652,12 +2738,43 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let currentFile = null;
   let currentImport = null;
   let currentDecisions = null;
+  let currentBestContacts = [];
   let importVersion = 0;
   let chartMode = 'pie';
   let chartData = null;
   let chartExporting = false;
   const hiddenChartKeys = new Set();
   const chartTitle = 'Répartition des contacts selon les AUTO-ID';
+
+  function applyPipistrelleDefault() {
+    if (!chartData) return;
+    const otherRows = new Set(BatSpeciesNames.chartRows(chartData.rows, false).rows);
+    for (const row of chartData.rows) {
+      if (otherRows.has(row)) continue;
+      const key = BatActivityChart.rowKey(row);
+      if (uiPreferences.includeCommonPipistrelle) hiddenChartKeys.delete(key);
+      else hiddenChartKeys.add(key);
+    }
+  }
+
+  function updateDebugControls() {
+    debugReviewActions.hidden = !uiPreferences.debugMode;
+    debugValidateAll.disabled = !currentBestContacts.length;
+  }
+
+  function refreshContactDecision(row, recordIndex) {
+    const decision = currentDecisions.get(recordIndex);
+    row.dataset.reviewStatus = decision ? decision.status : 'pending';
+    for (const control of row.querySelectorAll('button[data-decision]')) {
+      control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
+    }
+  }
+
+  function decisionPersistenceMessage() {
+    return currentDecisions.persistenceAvailable
+      ? ' Décision enregistrée dans ce navigateur.'
+      : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.';
+  }
 
   function renderDistribution() {
     if (!chartData) return;
@@ -2744,6 +2861,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
     chartData = PlecotusImportChart.build(result);
     hiddenChartKeys.clear();
+    applyPipistrelleDefault();
     chartStatus.textContent = '';
     renderDistribution();
     overview.hidden = false;
@@ -2754,6 +2872,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     currentFile = file;
     currentImport = null;
     currentDecisions = null;
+    currentBestContacts = [];
+    updateDebugControls();
     chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
@@ -2809,6 +2929,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return;
     }
     const list = document.getElementById('species-groups');
+    currentBestContacts = review.groups.flatMap(group => group.best ? [group.best] : []);
+    updateDebugControls();
     list.replaceChildren();
     document.getElementById('species-review-summary').textContent = numbers.format(review.groups.length)
       + (review.groups.length === 1 ? ' groupe AUTO-ID' : ' groupes AUTO-ID')
@@ -2885,12 +3007,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         const actionGroup = document.createElement('div');
         actionGroup.setAttribute('role', 'group');
         actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + best.lineNumber);
-        const controls = [];
-        const refreshDecision = () => {
-          const decision = currentDecisions.get(best.recordIndex);
-          row.dataset.reviewStatus = decision ? decision.status : 'pending';
-          for (const control of controls) control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
-        };
         for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
           const control = document.createElement('button');
           control.type = 'button';
@@ -2900,18 +3016,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           control.addEventListener('click', () => {
             currentDecisions.set(best.recordIndex, status);
             currentImport.reviewDecisions = currentDecisions.snapshot();
-            refreshDecision();
+            refreshContactDecision(row, best.recordIndex);
             reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(best.lineNumber)
               + (status === 'validated' ? ' validé.' : ' invalidé.')
-              + (currentDecisions.persistenceAvailable ? ' Décision enregistrée dans ce navigateur.' : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.');
+              + decisionPersistenceMessage();
             reviewSaveStatus.hidden = false;
           });
-          controls.push(control);
           actionGroup.append(control);
         }
-        refreshDecision();
         actions.append(actionGroup);
         row.append(actions);
+        refreshContactDecision(row, best.recordIndex);
         body.append(row);
         table.append(header, body);
         wrapper.append(table);
@@ -3009,6 +3124,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (currentFile && contactSheet.value) readFile(currentFile, contactSheet.value);
   });
   startReview.addEventListener('click', showSpecies);
+  debugValidateAll.addEventListener('click', () => {
+    if (!uiPreferences.debugMode || speciesOverview.hidden || !currentDecisions || !currentBestContacts.length) return;
+    currentDecisions.setMany(currentBestContacts.map(best => best.recordIndex), 'validated');
+    currentImport.reviewDecisions = currentDecisions.snapshot();
+    for (const row of speciesOverview.querySelectorAll('tr[data-contact-index]')) {
+      refreshContactDecision(row, Number(row.dataset.contactIndex));
+    }
+    reviewSaveStatus.textContent = numbers.format(currentBestContacts.length)
+      + (currentBestContacts.length === 1 ? ' meilleur contact validé.' : ' meilleurs contacts validés.')
+      + decisionPersistenceMessage();
+    reviewSaveStatus.hidden = false;
+  });
+  updateDebugControls();
   for (const button of chartModes) button.addEventListener('click', () => {
     chartMode = button.dataset.chartMode;
     chartStatus.textContent = '';

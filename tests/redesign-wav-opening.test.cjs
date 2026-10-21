@@ -15,7 +15,7 @@ function ui(preferences = {}, options = {}) {
   const nodes = new Map();
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {
-      value: '', textContent: '', hidden: true, open: false,
+      value: '', checked: false, textContent: '', hidden: true, open: false,
       listeners: new Map(),
       addEventListener(name, callback) { this.listeners.set(name, callback); },
       fire(name) { return this.listeners.get(name)?.({ preventDefault() {} }); },
@@ -26,19 +26,20 @@ function ui(preferences = {}, options = {}) {
     return nodes.get(id);
   };
   const values = options.values || new Map([[key, JSON.stringify(preferences)]]);
-  const calls = [], statuses = [];
+  const calls = [], statuses = [], preferenceChanges = [];
   const storage = options.storage || { getItem: k => values.get(k) ?? null, setItem: (k, value) => values.set(k, value) };
   const h = Wav.init({
     document: { getElementById: node, querySelector: () => options.token === false ? null : { content: 'local-test-token' } },
     location: { origin: options.origin || 'http://127.0.0.1:4174' }, storage,
     onStatus: (message, isError) => statuses.push({ message, isError }),
+    onPreferencesChange: (next, previous) => preferenceChanges.push({ next, previous }),
     fetch: async (url, request) => {
       calls.push({ url, ...request, body: JSON.parse(request.body) });
       if (options.fetch) return options.fetch(url, request);
       return options.response || { ok: true, status: 200, json: async () => ({ ok: true }) };
     }
   });
-  return { h, node, calls, statuses, values,
+  return { h, node, calls, statuses, values, preferenceChanges,
     open: () => node('open-settings').fire('click'),
     choose: id => { node('wav-settings-viewer').value = id; node('wav-settings-viewer').fire('change'); },
     save: () => node('wav-settings-form').fire('submit'),
@@ -87,7 +88,8 @@ test('settings preserve separate software paths, accept Explorer quotes and keep
   app.save();
   assert.equal(app.node('wav-settings').open, false);
   assert.deepEqual(app.saved(), { reviewer: 'AB', wavViewer: 'chirosurf',
-    kaleidoscopeExecutable: 'E:\\Applications\\kaleidoscope.exe', chirosurfExecutable: chirosurf });
+    kaleidoscopeExecutable: 'E:\\Applications\\kaleidoscope.exe', chirosurfExecutable: chirosurf,
+    debugMode: false, includeCommonPipistrelle: true });
   assert.equal(app.calls.length, 0, 'saving does not launch a WAV');
   const reloaded = ui({}, { values: app.values });
   await reloaded.h.openContact(imported, { recordIndex: 0 });
@@ -189,4 +191,93 @@ test('malformed stored preferences can be replaced by valid settings', () => {
   app.save();
   assert.equal(app.saved().kaleidoscopeExecutable, kaleidoscope);
   assert.match(app.statuses.at(-1).message, /enregistrés/);
+});
+
+test('new settings use strict boolean defaults and do not notify during initialization', () => {
+  for (const preferences of [{}, { debugMode: 'true', includeCommonPipistrelle: 'false' },
+    { debugMode: 1, includeCommonPipistrelle: 0 }, { debugMode: null, includeCommonPipistrelle: null }]) {
+    const app = ui(preferences);
+    assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+    assert.equal(app.preferenceChanges.length, 0);
+    app.open();
+    assert.equal(app.node('settings-debug-mode').checked, false);
+    assert.equal(app.node('settings-common-pipistrelle').value, 'yes');
+    const snapshot = app.h.getPreferences();
+    snapshot.debugMode = true;
+    assert.equal(app.h.getPreferences().debugMode, false, 'the returned snapshot cannot change active settings');
+  }
+});
+
+test('debug and common pipistrelle preferences persist and hydrate false values without coercion', () => {
+  const app = ui({ reviewer: 'AB', debugMode: false, includeCommonPipistrelle: false });
+  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: false });
+  app.open();
+  assert.equal(app.node('settings-debug-mode').checked, false);
+  assert.equal(app.node('settings-common-pipistrelle').value, 'no');
+  app.node('settings-debug-mode').checked = true;
+  app.node('settings-common-pipistrelle').value = 'yes';
+  app.save();
+  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: true });
+  assert.deepEqual(app.preferenceChanges, [{ next: { debugMode: true, includeCommonPipistrelle: true },
+    previous: { debugMode: false, includeCommonPipistrelle: false } }]);
+  assert.equal(app.saved().reviewer, 'AB');
+  const reloaded = ui({}, { values: app.values });
+  assert.deepEqual(reloaded.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: true });
+  assert.equal(reloaded.preferenceChanges.length, 0);
+  reloaded.open();
+  reloaded.node('settings-debug-mode').checked = false;
+  reloaded.node('settings-common-pipistrelle').value = 'no';
+  reloaded.save();
+  assert.equal(reloaded.saved().debugMode, false);
+  assert.equal(reloaded.saved().includeCommonPipistrelle, false);
+  assert.deepEqual(ui({}, { values: app.values }).h.getPreferences(), { debugMode: false, includeCommonPipistrelle: false });
+});
+
+test('viewer changes keep pending preference edits and cancelling discards them', () => {
+  const app = ui({ kaleidoscopeExecutable: kaleidoscope });
+  app.open();
+  app.node('settings-debug-mode').checked = true;
+  app.node('settings-common-pipistrelle').value = 'no';
+  app.choose('chirosurf');
+  app.choose('kaleidoscope');
+  assert.equal(app.node('settings-debug-mode').checked, true);
+  assert.equal(app.node('settings-common-pipistrelle').value, 'no');
+  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+  app.node('wav-settings-cancel').fire('click');
+  app.open();
+  assert.equal(app.node('settings-debug-mode').checked, false);
+  assert.equal(app.node('settings-common-pipistrelle').value, 'yes');
+  assert.equal(app.preferenceChanges.length, 0);
+});
+
+test('an invalid executable prevents partial preference saves and notifications', () => {
+  const app = ui({ kaleidoscopeExecutable: kaleidoscope, debugMode: false, includeCommonPipistrelle: true });
+  app.open();
+  app.node('settings-debug-mode').checked = true;
+  app.node('settings-common-pipistrelle').value = 'no';
+  app.node('wav-settings-executable').value = 'C:\\Windows\\System32\\cmd.exe';
+  app.save();
+  assert.equal(app.node('wav-settings').open, true);
+  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+  assert.equal(app.saved().debugMode, false);
+  assert.equal(app.saved().includeCommonPipistrelle, true);
+  assert.equal(app.preferenceChanges.length, 0);
+  assert.equal(app.node('settings-debug-mode').checked, true, 'failed validation leaves the pending edits visible');
+  assert.equal(app.node('settings-common-pipistrelle').value, 'no');
+  app.node('wav-settings-executable').value = kaleidoscope;
+  app.save();
+  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: false });
+  assert.equal(app.preferenceChanges.length, 1);
+});
+
+test('a valid save notifies preference changes even when persistent storage is unavailable', () => {
+  const app = ui({}, { storage: { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } } });
+  app.open();
+  app.node('settings-debug-mode').checked = true;
+  app.node('settings-common-pipistrelle').value = 'no';
+  app.save();
+  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: false });
+  assert.deepEqual(app.preferenceChanges, [{ next: { debugMode: true, includeCommonPipistrelle: false },
+    previous: { debugMode: false, includeCommonPipistrelle: true } }]);
+  assert.match(app.statuses.at(-1).message, /cette session/);
 });

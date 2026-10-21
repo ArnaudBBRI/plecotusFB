@@ -106,6 +106,29 @@
         .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })) };
     }
 
+    function setMany(recordIndices, status) {
+      if (!denseArray(recordIndices)) throw new TypeError('La sélection des contacts doit être une liste complète de numéros.');
+      if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
+      // Check the entire selection before replacing any existing decisions.
+      for (const recordIndex of recordIndices) checkIndex(recordIndex);
+      const indices = [...new Set(recordIndices)];
+      const updatedAt = new Date().toISOString();
+      const changes = [];
+      const result = indices.map(recordIndex => {
+        const previous = decisions.get(recordIndex);
+        if (previous && previous.status === status) return previous;
+        const decision = decisionFor(recordIndex, status, updatedAt);
+        changes.push(decision);
+        return decision;
+      });
+      for (const decision of changes) decisions.set(decision.recordIndex, decision);
+      if (changes.length && persistenceAvailable) {
+        try { storage.setItem(key, JSON.stringify(snapshot())); }
+        catch { persistenceAvailable = false; }
+      }
+      return Object.freeze(result);
+    }
+
     return Object.freeze({
       get persistenceAvailable() { return persistenceAvailable; },
       get(recordIndex) {
@@ -114,17 +137,9 @@
       },
       set(recordIndex, status) {
         checkIndex(recordIndex);
-        if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
-        const previous = decisions.get(recordIndex);
-        if (previous && previous.status === status) return previous;
-        const decision = decisionFor(recordIndex, status, new Date().toISOString());
-        decisions.set(recordIndex, decision);
-        if (persistenceAvailable) {
-          try { storage.setItem(key, JSON.stringify(snapshot())); }
-          catch { persistenceAvailable = false; }
-        }
-        return decision;
+        return setMany([recordIndex], status)[0];
       },
+      setMany,
       snapshot
     });
   }

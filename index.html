@@ -93,6 +93,10 @@
       </section>
       <section class="species-overview" id="species-overview" aria-labelledby="species-heading" hidden>
         <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
+        <div class="debug-review-actions" id="debug-review-actions" hidden>
+          <button id="debug-validate-all" type="button">Valider tous les meilleurs contacts</button>
+          <p>Mode débogage : valide les meilleurs contacts affichés, hors Noise.</p>
+        </div>
         <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
         <p class="species-review-summary" id="species-review-summary"></p>
         <p class="review-save-status" id="review-save-status" role="status" hidden></p>
@@ -121,6 +125,15 @@
   <dialog class="wav-settings" id="wav-settings" aria-labelledby="wav-settings-heading">
     <form id="wav-settings-form">
       <header><h2 id="wav-settings-heading">Réglages</h2></header>
+      <fieldset class="settings-general">
+        <legend>Options de l’interface</legend>
+        <label class="settings-checkbox" for="settings-debug-mode"><input id="settings-debug-mode" type="checkbox"> Mode débogage</label>
+        <label for="settings-common-pipistrelle">Afficher la Pipistrelle commune par défaut dans les graphiques</label>
+        <select id="settings-common-pipistrelle">
+          <option value="yes">Oui</option>
+          <option value="no">Non</option>
+        </select>
+      </fieldset>
       <label for="wav-settings-viewer">Logiciel d’ouverture des WAV</label>
       <select id="wav-settings-viewer">
         <option value="kaleidoscope">Kaleidoscope</option>

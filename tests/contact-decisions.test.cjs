@@ -47,6 +47,71 @@ test('contacts sharing a WAV keep independent decisions by original record and p
   assert.deepEqual(model.snapshot().decisions.map(item => item.recordIndex), [0, 1]);
 });
 
+test('batch decisions replace opposite choices, deduplicate indices, and persist one complete snapshot', async () => {
+  const storage = memoryStorage();
+  const writes = [];
+  const write = storage.setItem;
+  storage.setItem = (key, value) => { writes.push(JSON.parse(value)); write(key, value); };
+  const model = await Decisions.create(imported(), options(storage));
+  model.set(0, 'invalidated');
+  writes.length = 0;
+  const result = model.setMany([1, 0, 1, 0], 'validated');
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(result.every(Object.isFrozen), true);
+  assert.deepEqual(result.map(item => item.recordIndex), [1, 0]);
+  assert.equal(model.get(0).status, 'validated');
+  assert.equal(model.get(1).status, 'validated');
+  assert.equal(result[0].updatedAt, result[1].updatedAt);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0], model.snapshot());
+  const restored = await Decisions.create(imported(), options(storage));
+  assert.deepEqual(restored.snapshot(), model.snapshot());
+});
+
+test('a malformed batch or status cannot partially replace choices or write persistence', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; } }));
+  model.set(0, 'invalidated');
+  const before = model.snapshot();
+  writes = 0;
+  for (const indices of [null, {}, new Set([0, 1]), '0,1', [0, 2], [1, -1], [0, '1'], [0, 0.5], [0, null], Array(2), [0, , 1]]) {
+    assert.throws(() => model.setMany(indices, 'validated'), /liste complète|numéro du contact/);
+    assert.deepEqual(model.snapshot(), before);
+  }
+  for (const status of [null, true, 'pending', 'VALIDATED']) {
+    assert.throws(() => model.setMany([1, 0], status), /valider ou d’invalider/);
+    assert.deepEqual(model.snapshot(), before);
+  }
+  assert.equal(writes, 0);
+});
+
+test('empty and unchanged batches keep selections and timestamps without extra writes', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; } }));
+  const first = model.setMany([0, 1], 'validated');
+  assert.equal(writes, 1);
+  const repeated = model.setMany([1, 0, 1], 'validated');
+  assert.equal(repeated[0], first[1]);
+  assert.equal(repeated[1], first[0]);
+  assert.deepEqual(model.setMany([], 'invalidated'), []);
+  assert.equal(Object.isFrozen(model.setMany([], 'validated')), true);
+  assert.equal(writes, 1);
+});
+
+test('a failed batch persistence write still applies all session decisions once', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; throw Error('quota'); } }));
+  const result = model.setMany([1, 0], 'invalidated');
+  assert.equal(writes, 1);
+  assert.equal(model.persistenceAvailable, false);
+  assert.equal(result.length, 2);
+  assert.equal(model.get(0).status, 'invalidated');
+  assert.equal(model.get(1).status, 'invalidated');
+  model.setMany([0, 1], 'validated');
+  assert.equal(writes, 1);
+  assert.equal(model.snapshot().decisions.every(item => item.validated), true);
+});
+
 test('identical source files restore decisions after a new model is created', async () => {
   const storage = memoryStorage();
   const first = await Decisions.create(imported(), options(storage));
