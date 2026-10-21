@@ -1,0 +1,171 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const UI = require('../manual-review-ui.js');
+
+function element(tag = 'div') {
+  return {
+    tag, children: [], dataset: {}, attributes: {}, listeners: new Map(), hidden: true,
+    textContent: '', focusCount: 0,
+    append(...children) { this.children.push(...children); },
+    replaceChildren(...children) { this.children = children; },
+    setAttribute(name, value) { this.attributes[name] = value; },
+    addEventListener(name, callback) { this.listeners.set(name, callback); },
+    fire(name) { return this.listeners.get(name)?.(); },
+    focus() { this.focusCount++; }
+  };
+}
+
+function fixture() {
+  const nodes = new Map();
+  const node = id => {
+    if (!nodes.has(id)) nodes.set(id, element());
+    return nodes.get(id);
+  };
+  const groups = [
+    { key: 'a', label: 'NYCNOC', kind: 'species', total: 10, mode: 'sample',
+      requiredIndices: [1], completed: 0, remaining: 1, progress: 0,
+      reasons: ['Cette espèce exige un échantillon représentatif.'], contacts: [{ recordIndex: 1, lineNumber: 3 }] },
+    { key: 'b', label: 'PIPPIP', kind: 'species', total: 20, mode: 'auto',
+      requiredIndices: [], completed: 0, remaining: 0, progress: 1,
+      reasons: ['Les trois conditions de validation directe sont réunies.'], contacts: [] },
+    { key: 'c', label: 'NoID', kind: 'noid', total: 3, mode: 'individual',
+      requiredIndices: [3, 4], completed: 0, remaining: 2, progress: 0,
+      reasons: ['Ces contacts doivent être identifiés individuellement.'], contacts: [{ recordIndex: 3 }, { recordIndex: 4 }] }
+  ];
+  const plan = { ready: true, groups, requiredIndices: [1, 3, 4], remaining: 3 };
+  const preferences = { debugMode: false };
+  const rendered = [], changes = [], callbacks = { sync: 0, back: 0 };
+  const ui = UI.init({
+    document: { getElementById: node, createElement: tag => element(tag) },
+    getPlan: () => plan,
+    getPreferences: () => preferences,
+    renderContactCard: (contact, label) => { rendered.push({ contact, label }); return element('article'); },
+    setMany(indices, status) {
+      changes.push({ indices, status });
+      for (const group of groups) {
+        group.completed = group.requiredIndices.length;
+        group.remaining = 0;
+        group.progress = 1;
+      }
+      plan.remaining = 0;
+    },
+    onDecisionsChanged: () => callbacks.sync++,
+    onBackToBest: () => callbacks.back++
+  });
+  const row = index => node('manual-species-rows').children[index];
+  const progressLine = index => row(index).children[1].children[0];
+  const open = index => progressLine(index).children[2].fire('click');
+  return { ui, node, groups, plan, preferences, rendered, changes, callbacks, row, progressLine, open };
+}
+
+test('the next view refuses an unfinished reference gate and shows compact progress rows once ready', () => {
+  const app = fixture();
+  app.plan.ready = false;
+  assert.equal(app.ui.showPlan(), false);
+  assert.equal(app.node('manual-plan-overview').hidden, true);
+  app.plan.ready = true;
+  assert.equal(app.ui.showPlan(), true);
+  assert.equal(app.node('manual-plan-overview').hidden, false);
+  assert.equal(app.node('manual-species-rows').children.length, 3);
+  assert.match(app.row(0).children[0].children[0].textContent, /NYCNOC.*Noctule commune/);
+  assert.equal(app.progressLine(0).children[0].value, 0);
+  assert.equal(app.progressLine(1).children[0].value, 1, 'an automatic species has a full bar immediately');
+  assert.equal(app.progressLine(0).children[1].textContent, '1 à vérifier');
+  assert.match(app.progressLine(0).children[2].attributes['aria-label'], /Vérifier NYCNOC/);
+});
+
+test('per-species navigation and progress refresh retain existing contact cards and keyboard focus', () => {
+  const app = fixture();
+  app.ui.showPlan();
+  app.open(0);
+  assert.equal(app.node('manual-plan-overview').hidden, true);
+  assert.equal(app.node('manual-species-detail').hidden, false);
+  assert.equal(app.rendered.length, 1);
+  assert.equal(app.rendered[0].contact.recordIndex, 1);
+  assert.match(app.node('manual-species-method').textContent, /échantillon représentatif/);
+  const original = app.node('manual-contact-list').children[0];
+  app.groups[0].completed = 1;
+  app.groups[0].remaining = 0;
+  app.groups[0].progress = 1;
+  app.plan.remaining = 2;
+  app.ui.refresh();
+  assert.equal(app.node('manual-contact-list').children[0], original);
+  assert.equal(app.rendered.length, 1);
+  assert.equal(app.node('manual-species-heading').focusCount, 1);
+  assert.match(app.node('manual-species-summary').textContent, /1 \/ 1.*0 restants/);
+  app.node('manual-species-back').fire('click');
+  assert.equal(app.node('manual-plan-overview').hidden, false);
+  assert.equal(app.progressLine(0).children[0].value, 1);
+});
+
+test('species with no additional manual work open an explanation without empty contact cards', () => {
+  const app = fixture();
+  app.ui.showPlan();
+  app.open(1);
+  assert.equal(app.rendered.length, 0);
+  assert.match(app.node('manual-species-summary').textContent, /Validation automatique/);
+  assert.match(app.node('manual-contact-list').children[0].textContent, /validés automatiquement/);
+});
+
+test('debug bulk validation is guarded and uses all required contacts with the same background model', () => {
+  const app = fixture();
+  app.ui.showPlan();
+  assert.equal(app.node('manual-plan-debug').hidden, true);
+  app.node('manual-plan-debug-all').fire('click');
+  assert.equal(app.changes.length, 0);
+  app.preferences.debugMode = true;
+  app.ui.refresh();
+  assert.equal(app.node('manual-plan-debug').hidden, false);
+  app.node('manual-plan-debug-all').fire('click');
+  assert.deepEqual(app.changes, [{ indices: [1, 3, 4], status: 'validated' }]);
+  assert.equal(app.callbacks.sync, 1);
+  assert.equal(app.progressLine(0).children[0].value, 1);
+  assert.equal(app.progressLine(2).children[1].textContent, '0 à vérifier');
+  assert.match(app.node('manual-plan-summary').textContent, /0 contrôles supplémentaires/);
+  app.ui.hide();
+  app.node('manual-plan-debug-all').fire('click');
+  assert.equal(app.changes.length, 1, 'hidden debug controls cannot modify the model');
+});
+
+test('returning to best contacts hides both manual screens without clearing stored choices', () => {
+  const app = fixture();
+  app.ui.showPlan();
+  app.node('manual-plan-back').fire('click');
+  assert.equal(app.callbacks.back, 1);
+  assert.equal(app.node('manual-plan-overview').hidden, true);
+  assert.equal(app.node('manual-species-detail').hidden, true);
+  app.ui.showPlan();
+  app.open(2);
+  assert.equal(app.rendered.length, 2);
+  assert.equal(app.rendered[0].label, 'Non identifié (NoID)');
+});
+
+test('hiding clears stale imported contact nodes while retaining model choices and supports a shorter next import', () => {
+  const app = fixture();
+  app.ui.showPlan();
+  app.open(0);
+  app.groups[0].completed = 1;
+  app.groups[0].remaining = 0;
+  app.groups[0].progress = 1;
+  app.plan.remaining = 2;
+  app.ui.hide();
+  assert.equal(app.node('manual-contact-list').children.length, 0);
+  assert.equal(app.node('manual-species-rows').children.length, 0);
+  assert.equal(app.groups[0].completed, 1, 'the background choice survives clearing the view');
+  app.ui.showPlan();
+  app.open(0);
+  assert.equal(app.rendered.at(-1).contact.recordIndex, 1);
+  assert.match(app.node('manual-species-summary').textContent, /1 \/ 1.*0 restants/);
+
+  app.ui.hide();
+  app.plan.groups = [{ key: 'new', label: 'NoID', kind: 'noid', total: 1, mode: 'individual',
+    requiredIndices: [0], completed: 0, remaining: 1, progress: 0,
+    reasons: ['Nouveau fichier à contrôler.'], contacts: [{ recordIndex: 0, lineNumber: 2 }] }];
+  app.plan.requiredIndices = [0];
+  app.plan.remaining = 1;
+  app.ui.showPlan();
+  app.open(0);
+  assert.equal(app.node('manual-contact-list').children.length, 1);
+  assert.equal(app.rendered.at(-1).contact.recordIndex, 0);
+  assert.match(app.node('manual-species-method').textContent, /Nouveau fichier/);
+});

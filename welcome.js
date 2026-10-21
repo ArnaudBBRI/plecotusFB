@@ -24,6 +24,8 @@
   const reviewSaveStatus = document.getElementById('review-save-status');
   const debugReviewActions = document.getElementById('debug-review-actions');
   const debugValidateAll = document.getElementById('debug-validate-all');
+  const nextReviewStep = document.getElementById('review-next-button');
+  const nextReviewStatus = document.getElementById('review-next-status');
   const wavOpeningStatus = document.getElementById('wav-opening-status');
   const wavOpening = PlecotusWavOpening.init({
     document,
@@ -35,6 +37,7 @@
     onPreferencesChange(next, previous) {
       uiPreferences = next;
       updateDebugControls();
+      if (currentManualPlan) manualScreens.refresh();
       if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
         applyPipistrelleDefault();
         chartStatus.textContent = '';
@@ -52,12 +55,70 @@
   let currentImport = null;
   let currentDecisions = null;
   let currentBestContacts = [];
+  let currentManualPlan = null;
   let importVersion = 0;
   let chartMode = 'pie';
   let chartData = null;
   let chartExporting = false;
   const hiddenChartKeys = new Set();
   const chartTitle = 'Répartition des contacts selon les AUTO-ID';
+  const manualScreens = PlecotusManualReviewUI.init({
+    document,
+    getPlan: buildManualPlan,
+    getPreferences: () => uiPreferences,
+    renderContactCard: createManualContactCard,
+    setMany: (indices, status) => currentDecisions.setMany(indices, status),
+    onDecisionsChanged: () => syncDecisions(false),
+    onBackToBest: showSpecies
+  });
+
+  function buildManualPlan() {
+    if (!currentImport || !currentDecisions) return null;
+    currentManualPlan = PlecotusManualWorkflow.build(currentImport, currentDecisions);
+    currentImport.processed = currentManualPlan.processed;
+    return currentManualPlan;
+  }
+
+  function updateNextStep() {
+    const pending = currentBestContacts.filter(contact => !currentDecisions || !currentDecisions.get(contact.recordIndex));
+    nextReviewStep.setAttribute('aria-disabled', String(!currentImport || Boolean(pending.length)));
+    nextReviewStatus.textContent = pending.length
+      ? numbers.format(pending.length) + (pending.length === 1 ? ' meilleur contact reste à valider ou invalider.' : ' meilleurs contacts restent à valider ou invalider.')
+      : 'Tous les meilleurs contacts ont été contrôlés. Vous pouvez continuer.';
+  }
+
+  function syncDecisions(refreshManual = true) {
+    if (!currentImport || !currentDecisions) return;
+    currentImport.reviewDecisions = currentDecisions.snapshot();
+    for (const row of document.querySelectorAll('tr[data-contact-index]')) {
+      refreshContactDecision(row, Number(row.dataset.contactIndex));
+    }
+    updateNextStep();
+    if (currentManualPlan) {
+      if (refreshManual) manualScreens.refresh();
+      else buildManualPlan();
+    }
+  }
+
+  function decideContact(recordIndex, status) {
+    currentDecisions.set(recordIndex, status);
+    syncDecisions();
+    const sourceLine = currentDecisions.get(recordIndex).sourceRow;
+    reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(sourceLine)
+      + (status === 'validated' ? ' validé.' : ' invalidé.') + decisionPersistenceMessage();
+    reviewSaveStatus.hidden = false;
+  }
+
+  function createManualContactCard(contact, groupLabel) {
+    const card = document.createElement('article');
+    card.className = 'species-group';
+    const heading = document.createElement('h3');
+    heading.className = 'manual-contact-heading';
+    heading.textContent = 'Contact · ligne source ' + numbers.format(contact.lineNumber);
+    card.append(heading);
+    appendContactContent(card, contact, groupLabel);
+    return card;
+  }
 
   function applyPipistrelleDefault() {
     if (!chartData) return;
@@ -186,6 +247,8 @@
     currentImport = null;
     currentDecisions = null;
     currentBestContacts = [];
+    currentManualPlan = null;
+    manualScreens.hide();
     updateDebugControls();
     chartData = null;
     overview.hidden = true;
@@ -232,6 +295,74 @@
     }
   }
 
+  function appendContactContent(card, contact, label, isBest = false) {
+    const filename = document.createElement('p');
+    filename.className = 'best-contact-file';
+    filename.append(document.createTextNode(isBest ? 'Meilleur contact : ' : 'Fichier WAV : '));
+    if (contact.fileName) {
+      const wavLink = document.createElement('button');
+      wavLink.type = 'button';
+      wavLink.className = 'wav-file-link';
+      wavLink.textContent = contact.fileName + ' ↗';
+      wavLink.title = 'Ouvrir ce WAV dans le logiciel configuré';
+      const imported = currentImport;
+      wavLink.addEventListener('click', () => wavOpening.openContact(imported, contact));
+      filename.append(wavLink);
+    } else filename.append(document.createTextNode('Fichier non renseigné'));
+    card.append(filename);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'best-contact-table-wrap';
+    wrapper.tabIndex = 0;
+    wrapper.setAttribute('role', 'region');
+    wrapper.setAttribute('aria-label', 'Valeurs du contact : ' + label);
+    const table = document.createElement('table');
+    table.className = 'best-contact-table';
+    const header = document.createElement('thead');
+    const labels = document.createElement('tr');
+    for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure', 'Décision']) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = label;
+      labels.append(cell);
+    }
+    header.append(labels);
+    const body = document.createElement('tbody');
+    const row = document.createElement('tr');
+    row.dataset.contactIndex = String(contact.recordIndex);
+    const values = [numbers.format(contact.lineNumber),
+      contact.ratio == null ? '—' : rankingNumbers.format(contact.ratio),
+      contact.qual == null ? '—' : rankingNumbers.format(contact.qual),
+      contact.pulses == null ? '—' : rankingNumbers.format(contact.pulses),
+      contact.dateValue == null ? '—' : contact.date,
+      contact.timeValue == null ? '—' : contact.time];
+    for (const value of values) {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      row.append(cell);
+    }
+    const actions = document.createElement('td');
+    actions.className = 'contact-actions';
+    const actionGroup = document.createElement('div');
+    actionGroup.setAttribute('role', 'group');
+    actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + contact.lineNumber);
+    for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
+      const control = document.createElement('button');
+      control.type = 'button';
+      control.className = 'contact-decision-button';
+      control.dataset.decision = status;
+      control.textContent = label;
+      control.addEventListener('click', () => decideContact(contact.recordIndex, status));
+      actionGroup.append(control);
+    }
+    actions.append(actionGroup);
+    row.append(actions);
+    refreshContactDecision(row, contact.recordIndex);
+    body.append(row);
+    table.append(header, body);
+    wrapper.append(table);
+    card.append(wrapper);
+  }
+
   function showSpecies() {
     if (!currentImport || !currentImport.summary.vanilla || !currentImport.summary.totalContacts) return;
     let review;
@@ -270,80 +401,7 @@
       card.append(heading);
 
       if (group.best) {
-        const best = group.best;
-        const filename = document.createElement('p');
-        filename.className = 'best-contact-file';
-        filename.append(document.createTextNode('Meilleur contact : '));
-        if (best.fileName) {
-          const wavLink = document.createElement('button');
-          wavLink.type = 'button';
-          wavLink.className = 'wav-file-link';
-          wavLink.textContent = best.fileName + ' ↗';
-          wavLink.title = 'Ouvrir ce WAV dans le logiciel configuré';
-          const imported = currentImport;
-          wavLink.addEventListener('click', () => wavOpening.openContact(imported, best));
-          filename.append(wavLink);
-        } else filename.append(document.createTextNode('Fichier non renseigné'));
-        card.append(filename);
-        const wrapper = document.createElement('div');
-        wrapper.className = 'best-contact-table-wrap';
-        wrapper.tabIndex = 0;
-        wrapper.setAttribute('role', 'region');
-        wrapper.setAttribute('aria-label', 'Valeurs du meilleur contact : ' + title.textContent);
-        const table = document.createElement('table');
-        table.className = 'best-contact-table';
-        const header = document.createElement('thead');
-        const labels = document.createElement('tr');
-        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure', 'Décision']) {
-          const cell = document.createElement('th');
-          cell.scope = 'col';
-          cell.textContent = label;
-          labels.append(cell);
-        }
-        header.append(labels);
-        const body = document.createElement('tbody');
-        const row = document.createElement('tr');
-        row.dataset.contactIndex = String(best.recordIndex);
-        const values = [numbers.format(best.lineNumber),
-          best.ratio == null ? '—' : rankingNumbers.format(best.ratio),
-          best.qual == null ? '—' : rankingNumbers.format(best.qual),
-          best.pulses == null ? '—' : rankingNumbers.format(best.pulses),
-          best.dateValue == null ? '—' : best.date,
-          best.timeValue == null ? '—' : best.time];
-        for (const value of values) {
-          const cell = document.createElement('td');
-          cell.textContent = value;
-          row.append(cell);
-        }
-        const actions = document.createElement('td');
-        actions.className = 'contact-actions';
-        const actionGroup = document.createElement('div');
-        actionGroup.setAttribute('role', 'group');
-        actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + best.lineNumber);
-        for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
-          const control = document.createElement('button');
-          control.type = 'button';
-          control.className = 'contact-decision-button';
-          control.dataset.decision = status;
-          control.textContent = label;
-          control.addEventListener('click', () => {
-            currentDecisions.set(best.recordIndex, status);
-            currentImport.reviewDecisions = currentDecisions.snapshot();
-            refreshContactDecision(row, best.recordIndex);
-            reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(best.lineNumber)
-              + (status === 'validated' ? ' validé.' : ' invalidé.')
-              + decisionPersistenceMessage();
-            reviewSaveStatus.hidden = false;
-          });
-          actionGroup.append(control);
-        }
-        actions.append(actionGroup);
-        row.append(actions);
-        refreshContactDecision(row, best.recordIndex);
-        body.append(row);
-        table.append(header, body);
-        wrapper.append(table);
-        card.append(wrapper);
+        appendContactContent(card, group.best, title.textContent, true);
       } else {
         const empty = document.createElement('p');
         empty.className = 'best-contact-empty';
@@ -359,7 +417,9 @@
       list.append(empty);
     }
     overview.hidden = true;
+    manualScreens.hide();
     speciesOverview.hidden = false;
+    updateNextStep();
     document.getElementById('species-heading').focus();
   }
 
@@ -437,13 +497,27 @@
     if (currentFile && contactSheet.value) readFile(currentFile, contactSheet.value);
   });
   startReview.addEventListener('click', showSpecies);
+  nextReviewStep.addEventListener('click', () => {
+    if (!currentImport || !currentDecisions || speciesOverview.hidden) return;
+    const pending = currentBestContacts.filter(contact => !currentDecisions.get(contact.recordIndex));
+    if (pending.length) {
+      nextReviewStatus.textContent = 'Impossible de continuer : validez ou invalidez chaque meilleur contact ('
+        + numbers.format(pending.length) + (pending.length === 1 ? ' restant).' : ' restants).');
+      return;
+    }
+    try {
+      if (manualScreens.showPlan()) {
+        speciesOverview.hidden = true;
+        overview.hidden = true;
+      }
+    } catch (error) {
+      nextReviewStatus.textContent = error.message || 'Impossible de préparer les contrôles manuels.';
+    }
+  });
   debugValidateAll.addEventListener('click', () => {
     if (!uiPreferences.debugMode || speciesOverview.hidden || !currentDecisions || !currentBestContacts.length) return;
     currentDecisions.setMany(currentBestContacts.map(best => best.recordIndex), 'validated');
-    currentImport.reviewDecisions = currentDecisions.snapshot();
-    for (const row of speciesOverview.querySelectorAll('tr[data-contact-index]')) {
-      refreshContactDecision(row, Number(row.dataset.contactIndex));
-    }
+    syncDecisions();
     reviewSaveStatus.textContent = numbers.format(currentBestContacts.length)
       + (currentBestContacts.length === 1 ? ' meilleur contact validé.' : ' meilleurs contacts validés.')
       + decisionPersistenceMessage();

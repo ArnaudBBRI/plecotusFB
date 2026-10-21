@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="import-chart.css">
   <link rel="stylesheet" href="best-contacts.css">
   <link rel="stylesheet" href="review-actions.css">
+  <link rel="stylesheet" href="manual-review.css">
   <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
   <script defer src="core.js"></script>
   <script defer src="kaleidoscope.js"></script>
@@ -21,6 +22,8 @@
   <script defer src="import-chart.js"></script>
   <script defer src="best-contacts.js"></script>
   <script defer src="contact-decisions.js"></script>
+  <script defer src="manual-workflow.js"></script>
+  <script defer src="manual-review-ui.js"></script>
   <script defer src="wav-opening.js"></script>
   <script defer src="welcome.js"></script>
 </head>
@@ -102,6 +105,7 @@
         <p class="review-save-status" id="review-save-status" role="status" hidden></p>
         <div class="species-review-layout">
           <div id="species-groups"></div>
+          <div class="best-method-column">
           <aside class="best-method" aria-labelledby="best-method-heading" tabindex="0">
             <h3 id="best-method-heading">Comment le meilleur contact est-il choisi ?</h3>
             <p>Un meilleur contact par <strong>AUTO-ID</strong>, sur tout le fichier. Ordre de tri :</p>
@@ -118,7 +122,48 @@
             <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Utilisez « Valider » ou « Invalider » pour enregistrer votre décision. Chaque choix remplace le précédent.</p>
             <p class="best-contact-note" id="best-missing-columns" hidden></p>
           </aside>
+          <div class="review-next-step">
+            <button id="review-next-button" type="button" aria-disabled="true" aria-describedby="review-next-status">Étape suivante →</button>
+            <p id="review-next-status" role="status"></p>
+          </div>
+          </div>
         </div>
+      </section>
+      <section id="manual-plan-overview" aria-labelledby="manual-plan-heading" hidden>
+        <button class="manual-back-button" id="manual-plan-back" type="button">← Retour aux meilleurs contacts</button>
+        <h2 id="manual-plan-heading" tabindex="-1">Contrôles manuels par espèce</h2>
+        <div class="debug-review-actions manual-debug-actions" id="manual-plan-debug" hidden>
+          <button id="manual-plan-debug-all" type="button">Valider tous les contrôles de toutes les espèces</button>
+        </div>
+        <p id="manual-plan-summary" role="status"></p>
+        <div class="manual-plan-layout">
+          <div class="manual-species-list">
+            <table class="manual-species-table">
+              <thead><tr><th scope="col">Espèce</th><th scope="col">Contrôles manuels</th></tr></thead>
+              <tbody id="manual-species-rows"></tbody>
+            </table>
+          </div>
+          <aside class="manual-method" aria-labelledby="manual-method-heading" tabindex="0">
+            <h3 id="manual-method-heading">Quels contacts faut-il vérifier ?</h3>
+            <p>Les AUTO-ID d’une espèce sont repris dans <strong>SEMIMANUAL ID</strong> lorsque ces trois conditions sont remplies :</p>
+            <ol>
+              <li>Le meilleur contact est <strong>validé</strong> : son identification manuelle confirme l’AUTO-ID.</li>
+              <li><strong>Au moins 50 %</strong> des contacts de l’espèce ont un <strong>MATCH RATIO ≥ 0,6</strong>. Les ratios absents ou invalides restent dans le total.</li>
+              <li>L’espèce ne figure pas dans la liste d’exclusion du projet.</li>
+            </ol>
+            <p class="manual-method-codes">Espèces exclues : BARBAR, RHIFER, RHIHIP, MYOBEC, MYODAS, MYOMYO, MYOEMA, NYCNOC, NYCLEI.</p>
+            <p>Sinon, un échantillon d’au moins <strong>20 %</strong> des contacts est contrôlé, arrondi au supérieur. Le meilleur contact déjà contrôlé est compris dans ce quota.</p>
+            <p>La sélection est répartie proportionnellement entre les classes de MATCH RATIO : [0 ; 0,2], ]0,2 ; 0,4], ]0,4 ; 0,6], ]0,6 ; 0,8], ]0,8 ; 1], plus une classe pour les ratios absents ou invalides. Les quotas entiers utilisent les plus forts restes et incluent le meilleur contact.</p>
+            <p>Les barres suivent les <strong>contrôles supplémentaires</strong> : « Valider » et « Invalider » terminent chacun un contrôle. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu.</p>
+          </aside>
+        </div>
+      </section>
+      <section id="manual-species-detail" aria-labelledby="manual-species-heading" hidden>
+        <button class="manual-back-button" id="manual-species-back" type="button">← Retour aux espèces</button>
+        <h2 id="manual-species-heading" tabindex="-1"></h2>
+        <p id="manual-species-summary" role="status"></p>
+        <p id="manual-species-method"></p>
+        <div class="manual-contact-list" id="manual-contact-list"></div>
       </section>
     </div>
   </main>
