@@ -1,0 +1,10 @@
+Plecotus bat logo v1
+Generated with the built-in image_gen tool. Transparent background requested.
+
+Use case: logo-brand.
+Asset type: standalone logo mark for Plecotus, a bat analysis application.
+Primary request: create one original, cool bat in the shaded low-poly geometric style of the user's attached deer reference. Use the reference for its crisp triangular facets, dimensional tonal shading, and restrained natural colors only. The subject must be a bat.
+Subject and composition: a single recognizable long-eared bat with wings spread in a graceful shallow upward arc, viewed mostly from the front with a subtly dimensional head and body. Clearly visible long ears, a small refined face, and anatomically plausible wing fingers and scalloped membranes. A confident, elegant, readable silhouette that works as an application identity; modest polygon count with larger facets across the membranes. Center the entire bat with comfortable clear space; both wing tips and ears fully in frame.
+Style: polished faceted low-poly illustration, flat triangular planes with carefully controlled shaded depth like folded paper, sharp clean edges, no thick outlines, no noisy mesh lines. Take the warm brown, copper, ochre and dark umber tones from the reference, with highlights above and shadows below. Sophisticated natural-history feeling.
+Background: genuinely transparent alpha, no backdrop and no ground plane.
+Constraints: one bat only; no typography, no letters, no border, no badge, no watermark, no deer, no antlers, no Batman emblem, no scene, no cast shadow, no photorealistic fur, no glossy plastic. Produce one finished logo, not a presentation sheet.
