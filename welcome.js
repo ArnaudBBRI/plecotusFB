@@ -7,6 +7,9 @@
   const fallback = document.getElementById('logo-fallback');
   const status = document.getElementById('welcome-status');
   const dashboard = document.getElementById('dashboard');
+  const loadFile = document.getElementById('load-file');
+  const fileInput = document.getElementById('data-file');
+  const fileStatus = document.getElementById('selected-file');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'loading';
   let cancelAnimation = () => {};
@@ -41,7 +44,7 @@
     logo.classList.remove('is-illuminating');
     setState('ready');
     bat.disabled = false;
-    status.textContent = 'Plecotus is ready. Select the bat to open the dashboard.';
+    status.textContent = 'Plecotus est prêt. Sélectionnez la chauve-souris pour ouvrir le tableau de bord.';
   }
 
   function showDashboard() {
@@ -50,7 +53,8 @@
     setState('dashboard');
     welcome.hidden = true;
     dashboard.hidden = false;
-    document.title = 'Plecotus · Dashboard';
+    document.title = 'Plecotus · Tableau de bord';
+    document.querySelector('meta[name="theme-color"]').content = '#ffffff';
     dashboard.focus({ preventScroll: true });
   }
 
@@ -58,7 +62,7 @@
     if (state !== 'ready') return;
     setState('leaving');
     bat.disabled = true;
-    status.textContent = 'Opening the dashboard.';
+    status.textContent = 'Ouverture du tableau de bord.';
     if (reducedMotion.matches) showDashboard();
     else cancelAnimation = afterAnimation(bat, 'plecotus-depart', showDashboard);
   }
@@ -73,6 +77,13 @@
   }
 
   bat.addEventListener('click', enter);
+  loadFile.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileStatus.textContent = 'Fichier sélectionné : ' + file.name;
+    fileStatus.hidden = false;
+  });
   reducedMotion.addEventListener('change', () => {
     if (!reducedMotion.matches) return;
     if (state === 'illuminating') ready();

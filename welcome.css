@@ -1,8 +1,8 @@
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   font-family: "Segoe UI", system-ui, sans-serif;
-  background: #080908;
-  color: #e8e4dc;
+  background: #fff;
+  color: #252722;
 }
 
 * { box-sizing: border-box; }
@@ -10,12 +10,14 @@
 body { margin: 0; min-height: 100svh; }
 
 .welcome {
+  color-scheme: dark;
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
   overflow: hidden;
   background: #080908;
+  color: #e8e4dc;
 }
 
 .welcome-bat {
@@ -66,16 +68,36 @@ body { margin: 0; min-height: 100svh; }
   to { transform: translateY(calc(-100vh - 100%)); }
 }
 
-.dashboard { min-height: 100svh; outline: none; }
+.dashboard { min-height: 100svh; background: #fff; outline: none; }
 .dashboard-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 1.5rem;
-  padding: 1.5rem clamp(1.25rem, 4vw, 3rem);
-  border-bottom: 1px solid #252722;
+  padding: 1rem clamp(1rem, 3vw, 2rem);
+  border-bottom: 1px solid #e8e9e6;
 }
+.dashboard-menu { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1.25rem; min-width: 0; }
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: .75rem 1rem;
+  border: 1px solid #d6d8d2;
+  border-radius: .5rem;
+  background: #fff;
+  color: #252722;
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.file-button svg { flex-shrink: 0; }
+.file-button:hover { background: #f5f6f3; border-color: #aeb3a7; }
+.file-button:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.selected-file { margin: 0; color: #646960; font-size: .8rem; overflow-wrap: anywhere; }
 .wordmark { font-size: 1.15rem; font-weight: 500; letter-spacing: .08em; }
-.dashboard-header h1 { margin: 0; color: #96968e; font-size: .8rem; font-weight: 400; }
 
 .visually-hidden {
   position: absolute;
@@ -88,7 +110,13 @@ body { margin: 0; min-height: 100svh; }
   white-space: nowrap;
   border: 0;
 }
-.noscript-message { position: fixed; bottom: 1.5rem; width: 100%; text-align: center; }
+.noscript-message { position: fixed; bottom: 1.5rem; width: 100%; color: #e8e4dc; text-align: center; }
+
+@media (max-width: 480px) {
+  .dashboard-header { gap: .75rem; padding: .75rem; }
+  .file-button { gap: .4rem; padding: .7rem; font-size: .8rem; }
+  .wordmark { font-size: .9rem; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .welcome-hint { transition: none; }
