@@ -1,0 +1,184 @@
+.wav-file-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #476b36;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.wav-file-link:hover { color: #263f1b; }
+.wav-file-link:disabled { color: #777e72; cursor: wait; }
+
+.wav-file-link:focus-visible,
+.contact-decision-button:focus-visible,
+.wav-settings :is(button, input, select):focus-visible {
+  outline: 2px solid #996535;
+  outline-offset: 3px;
+}
+
+.best-contact-table { min-width: 700px; }
+.best-contact-table th,
+.best-contact-table td { padding: .7rem .5rem; }
+.best-contact-table th:last-child { text-align: right; }
+
+.best-contact-table tbody tr[data-review-status="validated"] {
+  background: #edf7e9;
+}
+
+.best-contact-table tbody tr[data-review-status="invalidated"] {
+  background: #fcebea;
+}
+
+.best-contact-table tbody tr[data-review-status] > td {
+  background: inherit;
+}
+
+.contact-actions > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .4rem;
+}
+
+.contact-decision-button {
+  padding: .45rem .6rem;
+  border: 1px solid #bdcdb5;
+  border-radius: .35rem;
+  background: #fff;
+  color: #35552a;
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.contact-decision-button[data-decision="validated"]:hover {
+  border-color: #648651;
+  background: #e7f2e0;
+}
+
+.contact-decision-button[data-decision="invalidated"] {
+  border-color: #dfbdb7;
+  color: #8a3d32;
+}
+
+.contact-decision-button[data-decision="invalidated"]:hover {
+  border-color: #b96b5f;
+  background: #fae4df;
+}
+
+.contact-decision-button[data-decision="validated"][aria-pressed="true"] {
+  border-color: #456b35;
+  background: #456b35;
+  color: #fff;
+}
+
+.contact-decision-button[data-decision="invalidated"][aria-pressed="true"] {
+  border-color: #994c40;
+  background: #994c40;
+  color: #fff;
+}
+
+.wav-opening-status,
+.review-save-status {
+  margin: 0 0 1rem;
+  color: #535a4c;
+  font-size: .85rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.wav-opening-status[data-error="true"],
+.review-save-status[data-error="true"] { color: #8a3423; }
+
+.wav-settings {
+  width: min(calc(100% - 2rem), 35rem);
+  max-height: calc(100svh - 2rem);
+  margin: auto;
+  padding: 1.75rem;
+  overflow-y: auto;
+  border: 1px solid #dce1d7;
+  border-radius: .85rem;
+  background: #fff;
+  color: #252722;
+  box-shadow: 0 1.5rem 5rem #17210f26;
+  color-scheme: light;
+}
+
+.wav-settings::backdrop { background: #17210f80; }
+.wav-settings form { display: grid; gap: 1rem; }
+.wav-settings h2 { margin: 0; font-size: 1.3rem; font-weight: 550; }
+.wav-settings label { display: block; margin: 0 0 .4rem; color: #535a4c; font-size: .85rem; }
+
+.wav-settings :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  padding: .7rem .75rem;
+  border: 1px solid #cbd1c4;
+  border-radius: .4rem;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: .85rem;
+}
+
+.wav-settings :is(.settings-help, .settings-connection) {
+  margin: 0;
+  color: #646960;
+  font-size: .8rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.wav-settings .settings-connection {
+  padding: .85rem 1rem;
+  border-radius: .4rem;
+  background: #f4f7f0;
+  color: #535a4c;
+}
+
+.wav-settings .settings-error {
+  margin: 0;
+  padding: .8rem 1rem;
+  border: 1px solid #ebccc5;
+  border-radius: .4rem;
+  background: #fff7f5;
+  color: #8a3423;
+  font-size: .85rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin-top: .5rem;
+}
+
+.settings-actions button {
+  padding: .7rem 1rem;
+  border: 1px solid #d6d8d2;
+  border-radius: .4rem;
+  background: #fff;
+  color: #535a4c;
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.settings-actions button:hover { background: #f5f6f3; }
+.settings-actions button.primary { border-color: #33452b; background: #33452b; color: #fff; }
+.settings-actions button.primary:hover { background: #26351f; }
+
+@media (max-width: 480px) {
+  .wav-settings { padding: 1.25rem; }
+  .settings-actions button { flex: 1; }
+}

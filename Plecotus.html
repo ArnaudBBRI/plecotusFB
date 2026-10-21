@@ -531,6 +531,196 @@ body { margin: 0; min-height: 100svh; }
 }
 
 </style>
+  <style>
+.wav-file-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #476b36;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.wav-file-link:hover { color: #263f1b; }
+.wav-file-link:disabled { color: #777e72; cursor: wait; }
+
+.wav-file-link:focus-visible,
+.contact-decision-button:focus-visible,
+.wav-settings :is(button, input, select):focus-visible {
+  outline: 2px solid #996535;
+  outline-offset: 3px;
+}
+
+.best-contact-table { min-width: 700px; }
+.best-contact-table th,
+.best-contact-table td { padding: .7rem .5rem; }
+.best-contact-table th:last-child { text-align: right; }
+
+.best-contact-table tbody tr[data-review-status="validated"] {
+  background: #edf7e9;
+}
+
+.best-contact-table tbody tr[data-review-status="invalidated"] {
+  background: #fcebea;
+}
+
+.best-contact-table tbody tr[data-review-status] > td {
+  background: inherit;
+}
+
+.contact-actions > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .4rem;
+}
+
+.contact-decision-button {
+  padding: .45rem .6rem;
+  border: 1px solid #bdcdb5;
+  border-radius: .35rem;
+  background: #fff;
+  color: #35552a;
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.contact-decision-button[data-decision="validated"]:hover {
+  border-color: #648651;
+  background: #e7f2e0;
+}
+
+.contact-decision-button[data-decision="invalidated"] {
+  border-color: #dfbdb7;
+  color: #8a3d32;
+}
+
+.contact-decision-button[data-decision="invalidated"]:hover {
+  border-color: #b96b5f;
+  background: #fae4df;
+}
+
+.contact-decision-button[data-decision="validated"][aria-pressed="true"] {
+  border-color: #456b35;
+  background: #456b35;
+  color: #fff;
+}
+
+.contact-decision-button[data-decision="invalidated"][aria-pressed="true"] {
+  border-color: #994c40;
+  background: #994c40;
+  color: #fff;
+}
+
+.wav-opening-status,
+.review-save-status {
+  margin: 0 0 1rem;
+  color: #535a4c;
+  font-size: .85rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.wav-opening-status[data-error="true"],
+.review-save-status[data-error="true"] { color: #8a3423; }
+
+.wav-settings {
+  width: min(calc(100% - 2rem), 35rem);
+  max-height: calc(100svh - 2rem);
+  margin: auto;
+  padding: 1.75rem;
+  overflow-y: auto;
+  border: 1px solid #dce1d7;
+  border-radius: .85rem;
+  background: #fff;
+  color: #252722;
+  box-shadow: 0 1.5rem 5rem #17210f26;
+  color-scheme: light;
+}
+
+.wav-settings::backdrop { background: #17210f80; }
+.wav-settings form { display: grid; gap: 1rem; }
+.wav-settings h2 { margin: 0; font-size: 1.3rem; font-weight: 550; }
+.wav-settings label { display: block; margin: 0 0 .4rem; color: #535a4c; font-size: .85rem; }
+
+.wav-settings :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  padding: .7rem .75rem;
+  border: 1px solid #cbd1c4;
+  border-radius: .4rem;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: .85rem;
+}
+
+.wav-settings :is(.settings-help, .settings-connection) {
+  margin: 0;
+  color: #646960;
+  font-size: .8rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.wav-settings .settings-connection {
+  padding: .85rem 1rem;
+  border-radius: .4rem;
+  background: #f4f7f0;
+  color: #535a4c;
+}
+
+.wav-settings .settings-error {
+  margin: 0;
+  padding: .8rem 1rem;
+  border: 1px solid #ebccc5;
+  border-radius: .4rem;
+  background: #fff7f5;
+  color: #8a3423;
+  font-size: .85rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin-top: .5rem;
+}
+
+.settings-actions button {
+  padding: .7rem 1rem;
+  border: 1px solid #d6d8d2;
+  border-radius: .4rem;
+  background: #fff;
+  color: #535a4c;
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.settings-actions button:hover { background: #f5f6f3; }
+.settings-actions button.primary { border-color: #33452b; background: #33452b; color: #fff; }
+.settings-actions button.primary:hover { background: #26351f; }
+
+@media (max-width: 480px) {
+  .wav-settings { padding: 1.25rem; }
+  .settings-actions button { flex: 1; }
+}
+
+</style>
+
+
+
 
 
 
@@ -560,6 +750,7 @@ body { margin: 0; min-height: 100svh; }
           </svg>
           <span>Charger un fichier csv</span>
         </button>
+        <button class="file-button" id="open-settings" type="button" aria-haspopup="dialog">Réglages</button>
         <input id="data-file" type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Choisir un fichier CSV ou Excel" hidden>
         <p class="selected-file" id="selected-file" role="status" hidden></p>
       </nav>
@@ -567,6 +758,7 @@ body { margin: 0; min-height: 100svh; }
     </header>
     <h1 class="visually-hidden">Tableau de bord</h1>
     <div class="dashboard-content">
+      <p class="wav-opening-status" id="wav-opening-status" role="status" hidden></p>
       <p class="import-error" id="import-error" role="alert" hidden></p>
       <section class="sheet-picker" id="sheet-picker" aria-labelledby="sheet-picker-heading" hidden>
         <h2 id="sheet-picker-heading">Choisir une feuille</h2>
@@ -610,6 +802,7 @@ body { margin: 0; min-height: 100svh; }
         <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
         <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
         <p class="species-review-summary" id="species-review-summary"></p>
+        <p class="review-save-status" id="review-save-status" role="status" hidden></p>
         <div class="species-review-layout">
           <div id="species-groups"></div>
           <aside class="best-method" aria-labelledby="best-method-heading" tabindex="0">
@@ -625,13 +818,32 @@ body { margin: 0; min-height: 100svh; }
             <p>Égalité complète : le premier contact dans l’ordre du fichier est retenu.</p>
             <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. MATCHING n’est pas un critère de tri.</p>
             <p><strong>Noise</strong> est exclu de la liste. Les compteurs du fichier ne changent pas.</p>
-            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Le contact proposé reste à vérifier manuellement.</p>
+            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Utilisez « Valider » ou « Invalider » pour enregistrer votre décision. Chaque choix remplace le précédent.</p>
             <p class="best-contact-note" id="best-missing-columns" hidden></p>
           </aside>
         </div>
       </section>
     </div>
   </main>
+  <dialog class="wav-settings" id="wav-settings" aria-labelledby="wav-settings-heading">
+    <form id="wav-settings-form">
+      <header><h2 id="wav-settings-heading">Réglages</h2></header>
+      <label for="wav-settings-viewer">Logiciel d’ouverture des WAV</label>
+      <select id="wav-settings-viewer">
+        <option value="kaleidoscope">Kaleidoscope</option>
+        <option value="chirosurf">ChiroSurf</option>
+      </select>
+      <label for="wav-settings-executable" id="wav-settings-executable-label">Chemin de l’exécutable Kaleidoscope</label>
+      <input id="wav-settings-executable" type="text" spellcheck="false" autocomplete="off" aria-describedby="wav-settings-help">
+      <p class="settings-help" id="wav-settings-help"></p>
+      <p class="settings-connection" id="wav-settings-connection"></p>
+      <p class="settings-error" id="wav-settings-error" role="alert" hidden></p>
+      <footer class="settings-actions">
+        <button id="wav-settings-cancel" type="button">Annuler</button>
+        <button class="primary" id="wav-settings-save" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
   <noscript><p class="noscript-message">Activez JavaScript pour ouvrir Plecotus.</p></noscript>
 <script>
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
@@ -1010,6 +1222,145 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   return { parseCSV, stringifyCSV, analyze, canonicalColumns, parseNumber, normalizeAutoId, compareContacts, spreadsheetSafe };
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.BatKaleidoscope = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const DEVICE_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+  const VIEWERS = Object.freeze({
+    kaleidoscope: Object.freeze({ id: 'kaleidoscope', name: 'Kaleidoscope', executableHint: 'kaleidoscope.exe' }),
+    chirosurf: Object.freeze({ id: 'chirosurf', name: 'ChiroSurf', executableHint: 'ChiroSurf.exe' })
+  });
+
+  function viewerInfo(viewer = 'kaleidoscope') {
+    if (typeof viewer !== 'string' || !Object.prototype.hasOwnProperty.call(VIEWERS, viewer)) {
+      throw new Error('Logiciel non pris en charge. Choisissez Kaleidoscope ou ChiroSurf.');
+    }
+    return VIEWERS[viewer];
+  }
+
+  function cleanInput(value, allowOuterQuotes) {
+    if (value == null) return '';
+    if (typeof value !== 'string') throw new TypeError('Le chemin doit être un texte.');
+    if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value)) {
+      throw new Error('Le chemin contient un caractère de contrôle interdit.');
+    }
+    let input = value.trim();
+    // Explorer's “Copier en tant que chemin d’accès” wraps the selected
+    // executable in double quotes. Only that one complete outer pair is accepted.
+    if (allowOuterQuotes && input.length >= 2 && input.startsWith('"') && input.endsWith('"')) {
+      input = input.slice(1, -1).trim();
+    }
+    if (/"/.test(input)) throw new Error('Saisissez le chemin sans guillemets internes.');
+    const path = input.replace(/\//g, '\\');
+    if (/^\\\\[?.]\\/.test(path) || /^\\\?\?\\/.test(path)) {
+      throw new Error('Les chemins de périphériques Windows ne sont pas pris en charge.');
+    }
+    if (/^[a-z][a-z0-9+.-]*:/i.test(path) && !/^[a-z]:/i.test(path)) {
+      throw new Error('Utilisez un chemin de fichier Windows, pas une URL ou un protocole.');
+    }
+    return path;
+  }
+
+  function checkComponent(component) {
+    if (/[<>:"|?*]/.test(component) || /[ .]$/.test(component) || DEVICE_NAME.test(component)) {
+      throw new Error('Le chemin contient un nom de dossier ou de fichier invalide sous Windows.');
+    }
+  }
+
+  function absolute(path) {
+    return /^[a-z]:\\/i.test(path) || path.startsWith('\\\\');
+  }
+
+  function appendParts(result, path) {
+    for (const part of path.split('\\')) {
+      if (!part || part === '.') continue;
+      if (part === '..') {
+        if (!result.parts.length) throw new Error('Le chemin sort de la racine du lecteur ou du partage réseau.');
+        result.parts.pop();
+      } else {
+        checkComponent(part);
+        result.parts.push(part);
+      }
+    }
+    return result;
+  }
+
+  function parseAbsolute(path) {
+    const drive = path.match(/^([a-z]):\\/i);
+    if (drive) return appendParts({ root: drive[1].toUpperCase() + ':\\', parts: [] }, path.slice(3));
+    if (path.startsWith('\\\\')) {
+      const components = path.slice(2).split('\\');
+      const server = components.shift();
+      const share = components.shift();
+      if (!server || !share || server === '.' || server === '..' || share === '.' || share === '..') {
+        throw new Error('Le chemin réseau doit contenir un serveur et un partage : \\\\serveur\\partage.');
+      }
+      checkComponent(server);
+      checkComponent(share);
+      return appendParts({ root: '\\\\' + server + '\\' + share + '\\', parts: [] }, components.join('\\'));
+    }
+    throw new Error('Un chemin absolu Windows est requis, par exemple C:\\Dossier ou \\\\serveur\\partage.');
+  }
+
+  function pathText(parsed) {
+    return parsed.root + parsed.parts.join('\\');
+  }
+
+  function normalizeExecutable(input, viewer = 'kaleidoscope') {
+    const info = viewerInfo(viewer);
+    const path = cleanInput(input, true);
+    if (!path) return '';
+    const parsed = parseAbsolute(path);
+    const basename = parsed.parts[parsed.parts.length - 1] || '';
+    const allowed = info.id === 'kaleidoscope'
+      ? /^kaleidoscope\.exe$/i.test(basename)
+      : /^chirosurf(?:[ _-]?\d+(?:\.\d+)*)?\.exe$/i.test(basename);
+    if (!allowed) {
+      throw new Error('Le chemin doit désigner l’exécutable ' + info.executableHint +
+        (info.id === 'chirosurf' ? ' (le nom peut inclure un numéro de version, par exemple ChiroSurf_4.6.exe).' : '.'));
+    }
+    return pathText(parsed);
+  }
+
+  function recordingPath(row) {
+    if (!row || typeof row !== 'object') throw new TypeError('Le contact à ouvrir est manquant.');
+    const file = cleanInput(row.file);
+    if (!file) throw new Error('Nom du fichier WAV manquant dans la colonne IN FILE.');
+    let parsed;
+    if (absolute(file)) {
+      parsed = parseAbsolute(file);
+    } else {
+      if (file.startsWith('\\') || /^[a-z]:/i.test(file)) {
+        throw new Error('Le chemin IN FILE doit être complet ou relatif à INDIR et FOLDER.');
+      }
+      const folder = cleanInput(row.rawFolder);
+      if (absolute(folder)) {
+        parsed = parseAbsolute(folder);
+      } else {
+        if (folder.startsWith('\\') || /^[a-z]:/i.test(folder)) {
+          throw new Error('Le chemin FOLDER doit être complet ou relatif à INDIR.');
+        }
+        const indir = cleanInput(row.indir);
+        if (!indir || !absolute(indir)) {
+          throw new Error('Le chemin du WAV est incomplet. Complétez la colonne INDIR avec un dossier absolu Windows.');
+        }
+        parsed = appendParts(parseAbsolute(indir), folder);
+      }
+      parsed = appendParts(parsed, file);
+    }
+    const basename = parsed.parts[parsed.parts.length - 1] || '';
+    if (!/\.wav$/i.test(basename)) throw new Error('Seuls les fichiers WAV peuvent être ouverts dans le logiciel choisi.');
+    return pathText(parsed);
+  }
+
+  return Object.freeze({ viewerInfo, normalizeExecutable, recordingPath });
 });
 
 </script>
@@ -1956,6 +2307,310 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 </script>
 <script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), root);
+  else root.PlecotusContactDecisions = factory(root.BatReviewCore, root);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, root) {
+  'use strict';
+
+  const prefix = 'plecotus.review-decisions.v1.';
+  const statuses = new Set(['validated', 'invalidated']);
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  function denseArray(value) {
+    if (!Array.isArray(value)) return false;
+    for (let index = 0; index < value.length; index++) if (!own(value, index)) return false;
+    return true;
+  }
+
+  function sourceData(imported) {
+    if (!imported || !denseArray(imported.headers) || !denseArray(imported.records)
+      || !imported.headers.length || imported.headers.some(header => typeof header !== 'string')) {
+      throw new TypeError('Les décisions exigent les en-têtes et les contacts du fichier importé.');
+    }
+    const headers = imported.headers.slice();
+    const columns = Core.canonicalColumns(headers);
+    const records = imported.records.map(record => {
+      if (!denseArray(record) || record.length !== headers.length || record.some(cell =>
+        cell !== null && !['string', 'boolean', 'number'].includes(typeof cell)
+        || typeof cell === 'number' && !Number.isFinite(cell))) {
+        throw new TypeError('Chaque contact doit conserver les cellules et les colonnes du fichier importé.');
+      }
+      return record.slice();
+    });
+    if (imported.sourceRows != null && (!denseArray(imported.sourceRows)
+      || imported.sourceRows.length !== records.length
+      || imported.sourceRows.some(row => !Number.isInteger(row) || row < 1))) {
+      throw new TypeError('Les numéros de ligne source des contacts sont invalides.');
+    }
+    const sourceRows = imported.sourceRows ? imported.sourceRows.slice() : records.map((_, index) => index + 2);
+    return { headers, records, sourceRows, columns,
+      fileName: String(imported.fileName == null ? '' : imported.fileName),
+      sheetName: imported.sheetName == null ? null : String(imported.sheetName) };
+  }
+
+  async function fingerprint(data, crypto) {
+    try {
+      if (!crypto || !crypto.subtle || typeof crypto.subtle.digest !== 'function') return null;
+      const identity = JSON.stringify([data.fileName, data.sheetName, data.headers, data.records, data.sourceRows]);
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
+      if (!hash || hash.byteLength !== 32) return null;
+      return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    } catch { return null; }
+  }
+
+  async function create(imported, options = {}) {
+    if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Les options des décisions sont invalides.');
+    const data = sourceData(imported);
+    let storage = null;
+    try { storage = own(options, 'storage') ? options.storage : root.localStorage; } catch {}
+    const crypto = own(options, 'crypto') ? options.crypto : root.crypto;
+    const fileId = await fingerprint(data, crypto);
+    let persistenceAvailable = Boolean(fileId && storage && typeof storage.getItem === 'function' && typeof storage.setItem === 'function');
+    const key = fileId ? prefix + fileId : null;
+    let decisions = new Map();
+
+    function checkIndex(recordIndex) {
+      if (!Number.isInteger(recordIndex) || recordIndex < 0 || recordIndex >= data.records.length) {
+        throw new RangeError('Le numéro du contact à vérifier est invalide.');
+      }
+    }
+
+    function decisionFor(recordIndex, status, updatedAt) {
+      const record = data.records[recordIndex];
+      const sourceAutoId = data.columns.autoId < 0 ? '' : String(record[data.columns.autoId] == null ? '' : record[data.columns.autoId]);
+      return Object.freeze({ recordIndex, sourceRow: data.sourceRows[recordIndex], sourceAutoId,
+        status, validated: status === 'validated',
+        suggestedId: status === 'validated' && sourceAutoId.trim() ? sourceAutoId.trim() : null,
+        updatedAt });
+    }
+
+    function restore(source) {
+      try {
+        const saved = JSON.parse(source);
+        if (!saved || saved.version !== 1 || saved.fileId !== fileId || !Array.isArray(saved.decisions)) return;
+        const restored = new Map();
+        for (const item of saved.decisions) {
+          if (!item || !statuses.has(item.status) || typeof item.updatedAt !== 'string'
+            || !Number.isFinite(Date.parse(item.updatedAt))) return;
+          checkIndex(item.recordIndex);
+          if (restored.has(item.recordIndex)) return;
+          const expected = decisionFor(item.recordIndex, item.status, item.updatedAt);
+          if (item.sourceRow !== expected.sourceRow || item.sourceAutoId !== expected.sourceAutoId
+            || item.validated !== expected.validated || item.suggestedId !== expected.suggestedId) return;
+          restored.set(item.recordIndex, expected);
+        }
+        decisions = restored;
+      } catch { /* A damaged or unrelated saved review never supplies decisions. */ }
+    }
+
+    if (persistenceAvailable) {
+      try {
+        const saved = storage.getItem(key);
+        if (saved != null) restore(saved);
+      } catch { persistenceAvailable = false; }
+    }
+
+    function snapshot() {
+      return { version: 1, fileId, decisions: [...decisions.values()]
+        .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })) };
+    }
+
+    return Object.freeze({
+      get persistenceAvailable() { return persistenceAvailable; },
+      get(recordIndex) {
+        checkIndex(recordIndex);
+        return decisions.get(recordIndex) || null;
+      },
+      set(recordIndex, status) {
+        checkIndex(recordIndex);
+        if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
+        const previous = decisions.get(recordIndex);
+        if (previous && previous.status === status) return previous;
+        const decision = decisionFor(recordIndex, status, new Date().toISOString());
+        decisions.set(recordIndex, decision);
+        if (persistenceAvailable) {
+          try { storage.setItem(key, JSON.stringify(snapshot())); }
+          catch { persistenceAvailable = false; }
+        }
+        return decision;
+      },
+      snapshot
+    });
+  }
+
+  return Object.freeze({ create });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./kaleidoscope.js'));
+  else root.PlecotusWavOpening = factory(root.BatReviewCore, root.BatKaleidoscope);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, K) {
+  'use strict';
+
+  const preferencesKey = 'plecotus.preferences.v1';
+  const viewers = ['kaleidoscope', 'chirosurf'];
+  const launcherHelp = 'Pour ouvrir les WAV en un clic, démarrez Plecotus avec Demarrer-Plecotus.cmd. Le navigateur seul ne peut pas lancer un logiciel Windows.';
+
+  function init(options = {}) {
+    const doc = options.document || globalThis.document;
+    const location = options.location || globalThis.location;
+    const request = options.fetch || globalThis.fetch.bind(globalThis);
+    const onStatus = options.onStatus || (() => {});
+    let storage = options.storage;
+    if (storage === undefined) try { storage = globalThis.localStorage; } catch { storage = null; }
+    const node = id => doc.getElementById(id);
+    const dialog = node('wav-settings');
+    const input = node('wav-settings-executable');
+    const select = node('wav-settings-viewer');
+    const error = node('wav-settings-error');
+    const token = doc.querySelector('meta[name="plecotus-local-token"]')?.content || '';
+    const localLauncher = Boolean(token) && location?.origin === 'http://127.0.0.1:4174';
+    let viewer = 'kaleidoscope';
+    let executables = { kaleidoscope: '', chirosurf: '' };
+    let draftViewer, drafts, opening = false;
+
+    function savedPreferences() {
+      try {
+        const saved = JSON.parse(storage?.getItem(preferencesKey) || 'null');
+        return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+      } catch { return {}; }
+    }
+
+    try {
+      const saved = savedPreferences();
+      for (const id of viewers) {
+        if (typeof saved?.[id + 'Executable'] === 'string') {
+          try { executables[id] = K.normalizeExecutable(saved[id + 'Executable'], id); } catch {}
+        }
+      }
+      if (typeof saved?.wavViewer === 'string') try { viewer = K.viewerInfo(saved.wavViewer).id; } catch {}
+    } catch {}
+
+    function showError(message) {
+      error.textContent = message;
+      error.hidden = !message;
+    }
+
+    function renderSettings() {
+      const info = K.viewerInfo(draftViewer);
+      select.value = info.id;
+      node('wav-settings-executable-label').textContent = 'Chemin de l’exécutable ' + info.name;
+      input.value = drafts[info.id];
+      input.placeholder = 'C:\\Logiciels\\' + info.executableHint;
+      node('wav-settings-help').textContent = 'Dans l’Explorateur Windows, faites Maj + clic droit sur ' + info.executableHint
+        + (info.id === 'chirosurf' ? ' (ou sa version numérotée)' : '') + ', puis « Copier en tant que chemin d’accès ». Collez le chemin ici.';
+      node('wav-settings-connection').textContent = localLauncher
+        ? 'Lanceur Windows actif. Les WAV s’ouvriront dans ' + info.name + '.' : launcherHelp;
+    }
+
+    function openSettings(message = '') {
+      draftViewer = viewer;
+      drafts = { ...executables };
+      renderSettings();
+      showError(message);
+      if (!dialog.open) dialog.showModal();
+    }
+
+    function saveSettings(event) {
+      event.preventDefault();
+      drafts[draftViewer] = input.value;
+      const next = {};
+      for (const id of viewers) {
+        try { next[id] = K.normalizeExecutable(drafts[id], id); }
+        catch (problem) {
+          draftViewer = id;
+          renderSettings();
+          showError(problem.message);
+          input.focus();
+          return;
+        }
+      }
+      viewer = K.viewerInfo(select.value).id;
+      executables = next;
+      let stored = false;
+      try {
+        if (storage) {
+          storage.setItem(preferencesKey, JSON.stringify({ ...savedPreferences(), wavViewer: viewer,
+            kaleidoscopeExecutable: next.kaleidoscope, chirosurfExecutable: next.chirosurf }));
+          stored = true;
+        }
+      } catch {}
+      dialog.close();
+      onStatus(stored ? 'Réglages enregistrés dans ce navigateur.' : 'Réglages conservés pour cette session. Le stockage du navigateur est indisponible.', !stored);
+    }
+
+    function contactPath(imported, best) {
+      if (!imported || !Array.isArray(imported.records) || !Number.isInteger(best?.recordIndex)
+        || best.recordIndex < 0 || !Array.isArray(imported.records[best.recordIndex])) {
+        throw new Error('Le contact à ouvrir est introuvable dans le fichier importé.');
+      }
+      const columns = Core.canonicalColumns(imported.headers);
+      const record = imported.records[best.recordIndex];
+      const field = name => columns[name] < 0 ? '' : record[columns[name]];
+      return K.recordingPath({ file: field('file'), indir: field('indir'), rawFolder: field('folder') });
+    }
+
+    async function openContact(imported, best) {
+      if (opening) return false;
+      const info = K.viewerInfo(viewer);
+      const executable = executables[viewer];
+      if (!executable) {
+        openSettings('Renseignez d’abord le chemin de l’exécutable ' + info.name + '.');
+        input.focus();
+        return false;
+      }
+      if (!localLauncher) {
+        openSettings('L’ouverture directe nécessite le lanceur Windows Demarrer-Plecotus.cmd.');
+        onStatus(launcherHelp, true);
+        return false;
+      }
+      let file;
+      try { file = contactPath(imported, best); }
+      catch (problem) { onStatus(problem.message, true); return false; }
+      opening = true;
+      onStatus('Ouverture du WAV dans ' + info.name + '…', false);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await request('/api/open-recording', { method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Plecotus-Token': token },
+          body: JSON.stringify({ viewer, executable, file }), signal: controller.signal });
+        if (response.status === 404) throw new Error('Le lanceur doit être mis à jour. Fermez son ancienne version, relancez Demarrer-Plecotus.cmd depuis le dossier de la nouvelle version, puis rechargez la page.');
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || 'L’ouverture dans ' + info.name + ' a échoué.');
+        onStatus('Ouverture demandée dans ' + info.name + '.', false);
+        return true;
+      } catch (problem) {
+        const message = problem.name === 'AbortError' || problem instanceof TypeError || problem instanceof SyntaxError
+          ? 'Lanceur local indisponible. Relancez Demarrer-Plecotus.cmd, puis rechargez la page.' : problem.message;
+        onStatus(message, true);
+        return false;
+      } finally {
+        clearTimeout(timeout);
+        opening = false;
+      }
+    }
+
+    node('open-settings').addEventListener('click', () => openSettings());
+    node('wav-settings-form').addEventListener('submit', saveSettings);
+    node('wav-settings-cancel').addEventListener('click', () => dialog.close());
+    select.addEventListener('change', () => {
+      drafts[draftViewer] = input.value;
+      draftViewer = K.viewerInfo(select.value).id;
+      renderSettings();
+      showError('');
+    });
+
+    return Object.freeze({ openSettings, openContact });
+  }
+
+  return Object.freeze({ init });
+});
+
+</script>
+<script>
 (() => {
   'use strict';
 
@@ -1979,6 +2634,16 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const chartStatus = document.getElementById('chart-export-status');
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
+  const reviewSaveStatus = document.getElementById('review-save-status');
+  const wavOpeningStatus = document.getElementById('wav-opening-status');
+  const wavOpening = PlecotusWavOpening.init({
+    document,
+    onStatus(message, isError) {
+      wavOpeningStatus.textContent = message;
+      wavOpeningStatus.dataset.error = String(Boolean(isError));
+      wavOpeningStatus.hidden = !message;
+    }
+  });
   const numbers = new Intl.NumberFormat('fr-FR');
   const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1986,6 +2651,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let cancelAnimation = () => {};
   let currentFile = null;
   let currentImport = null;
+  let currentDecisions = null;
   let importVersion = 0;
   let chartMode = 'pie';
   let chartData = null;
@@ -2087,17 +2753,24 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const version = ++importVersion;
     currentFile = file;
     currentImport = null;
+    currentDecisions = null;
     chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
     sheetPicker.hidden = true;
     importError.hidden = true;
+    wavOpeningStatus.hidden = true;
+    reviewSaveStatus.hidden = true;
     fileStatus.hidden = false;
     fileStatus.textContent = 'Lecture du fichier : ' + file.name + '…';
     try {
       const result = await PlecotusFileImport.read(file, { sheetName });
       if (version !== importVersion) return;
+      const decisions = await PlecotusContactDecisions.create(result);
+      if (version !== importVersion) return;
       currentImport = result;
+      currentDecisions = decisions;
+      currentImport.reviewDecisions = decisions.snapshot();
       renderImport(result);
       fileStatus.textContent = 'Fichier chargé : ' + result.fileName;
     } catch (error) {
@@ -2165,7 +2838,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         const best = group.best;
         const filename = document.createElement('p');
         filename.className = 'best-contact-file';
-        filename.textContent = 'Meilleur contact : ' + (best.fileName || 'Fichier non renseigné');
+        filename.append(document.createTextNode('Meilleur contact : '));
+        if (best.fileName) {
+          const wavLink = document.createElement('button');
+          wavLink.type = 'button';
+          wavLink.className = 'wav-file-link';
+          wavLink.textContent = best.fileName + ' ↗';
+          wavLink.title = 'Ouvrir ce WAV dans le logiciel configuré';
+          const imported = currentImport;
+          wavLink.addEventListener('click', () => wavOpening.openContact(imported, best));
+          filename.append(wavLink);
+        } else filename.append(document.createTextNode('Fichier non renseigné'));
         card.append(filename);
         const wrapper = document.createElement('div');
         wrapper.className = 'best-contact-table-wrap';
@@ -2176,7 +2859,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         table.className = 'best-contact-table';
         const header = document.createElement('thead');
         const labels = document.createElement('tr');
-        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure']) {
+        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure', 'Décision']) {
           const cell = document.createElement('th');
           cell.scope = 'col';
           cell.textContent = label;
@@ -2185,6 +2868,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         header.append(labels);
         const body = document.createElement('tbody');
         const row = document.createElement('tr');
+        row.dataset.contactIndex = String(best.recordIndex);
         const values = [numbers.format(best.lineNumber),
           best.ratio == null ? '—' : rankingNumbers.format(best.ratio),
           best.qual == null ? '—' : rankingNumbers.format(best.qual),
@@ -2196,6 +2880,38 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
           cell.textContent = value;
           row.append(cell);
         }
+        const actions = document.createElement('td');
+        actions.className = 'contact-actions';
+        const actionGroup = document.createElement('div');
+        actionGroup.setAttribute('role', 'group');
+        actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + best.lineNumber);
+        const controls = [];
+        const refreshDecision = () => {
+          const decision = currentDecisions.get(best.recordIndex);
+          row.dataset.reviewStatus = decision ? decision.status : 'pending';
+          for (const control of controls) control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
+        };
+        for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
+          const control = document.createElement('button');
+          control.type = 'button';
+          control.className = 'contact-decision-button';
+          control.dataset.decision = status;
+          control.textContent = label;
+          control.addEventListener('click', () => {
+            currentDecisions.set(best.recordIndex, status);
+            currentImport.reviewDecisions = currentDecisions.snapshot();
+            refreshDecision();
+            reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(best.lineNumber)
+              + (status === 'validated' ? ' validé.' : ' invalidé.')
+              + (currentDecisions.persistenceAvailable ? ' Décision enregistrée dans ce navigateur.' : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.');
+            reviewSaveStatus.hidden = false;
+          });
+          controls.push(control);
+          actionGroup.append(control);
+        }
+        refreshDecision();
+        actions.append(actionGroup);
+        row.append(actions);
         body.append(row);
         table.append(header, body);
         wrapper.append(table);

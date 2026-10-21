@@ -21,6 +21,16 @@
   const chartStatus = document.getElementById('chart-export-status');
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
+  const reviewSaveStatus = document.getElementById('review-save-status');
+  const wavOpeningStatus = document.getElementById('wav-opening-status');
+  const wavOpening = PlecotusWavOpening.init({
+    document,
+    onStatus(message, isError) {
+      wavOpeningStatus.textContent = message;
+      wavOpeningStatus.dataset.error = String(Boolean(isError));
+      wavOpeningStatus.hidden = !message;
+    }
+  });
   const numbers = new Intl.NumberFormat('fr-FR');
   const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -28,6 +38,7 @@
   let cancelAnimation = () => {};
   let currentFile = null;
   let currentImport = null;
+  let currentDecisions = null;
   let importVersion = 0;
   let chartMode = 'pie';
   let chartData = null;
@@ -129,17 +140,24 @@
     const version = ++importVersion;
     currentFile = file;
     currentImport = null;
+    currentDecisions = null;
     chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
     sheetPicker.hidden = true;
     importError.hidden = true;
+    wavOpeningStatus.hidden = true;
+    reviewSaveStatus.hidden = true;
     fileStatus.hidden = false;
     fileStatus.textContent = 'Lecture du fichier : ' + file.name + '…';
     try {
       const result = await PlecotusFileImport.read(file, { sheetName });
       if (version !== importVersion) return;
+      const decisions = await PlecotusContactDecisions.create(result);
+      if (version !== importVersion) return;
       currentImport = result;
+      currentDecisions = decisions;
+      currentImport.reviewDecisions = decisions.snapshot();
       renderImport(result);
       fileStatus.textContent = 'Fichier chargé : ' + result.fileName;
     } catch (error) {
@@ -207,7 +225,17 @@
         const best = group.best;
         const filename = document.createElement('p');
         filename.className = 'best-contact-file';
-        filename.textContent = 'Meilleur contact : ' + (best.fileName || 'Fichier non renseigné');
+        filename.append(document.createTextNode('Meilleur contact : '));
+        if (best.fileName) {
+          const wavLink = document.createElement('button');
+          wavLink.type = 'button';
+          wavLink.className = 'wav-file-link';
+          wavLink.textContent = best.fileName + ' ↗';
+          wavLink.title = 'Ouvrir ce WAV dans le logiciel configuré';
+          const imported = currentImport;
+          wavLink.addEventListener('click', () => wavOpening.openContact(imported, best));
+          filename.append(wavLink);
+        } else filename.append(document.createTextNode('Fichier non renseigné'));
         card.append(filename);
         const wrapper = document.createElement('div');
         wrapper.className = 'best-contact-table-wrap';
@@ -218,7 +246,7 @@
         table.className = 'best-contact-table';
         const header = document.createElement('thead');
         const labels = document.createElement('tr');
-        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure']) {
+        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure', 'Décision']) {
           const cell = document.createElement('th');
           cell.scope = 'col';
           cell.textContent = label;
@@ -227,6 +255,7 @@
         header.append(labels);
         const body = document.createElement('tbody');
         const row = document.createElement('tr');
+        row.dataset.contactIndex = String(best.recordIndex);
         const values = [numbers.format(best.lineNumber),
           best.ratio == null ? '—' : rankingNumbers.format(best.ratio),
           best.qual == null ? '—' : rankingNumbers.format(best.qual),
@@ -238,6 +267,38 @@
           cell.textContent = value;
           row.append(cell);
         }
+        const actions = document.createElement('td');
+        actions.className = 'contact-actions';
+        const actionGroup = document.createElement('div');
+        actionGroup.setAttribute('role', 'group');
+        actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + best.lineNumber);
+        const controls = [];
+        const refreshDecision = () => {
+          const decision = currentDecisions.get(best.recordIndex);
+          row.dataset.reviewStatus = decision ? decision.status : 'pending';
+          for (const control of controls) control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
+        };
+        for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
+          const control = document.createElement('button');
+          control.type = 'button';
+          control.className = 'contact-decision-button';
+          control.dataset.decision = status;
+          control.textContent = label;
+          control.addEventListener('click', () => {
+            currentDecisions.set(best.recordIndex, status);
+            currentImport.reviewDecisions = currentDecisions.snapshot();
+            refreshDecision();
+            reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(best.lineNumber)
+              + (status === 'validated' ? ' validé.' : ' invalidé.')
+              + (currentDecisions.persistenceAvailable ? ' Décision enregistrée dans ce navigateur.' : ' Décision conservée pour cette session ; la mémorisation dans le navigateur est indisponible.');
+            reviewSaveStatus.hidden = false;
+          });
+          controls.push(control);
+          actionGroup.append(control);
+        }
+        refreshDecision();
+        actions.append(actionGroup);
+        row.append(actions);
         body.append(row);
         table.append(header, body);
         wrapper.append(table);

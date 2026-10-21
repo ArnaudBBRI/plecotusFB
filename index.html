@@ -10,14 +10,18 @@
   <link rel="stylesheet" href="welcome.css">
   <link rel="stylesheet" href="import-chart.css">
   <link rel="stylesheet" href="best-contacts.css">
+  <link rel="stylesheet" href="review-actions.css">
   <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
   <script defer src="core.js"></script>
+  <script defer src="kaleidoscope.js"></script>
   <script defer src="file-import.js"></script>
   <script defer src="species.js"></script>
   <script defer src="activity-chart.js"></script>
   <script defer src="activity-export.js"></script>
   <script defer src="import-chart.js"></script>
   <script defer src="best-contacts.js"></script>
+  <script defer src="contact-decisions.js"></script>
+  <script defer src="wav-opening.js"></script>
   <script defer src="welcome.js"></script>
 </head>
 <body>
@@ -39,6 +43,7 @@
           </svg>
           <span>Charger un fichier csv</span>
         </button>
+        <button class="file-button" id="open-settings" type="button" aria-haspopup="dialog">Réglages</button>
         <input id="data-file" type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Choisir un fichier CSV ou Excel" hidden>
         <p class="selected-file" id="selected-file" role="status" hidden></p>
       </nav>
@@ -46,6 +51,7 @@
     </header>
     <h1 class="visually-hidden">Tableau de bord</h1>
     <div class="dashboard-content">
+      <p class="wav-opening-status" id="wav-opening-status" role="status" hidden></p>
       <p class="import-error" id="import-error" role="alert" hidden></p>
       <section class="sheet-picker" id="sheet-picker" aria-labelledby="sheet-picker-heading" hidden>
         <h2 id="sheet-picker-heading">Choisir une feuille</h2>
@@ -89,6 +95,7 @@
         <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
         <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
         <p class="species-review-summary" id="species-review-summary"></p>
+        <p class="review-save-status" id="review-save-status" role="status" hidden></p>
         <div class="species-review-layout">
           <div id="species-groups"></div>
           <aside class="best-method" aria-labelledby="best-method-heading" tabindex="0">
@@ -104,13 +111,32 @@
             <p>Égalité complète : le premier contact dans l’ordre du fichier est retenu.</p>
             <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. MATCHING n’est pas un critère de tri.</p>
             <p><strong>Noise</strong> est exclu de la liste. Les compteurs du fichier ne changent pas.</p>
-            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Le contact proposé reste à vérifier manuellement.</p>
+            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Utilisez « Valider » ou « Invalider » pour enregistrer votre décision. Chaque choix remplace le précédent.</p>
             <p class="best-contact-note" id="best-missing-columns" hidden></p>
           </aside>
         </div>
       </section>
     </div>
   </main>
+  <dialog class="wav-settings" id="wav-settings" aria-labelledby="wav-settings-heading">
+    <form id="wav-settings-form">
+      <header><h2 id="wav-settings-heading">Réglages</h2></header>
+      <label for="wav-settings-viewer">Logiciel d’ouverture des WAV</label>
+      <select id="wav-settings-viewer">
+        <option value="kaleidoscope">Kaleidoscope</option>
+        <option value="chirosurf">ChiroSurf</option>
+      </select>
+      <label for="wav-settings-executable" id="wav-settings-executable-label">Chemin de l’exécutable Kaleidoscope</label>
+      <input id="wav-settings-executable" type="text" spellcheck="false" autocomplete="off" aria-describedby="wav-settings-help">
+      <p class="settings-help" id="wav-settings-help"></p>
+      <p class="settings-connection" id="wav-settings-connection"></p>
+      <p class="settings-error" id="wav-settings-error" role="alert" hidden></p>
+      <footer class="settings-actions">
+        <button id="wav-settings-cancel" type="button">Annuler</button>
+        <button class="primary" id="wav-settings-save" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
   <noscript><p class="noscript-message">Activez JavaScript pour ouvrir Plecotus.</p></noscript>
 </body>
 </html>
