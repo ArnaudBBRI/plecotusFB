@@ -1,0 +1,24 @@
+/* Add is-illuminating once the image has loaded. */
+.plecotus-bat {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  filter: brightness(0);
+}
+
+.plecotus-bat.is-illuminating {
+  animation: plecotus-light-on var(--plecotus-light-duration, 1.6s) ease-in-out both;
+}
+
+@keyframes plecotus-light-on {
+  0%, 8% { filter: brightness(0); }
+  100% { filter: brightness(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plecotus-bat,
+  .plecotus-bat.is-illuminating {
+    animation: none;
+    filter: brightness(1);
+  }
+}
