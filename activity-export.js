@@ -96,6 +96,19 @@
       if (!unknownNoise) counters.push(`${counts.format(options.noiseContacts)} contacts Noise exclus (AUTO-ID)`);
     }
     if (counters.length) details.push(counters.join(' · '));
+    const legendFilter = [];
+    for (const [key, singular, plural] of [
+      ['hiddenCategories', 'catégorie masquée', 'catégories masquées'],
+      ['hiddenContacts', 'contact masqué', 'contacts masqués']
+    ]) {
+      const count = options[key];
+      if (count == null) continue;
+      if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
+        throw new RangeError('Les compteurs du filtre de légende doivent être des nombres positifs ou nuls.');
+      }
+      if (count > 0) legendFilter.push(`${counts.format(count)} ${count === 1 ? singular : plural}`);
+    }
+    if (legendFilter.length) details.push('Filtre de légende : ' + legendFilter.join(' · ') + '.');
     if (options.excludedCommonPipistrelle != null) {
       if (typeof options.excludedCommonPipistrelle !== 'number' || !Number.isFinite(options.excludedCommonPipistrelle) || options.excludedCommonPipistrelle < 0) {
         throw new RangeError('Le nombre de contacts exclus doit être un nombre positif ou nul.');

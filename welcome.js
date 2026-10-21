@@ -31,19 +31,33 @@
   let chartMode = 'pie';
   let chartData = null;
   let chartExporting = false;
+  const hiddenChartKeys = new Set();
+  const chartTitle = 'Répartition des contacts selon les AUTO-ID';
 
   function renderDistribution() {
     if (!chartData) return;
+    const selection = BatActivityChart.select(chartData.rows, hiddenChartKeys);
     chartHost.innerHTML = chartData.total
-      ? BatActivityChart.render(chartData.rows, chartMode, { hasAutoId: currentImport.summary.hasAutoIdColumn })
+      ? BatActivityChart.render(chartData.rows, chartMode, {
+        interactive: true, hiddenKeys: hiddenChartKeys,
+        hasAutoId: currentImport.summary.hasAutoIdColumn, title: chartTitle
+      })
       : '<p class="activity-chart-empty">Aucun contact hors bruit à représenter.</p>';
+    const source = currentImport.summary.hasAutoIdColumn
+      ? 'AUTO-ID, hors Noise'
+      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    document.getElementById('distribution-caption').textContent = source + ' · ' + numbers.format(selection.total) + (selection.total === 1 ? ' contact représenté' : ' contacts représentés')
+      + (selection.hiddenCount ? ' · ' + numbers.format(selection.hiddenCount) + ' catégorie' + (selection.hiddenCount > 1 ? 's masquées' : ' masquée')
+        + ' (' + numbers.format(selection.hiddenContacts) + (selection.hiddenContacts === 1 ? ' contact)' : ' contacts)') : '');
     for (const scrollable of chartHost.querySelectorAll('.activity-legend, .activity-bar-list')) scrollable.tabIndex = 0;
     for (const button of chartModes) button.setAttribute('aria-pressed', String(button.dataset.chartMode === chartMode));
-    for (const button of chartExports) button.disabled = !chartData.total || chartExporting;
+    for (const button of chartExports) button.disabled = !selection.total || chartExporting;
   }
 
   async function exportDistribution(format) {
-    if (!currentImport || !chartData || !chartData.total || chartExporting) return;
+    if (!currentImport || !chartData || chartExporting) return;
+    const selection = BatActivityChart.select(chartData.rows, hiddenChartKeys);
+    if (!selection.total) return;
     const imported = currentImport;
     const data = chartData;
     const mode = chartMode;
@@ -52,16 +66,17 @@
     renderDistribution();
     chartStatus.textContent = 'Préparation de l’image…';
     try {
-      const result = await BatActivityExport.exportBlob(data.rows, mode, format, {
-        title: 'Répartition des contacts', source: 'auto-id',
+      const result = await BatActivityExport.exportBlob(selection.rows, mode, format, {
+        title: chartTitle, source: 'auto-id',
         noiseContacts: data.noiseCount, totalContacts: imported.summary.totalContacts,
-        hasAutoId: imported.summary.hasAutoIdColumn
+        hasAutoId: imported.summary.hasAutoIdColumn,
+        hiddenContacts: selection.hiddenContacts, hiddenCategories: selection.hiddenCount
       });
       const stem = imported.fileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'contacts';
       const link = document.createElement('a');
       const url = URL.createObjectURL(result.blob);
       link.href = url;
-      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + '.' + result.extension;
+      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + (selection.hiddenCount ? '_filtre' : '') + '.' + result.extension;
       document.body.append(link);
       try { link.click(); }
       finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
@@ -103,9 +118,7 @@
     startReview.disabled = summary.totalContacts === 0;
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
     chartData = PlecotusImportChart.build(result);
-    document.getElementById('distribution-caption').textContent = summary.hasAutoIdColumn
-      ? 'Identifications automatiques (AUTO-ID), hors Noise · ' + numbers.format(chartData.total) + ' contacts représentés'
-      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    hiddenChartKeys.clear();
     chartStatus.textContent = '';
     renderDistribution();
     overview.hidden = false;
@@ -259,6 +272,23 @@
     renderDistribution();
   });
   for (const button of chartExports) button.addEventListener('click', () => exportDistribution(button.dataset.chartExport));
+  chartHost.addEventListener('click', event => {
+    const button = event.target.closest('button[data-chart-key]');
+    if (!button || !chartHost.contains(button)) return;
+    const key = button.dataset.chartKey;
+    const list = button.closest('.activity-legend, .activity-bar-list');
+    const scrollTop = list ? list.scrollTop : 0;
+    if (hiddenChartKeys.has(key)) hiddenChartKeys.delete(key);
+    else hiddenChartKeys.add(key);
+    chartStatus.textContent = '';
+    renderDistribution();
+    const restored = [...chartHost.querySelectorAll('button[data-chart-key]')].find(item => item.dataset.chartKey === key);
+    if (restored) {
+      restored.focus({ preventScroll: true });
+      const restoredList = restored.closest('.activity-legend, .activity-bar-list');
+      if (restoredList) restoredList.scrollTop = scrollTop;
+    }
+  });
   backToSummary.addEventListener('click', () => {
     speciesOverview.hidden = true;
     overview.hidden = false;

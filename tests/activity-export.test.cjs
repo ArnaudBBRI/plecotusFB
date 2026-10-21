@@ -236,6 +236,40 @@ test('source Noise counters reject invalid values and retain explicit zero', () 
   assert.match(Export.svg(sample, 'pie', { source: 'auto-id', noiseContacts: 0 }).svg, /0 contacts Noise exclus \(AUTO-ID\)/);
 });
 
+test('legend-filter export metadata records multiple hidden categories and validates counts', () => {
+  const output = Export.svg(sample, 'pie', { source: 'auto-id', hiddenCategories: 2, hiddenContacts: 80 });
+  assert.match(output.svg, /Filtre de légende : 2 catégories masquées · 80 contacts masqués\./);
+  assert.doesNotMatch(Export.svg(sample, 'pie', { source: 'auto-id', hiddenCategories: 0, hiddenContacts: 0 }).svg, /Filtre de légende/);
+  assert.doesNotMatch(Export.svg(sample, 'pie').svg, /Filtre de légende/);
+  assert.match(Export.svg(sample, 'bar', { source: 'auto-id', hiddenCategories: 1, hiddenContacts: 1 }).svg, /1 catégorie masquée · 1 contact masqué/);
+  for (const key of ['hiddenContacts', 'hiddenCategories']) {
+    for (const value of [-1, NaN, Infinity, '2']) {
+      assert.throws(() => Export.svg(sample, 'pie', { source: 'auto-id', [key]: value }), RangeError);
+    }
+  }
+});
+
+test('legend selections export only visible series with recalculated shares and stable colors', () => {
+  const full = Chart.prepare(sample);
+  const hiddenKeys = new Set([Chart.rowKey(full.rows[0]), Chart.rowKey(full.rows[1])]);
+  const selected = Chart.select(sample, hiddenKeys);
+  assert.equal(selected.rows.length, 1);
+  const remaining = full.rows[2];
+  for (const mode of ['pie', 'bar']) {
+    const output = Export.svg(selected.rows, mode, {
+      source: 'auto-id', title: 'Répartition des contacts selon les AUTO-ID',
+      hiddenCategories: selected.hiddenCount, hiddenContacts: selected.hiddenContacts
+    });
+    assert.equal((output.svg.match(/data-series=/g) || []).length, 1);
+    assert.equal((output.svg.match(/data-legend=/g) || []).length, 1);
+    assert.ok(output.svg.includes(`data-legend="${remaining.scientificName}"`));
+    assert.ok(output.svg.includes(`fill="${remaining.color}"`));
+    assert.match(output.svg, /10 contacts \(100 %\)/);
+    assert.match(output.svg, /10 contacts représentés/);
+    assert.doesNotMatch(output.svg, /data-legend="Pipistrellus pipistrellus"|data-legend="Myotis dasycneme"/);
+  }
+});
+
 test('filtered pie and bars recalculate the visible denominator and visibly annotate excluded common pipistrelle', () => {
   const original = structuredClone(sample);
   const filtered = Species.chartRows(sample, false);

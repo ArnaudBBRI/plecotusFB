@@ -138,3 +138,90 @@ test('many species keep every row and every count in each chart mode', () => {
   assert.equal((Chart.render(rows, 'pie').match(/class="activity-legend-item"/g) || []).length, 40);
   assert.equal((Chart.render(rows, 'bar').match(/class="activity-bar-item"/g) || []).length, 40);
 });
+
+test('multiple hidden categories are omitted together and restoring them preserves source counts', () => {
+  const original = JSON.parse(JSON.stringify(sample));
+  const hidden = new Set([Chart.rowKey(sample[0]), Chart.rowKey(sample[1])]);
+  const selected = Chart.select(sample, hidden);
+  assert.equal(selected.total, 10);
+  assert.equal(selected.hiddenContacts, 90);
+  assert.equal(selected.hiddenCount, 2);
+  assert.equal(selected.rows.length, 1);
+  assert.equal(selected.rows[0].scientificName, 'Myotis sp.');
+  assert.equal(selected.rows[0].percentage, 100);
+  assert.equal(selected.legendRows.length, 3);
+  assert.equal(selected.legendRows.filter(row => row.hidden).length, 2);
+  hidden.delete(Chart.rowKey(sample[0]));
+  assert.equal(Chart.select(sample, hidden).total, 90);
+  hidden.clear();
+  assert.equal(Chart.select(sample, hidden).total, 100);
+  assert.deepEqual(sample, original);
+});
+
+test('interactive pie and bars retain hidden categories as native restoration buttons', () => {
+  const hiddenKeys = new Set([Chart.rowKey(sample[0]), Chart.rowKey(sample[1])]);
+  const title = 'Répartition des contacts selon les AUTO-ID';
+  for (const mode of ['pie', 'bar']) {
+    const output = Chart.render(sample, mode, { interactive: true, hiddenKeys, title });
+    assert.equal((output.match(/<button type="button" class="activity-legend-toggle/g) || []).length, 3);
+    assert.equal((output.match(/aria-pressed="false"/g) || []).length, 2);
+    assert.equal((output.match(/aria-pressed="true"/g) || []).length, 1);
+    assert.match(output, /aria-label="Afficher Pipistrellus pipistrellus"/);
+    assert.match(output, /aria-label="Masquer Myotis sp\."/);
+    assert.match(output, /<strong>80<\/strong><span>Masqué<\/span>/);
+    assert.match(output, /<strong>10<\/strong><span>100 %<\/span>/);
+    assert.match(output, /activity-chart-interactive/);
+    assert.ok(output.includes(title));
+    if (mode === 'pie') assert.equal((output.match(/class="activity-chart-slice"/g) || []).length, 1);
+    else assert.equal((output.match(/class="activity-bar-track"/g) || []).length, 1);
+  }
+});
+
+test('hiding every category keeps all legend controls available to restore the chart', () => {
+  const hiddenKeys = new Set(sample.map(Chart.rowKey));
+  const selected = Chart.select(sample, hiddenKeys);
+  assert.equal(selected.total, 0);
+  assert.equal(selected.hiddenContacts, 100);
+  assert.equal(selected.hiddenCount, 3);
+  assert.deepEqual(selected.rows, []);
+  for (const mode of ['pie', 'bar']) {
+    const output = Chart.render(sample, mode, { interactive: true, hiddenKeys });
+    assert.match(output, /Aucune catégorie affichée\. Réactivez un élément de la légende\./);
+    assert.equal((output.match(/data-chart-key=/g) || []).length, 3);
+    assert.equal((output.match(/aria-pressed="false"/g) || []).length, 3);
+    assert.doesNotMatch(output, /<svg|class="activity-bar-track"|NaN|Infinity/);
+  }
+});
+
+test('filtering preserves the full palette when visible rows are prepared again for export', () => {
+  const full = Chart.prepare(sample);
+  const selected = Chart.select(sample, new Set([Chart.rowKey(sample[0])]));
+  const exported = Chart.prepare(selected.rows);
+  assert.equal(exported.total, 20);
+  for (const row of exported.rows) {
+    assert.equal(row.color, full.rows.find(source => Chart.rowKey(source) === Chart.rowKey(row)).color);
+    assert.equal(row.percentage, 50);
+    for (const mode of ['pie', 'bar']) assert.ok(Chart.render(selected.rows, mode).includes(row.color));
+  }
+  const many = Array.from({ length: 30 }, (_, index) => ({ scientificName: 'Species ' + index, contacts: 30 - index }));
+  const manyFull = Chart.prepare(many);
+  const last = manyFull.rows[29];
+  assert.match(last.color, /^hsl\(/);
+  const onlyLast = Chart.select(many, new Set(manyFull.rows.slice(0, -1).map(Chart.rowKey)));
+  assert.equal(Chart.prepare(onlyLast.rows).rows[0].color, last.color);
+});
+
+test('legend keys and labels cannot inject markup and color overrides are constrained', () => {
+  const source = { scientificName: '<img src=x onerror="bad">', frenchName: "A & B's", contacts: 3 };
+  const hiddenKeys = new Set([Chart.rowKey(source)]);
+  const output = Chart.render([source], 'pie', { interactive: true, hiddenKeys, title: '<script>title</script>' });
+  assert.doesNotMatch(output, /<img |<script>| onerror="bad"/);
+  assert.ok(output.includes('data-chart-key="[&quot;&lt;img src=x onerror=\\&quot;bad\\&quot;&gt;&quot;,&quot;A &amp; B&#39;s&quot;]"'));
+  assert.match(output, /aria-pressed="false"/);
+  assert.notEqual(Chart.rowKey({ scientificName: 'a,b', frenchName: 'c' }), Chart.rowKey({ scientificName: 'a', frenchName: 'b,c' }));
+  for (const color of ['url(https://example.invalid/pixel)', '#000000" onclick="bad', 'red; background:url(x)']) {
+    const row = Chart.prepare([{ scientificName: 'A', contacts: 1, color }]).rows[0];
+    assert.equal(row.color, '#1b7663');
+  }
+  assert.equal(Chart.prepare([{ scientificName: 'A', contacts: 1, color: '#a1B2c3' }]).rows[0].color, '#a1B2c3');
+});

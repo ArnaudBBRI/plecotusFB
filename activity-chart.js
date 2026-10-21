@@ -14,6 +14,14 @@
   const percentageFormat = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 1 });
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const compareNames = (left, right) => left === right ? 0 : left < right ? -1 : 1;
+  const safeColor = color => typeof color === 'string' && (/^#[0-9a-f]{6}$/i.test(color) || /^hsl\(\d+(?:\.\d+)? \d+(?:\.\d+)?% \d+(?:\.\d+)?%\)$/.test(color));
+
+  function rowKey(row) {
+    return JSON.stringify([
+      String(row.scientificName == null ? '' : row.scientificName).trim(),
+      String(row.frenchName == null ? '' : row.frenchName).trim()
+    ]);
+  }
 
   function prepare(input) {
     if (input == null) input = [];
@@ -31,7 +39,9 @@
         throw new RangeError('Le nombre de contacts doit être un nombre positif ou nul.');
       }
       if (contacts === 0) continue;
-      rows.push({ scientificName, frenchName, contacts, isSpecies: source.isSpecies === true, known: source.known === true });
+      const row = { scientificName, frenchName, contacts, isSpecies: source.isSpecies === true, known: source.known === true };
+      if (safeColor(source.color)) row.color = source.color;
+      rows.push(row);
     }
     rows.sort((left, right) => right.contacts - left.contacts || compareNames(left.scientificName, right.scientificName) || compareNames(left.frenchName, right.frenchName));
     const total = rows.reduce((sum, row) => sum + row.contacts, 0);
@@ -39,9 +49,29 @@
     rows.forEach((row, index) => {
       row.proportion = total ? row.contacts / total : 0;
       row.percentage = row.proportion * 100;
-      row.color = PALETTE[index] || `hsl(${(index * 137.508) % 360} 52% ${index % 2 ? 42 : 54}%)`;
+      row.color = row.color || PALETTE[index] || `hsl(${(index * 137.508) % 360} 52% ${index % 2 ? 42 : 54}%)`;
     });
     return { rows, total };
+  }
+
+  // Assign the complete palette before filtering, so a category keeps its color
+  // in either view and in exports. Hidden categories remain in the legend.
+  function select(input, hiddenKeys) {
+    if (hiddenKeys == null) hiddenKeys = new Set();
+    if (!(hiddenKeys instanceof Set)) throw new TypeError('Les catégories masquées doivent être un ensemble.');
+    const data = prepare(input);
+    let total = 0, hiddenContacts = 0, hiddenCount = 0;
+    for (const row of data.rows) {
+      if (hiddenKeys.has(rowKey(row))) { hiddenContacts += row.contacts; hiddenCount++; }
+      else total += row.contacts;
+    }
+    const legendRows = data.rows.map(row => {
+      const hidden = hiddenKeys.has(rowKey(row));
+      const proportion = hidden || !total ? 0 : row.contacts / total;
+      return { ...row, hidden, proportion, percentage: proportion * 100 };
+    });
+    const rows = legendRows.filter(row => !row.hidden).map(({ hidden, ...row }) => row);
+    return { rows, legendRows, total, hiddenContacts, hiddenCount };
   }
 
   function names(row) {
@@ -50,11 +80,21 @@
   }
 
   function value(row) {
-    return `<span class="activity-legend-value"><strong>${countFormat.format(row.contacts)}</strong><span>${percentageFormat.format(row.percentage)} %</span></span>`;
+    return `<span class="activity-legend-value"><strong>${countFormat.format(row.contacts)}</strong><span>${row.hidden ? 'Masqué' : percentageFormat.format(row.percentage) + ' %'}</span></span>`;
   }
 
   function tooltip(row) {
     return escape(`${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts (${percentageFormat.format(row.percentage)} %)`);
+  }
+
+  function toggle(row, bar) {
+    const label = (row.hidden ? 'Afficher ' : 'Masquer ') + (row.scientificName || row.frenchName || 'Identification non renseignée');
+    return `<button type="button" class="activity-legend-toggle${bar ? ' activity-bar-heading' : ''}" data-chart-key="${escape(rowKey(row))}" aria-pressed="${!row.hidden}" aria-label="${escape(label)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</button>`;
+  }
+
+  function interactiveLegend(rows) {
+    const many = rows.length > 8;
+    return `<div class="activity-legend-panel">${many ? `<p class="activity-legend-caption">${rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>` : ''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many ? ' tabindex="0"' : ''}>${rows.map(row => `<li class="activity-legend-item${row.hidden ? ' is-hidden' : ''}">${toggle(row, false)}</li>`).join('')}</ul></div>`;
   }
 
   function pie(data, options) {
@@ -76,23 +116,33 @@
       });
     }
     const description = data.rows.map(row => `${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts, ${percentageFormat.format(row.percentage)} %`).join(' ; ');
-    const chart = `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="Répartition des contacts par espèce"><title>Répartition des contacts par espèce</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>`;
+    const title = options && options.title || 'Répartition des contacts par espèce';
+    const chart = data.total ? `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="${escape(title)}"><title>${escape(title)}</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>` : '<p class="activity-chart-empty">Aucune catégorie affichée. Réactivez un élément de la légende.</p>';
+    if (options && options.interactive) {
+      const rows = data.legendRows;
+      return `<div class="activity-chart-layout activity-chart-interactive${rows.length > 8 ? ' activity-chart-many' : ''}">${chart}${interactiveLegend(rows)}</div>`;
+    }
     const many = data.rows.length > 8;
     const legend = `<div class="activity-legend-panel">${many?`<p class="activity-legend-caption">${data.rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>`:''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many?' tabindex="0"':''}>${data.rows.map(row => `<li class="activity-legend-item" title="${tooltip(row)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</li>`).join('')}</ul></div>`;
     return `<div class="activity-chart-layout${many?' activity-chart-many':''}">${chart}${legend}</div>`;
   }
 
-  function bars(data) {
+  function bars(data, options) {
     // Widths use total contacts, exactly like the pie shares; they therefore
     // remain directly comparable when the user switches chart mode.
-    return `<ol class="activity-bar-list" aria-label="Répartition des contacts par espèce">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
+    if (options && options.interactive) {
+      const empty = data.total ? '' : '<p class="activity-chart-empty">Aucune catégorie affichée. Réactivez un élément de la légende.</p>';
+      return `${empty}<ol class="activity-bar-list activity-chart-interactive" aria-label="${escape(options.title || 'Répartition des contacts par espèce')}">${data.legendRows.map(row => `<li class="activity-bar-item${row.hidden ? ' is-hidden' : ''}">${toggle(row, true)}${row.hidden ? '' : `<div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div>`}</li>`).join('')}</ol>`;
+    }
+    return `<ol class="activity-bar-list" aria-label="${escape(options && options.title || 'Répartition des contacts par espèce')}">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
   }
 
   function render(rows, mode, options) {
-    const data = prepare(rows);
-    if (!data.total) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
-    return mode === 'bar' ? bars(data) : pie(data, options);
+    const interactive = options && options.interactive;
+    const data = interactive ? select(rows, options.hiddenKeys) : prepare(rows);
+    if (!data.total && (!interactive || !data.legendRows.length)) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
+    return mode === 'bar' ? bars(data, options) : pie(data, options);
   }
 
-  return Object.freeze({ prepare, render });
+  return Object.freeze({ prepare, rowKey, select, render });
 });

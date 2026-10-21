@@ -73,6 +73,48 @@
 .import-distribution .activity-bar-fill { display: block; height: 100%; border-radius: 3px; }
 .import-distribution .activity-chart-empty { margin: 0; padding: 2rem 1rem; border-radius: .5rem; background: #f6f7f4; color: #777e72; font-size: .85rem; line-height: 1.6; text-align: center; }
 
+.import-distribution .activity-chart-interactive .activity-legend-item { display: block; padding: 0; }
+.import-distribution .activity-legend-toggle {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: .45rem .25rem;
+  border: 1px solid transparent;
+  border-radius: .3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.import-distribution .activity-legend-toggle:hover { background: #f3f5ef; }
+.import-distribution .activity-legend-toggle:focus-visible { outline: 2px solid #996535; outline-offset: -2px; }
+.import-distribution .activity-chart-many .activity-legend-toggle {
+  grid-template-columns: 9px minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+  gap: .15rem .5rem;
+  padding: .4rem .25rem;
+}
+.import-distribution .activity-legend-toggle[aria-pressed="false"],
+.import-distribution .activity-legend-toggle.is-hidden { color: #6f756b; }
+.import-distribution .is-hidden .activity-legend-names,
+.import-distribution .activity-legend-toggle[aria-pressed="false"] .activity-legend-names {
+  text-decoration: line-through;
+  text-decoration-color: #8f9589;
+  text-decoration-thickness: 1px;
+}
+.import-distribution .is-hidden .activity-legend-swatch,
+.import-distribution .activity-legend-toggle[aria-pressed="false"] .activity-legend-swatch { opacity: .35; }
+.import-distribution .activity-chart-interactive.activity-bar-list .activity-bar-item { padding: .2rem 0 .6rem; }
+.import-distribution .activity-bar-item.is-hidden .activity-bar-track { display: none; }
+.import-distribution .activity-bar-item.is-hidden .activity-legend-toggle { margin-bottom: 0; }
+.import-distribution .activity-chart-layout > .activity-chart-empty { display: grid; place-items: center; min-height: 200px; }
+
 @media (max-width: 640px) {
   .import-distribution { padding: 1rem; }
   .import-distribution .distribution-toolbar { gap: .9rem; }

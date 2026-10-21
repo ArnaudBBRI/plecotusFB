@@ -277,6 +277,48 @@ body { margin: 0; min-height: 100svh; }
 .import-distribution .activity-bar-fill { display: block; height: 100%; border-radius: 3px; }
 .import-distribution .activity-chart-empty { margin: 0; padding: 2rem 1rem; border-radius: .5rem; background: #f6f7f4; color: #777e72; font-size: .85rem; line-height: 1.6; text-align: center; }
 
+.import-distribution .activity-chart-interactive .activity-legend-item { display: block; padding: 0; }
+.import-distribution .activity-legend-toggle {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: .45rem .25rem;
+  border: 1px solid transparent;
+  border-radius: .3rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.import-distribution .activity-legend-toggle:hover { background: #f3f5ef; }
+.import-distribution .activity-legend-toggle:focus-visible { outline: 2px solid #996535; outline-offset: -2px; }
+.import-distribution .activity-chart-many .activity-legend-toggle {
+  grid-template-columns: 9px minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+  gap: .15rem .5rem;
+  padding: .4rem .25rem;
+}
+.import-distribution .activity-legend-toggle[aria-pressed="false"],
+.import-distribution .activity-legend-toggle.is-hidden { color: #6f756b; }
+.import-distribution .is-hidden .activity-legend-names,
+.import-distribution .activity-legend-toggle[aria-pressed="false"] .activity-legend-names {
+  text-decoration: line-through;
+  text-decoration-color: #8f9589;
+  text-decoration-thickness: 1px;
+}
+.import-distribution .is-hidden .activity-legend-swatch,
+.import-distribution .activity-legend-toggle[aria-pressed="false"] .activity-legend-swatch { opacity: .35; }
+.import-distribution .activity-chart-interactive.activity-bar-list .activity-bar-item { padding: .2rem 0 .6rem; }
+.import-distribution .activity-bar-item.is-hidden .activity-bar-track { display: none; }
+.import-distribution .activity-bar-item.is-hidden .activity-legend-toggle { margin-bottom: 0; }
+.import-distribution .activity-chart-layout > .activity-chart-empty { display: grid; place-items: center; min-height: 200px; }
+
 @media (max-width: 640px) {
   .import-distribution { padding: 1rem; }
   .import-distribution .distribution-toolbar { gap: .9rem; }
@@ -344,7 +386,7 @@ body { margin: 0; min-height: 100svh; }
         </dl>
         <section class="import-distribution" aria-labelledby="distribution-heading">
           <div class="distribution-toolbar">
-            <div class="distribution-heading"><h3 id="distribution-heading">Répartition des contacts</h3><p id="distribution-caption"></p></div>
+            <div class="distribution-heading"><h3 id="distribution-heading">Répartition des contacts selon les AUTO-ID</h3><p id="distribution-caption"></p></div>
             <div class="chart-actions">
               <div class="chart-toggle" role="group" aria-label="Type de graphique">
                 <button type="button" data-chart-mode="pie" aria-pressed="true">Camembert</button>
@@ -1069,6 +1111,14 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const percentageFormat = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 1 });
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const compareNames = (left, right) => left === right ? 0 : left < right ? -1 : 1;
+  const safeColor = color => typeof color === 'string' && (/^#[0-9a-f]{6}$/i.test(color) || /^hsl\(\d+(?:\.\d+)? \d+(?:\.\d+)?% \d+(?:\.\d+)?%\)$/.test(color));
+
+  function rowKey(row) {
+    return JSON.stringify([
+      String(row.scientificName == null ? '' : row.scientificName).trim(),
+      String(row.frenchName == null ? '' : row.frenchName).trim()
+    ]);
+  }
 
   function prepare(input) {
     if (input == null) input = [];
@@ -1086,7 +1136,9 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         throw new RangeError('Le nombre de contacts doit être un nombre positif ou nul.');
       }
       if (contacts === 0) continue;
-      rows.push({ scientificName, frenchName, contacts, isSpecies: source.isSpecies === true, known: source.known === true });
+      const row = { scientificName, frenchName, contacts, isSpecies: source.isSpecies === true, known: source.known === true };
+      if (safeColor(source.color)) row.color = source.color;
+      rows.push(row);
     }
     rows.sort((left, right) => right.contacts - left.contacts || compareNames(left.scientificName, right.scientificName) || compareNames(left.frenchName, right.frenchName));
     const total = rows.reduce((sum, row) => sum + row.contacts, 0);
@@ -1094,9 +1146,29 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     rows.forEach((row, index) => {
       row.proportion = total ? row.contacts / total : 0;
       row.percentage = row.proportion * 100;
-      row.color = PALETTE[index] || `hsl(${(index * 137.508) % 360} 52% ${index % 2 ? 42 : 54}%)`;
+      row.color = row.color || PALETTE[index] || `hsl(${(index * 137.508) % 360} 52% ${index % 2 ? 42 : 54}%)`;
     });
     return { rows, total };
+  }
+
+  // Assign the complete palette before filtering, so a category keeps its color
+  // in either view and in exports. Hidden categories remain in the legend.
+  function select(input, hiddenKeys) {
+    if (hiddenKeys == null) hiddenKeys = new Set();
+    if (!(hiddenKeys instanceof Set)) throw new TypeError('Les catégories masquées doivent être un ensemble.');
+    const data = prepare(input);
+    let total = 0, hiddenContacts = 0, hiddenCount = 0;
+    for (const row of data.rows) {
+      if (hiddenKeys.has(rowKey(row))) { hiddenContacts += row.contacts; hiddenCount++; }
+      else total += row.contacts;
+    }
+    const legendRows = data.rows.map(row => {
+      const hidden = hiddenKeys.has(rowKey(row));
+      const proportion = hidden || !total ? 0 : row.contacts / total;
+      return { ...row, hidden, proportion, percentage: proportion * 100 };
+    });
+    const rows = legendRows.filter(row => !row.hidden).map(({ hidden, ...row }) => row);
+    return { rows, legendRows, total, hiddenContacts, hiddenCount };
   }
 
   function names(row) {
@@ -1105,11 +1177,21 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   }
 
   function value(row) {
-    return `<span class="activity-legend-value"><strong>${countFormat.format(row.contacts)}</strong><span>${percentageFormat.format(row.percentage)} %</span></span>`;
+    return `<span class="activity-legend-value"><strong>${countFormat.format(row.contacts)}</strong><span>${row.hidden ? 'Masqué' : percentageFormat.format(row.percentage) + ' %'}</span></span>`;
   }
 
   function tooltip(row) {
     return escape(`${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts (${percentageFormat.format(row.percentage)} %)`);
+  }
+
+  function toggle(row, bar) {
+    const label = (row.hidden ? 'Afficher ' : 'Masquer ') + (row.scientificName || row.frenchName || 'Identification non renseignée');
+    return `<button type="button" class="activity-legend-toggle${bar ? ' activity-bar-heading' : ''}" data-chart-key="${escape(rowKey(row))}" aria-pressed="${!row.hidden}" aria-label="${escape(label)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</button>`;
+  }
+
+  function interactiveLegend(rows) {
+    const many = rows.length > 8;
+    return `<div class="activity-legend-panel">${many ? `<p class="activity-legend-caption">${rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>` : ''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many ? ' tabindex="0"' : ''}>${rows.map(row => `<li class="activity-legend-item${row.hidden ? ' is-hidden' : ''}">${toggle(row, false)}</li>`).join('')}</ul></div>`;
   }
 
   function pie(data, options) {
@@ -1131,25 +1213,35 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       });
     }
     const description = data.rows.map(row => `${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts, ${percentageFormat.format(row.percentage)} %`).join(' ; ');
-    const chart = `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="Répartition des contacts par espèce"><title>Répartition des contacts par espèce</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>`;
+    const title = options && options.title || 'Répartition des contacts par espèce';
+    const chart = data.total ? `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="${escape(title)}"><title>${escape(title)}</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>` : '<p class="activity-chart-empty">Aucune catégorie affichée. Réactivez un élément de la légende.</p>';
+    if (options && options.interactive) {
+      const rows = data.legendRows;
+      return `<div class="activity-chart-layout activity-chart-interactive${rows.length > 8 ? ' activity-chart-many' : ''}">${chart}${interactiveLegend(rows)}</div>`;
+    }
     const many = data.rows.length > 8;
     const legend = `<div class="activity-legend-panel">${many?`<p class="activity-legend-caption">${data.rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>`:''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many?' tabindex="0"':''}>${data.rows.map(row => `<li class="activity-legend-item" title="${tooltip(row)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</li>`).join('')}</ul></div>`;
     return `<div class="activity-chart-layout${many?' activity-chart-many':''}">${chart}${legend}</div>`;
   }
 
-  function bars(data) {
+  function bars(data, options) {
     // Widths use total contacts, exactly like the pie shares; they therefore
     // remain directly comparable when the user switches chart mode.
-    return `<ol class="activity-bar-list" aria-label="Répartition des contacts par espèce">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
+    if (options && options.interactive) {
+      const empty = data.total ? '' : '<p class="activity-chart-empty">Aucune catégorie affichée. Réactivez un élément de la légende.</p>';
+      return `${empty}<ol class="activity-bar-list activity-chart-interactive" aria-label="${escape(options.title || 'Répartition des contacts par espèce')}">${data.legendRows.map(row => `<li class="activity-bar-item${row.hidden ? ' is-hidden' : ''}">${toggle(row, true)}${row.hidden ? '' : `<div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div>`}</li>`).join('')}</ol>`;
+    }
+    return `<ol class="activity-bar-list" aria-label="${escape(options && options.title || 'Répartition des contacts par espèce')}">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
   }
 
   function render(rows, mode, options) {
-    const data = prepare(rows);
-    if (!data.total) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
-    return mode === 'bar' ? bars(data) : pie(data, options);
+    const interactive = options && options.interactive;
+    const data = interactive ? select(rows, options.hiddenKeys) : prepare(rows);
+    if (!data.total && (!interactive || !data.legendRows.length)) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
+    return mode === 'bar' ? bars(data, options) : pie(data, options);
   }
 
-  return Object.freeze({ prepare, render });
+  return Object.freeze({ prepare, rowKey, select, render });
 });
 
 </script>
@@ -1252,6 +1344,19 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       if (!unknownNoise) counters.push(`${counts.format(options.noiseContacts)} contacts Noise exclus (AUTO-ID)`);
     }
     if (counters.length) details.push(counters.join(' · '));
+    const legendFilter = [];
+    for (const [key, singular, plural] of [
+      ['hiddenCategories', 'catégorie masquée', 'catégories masquées'],
+      ['hiddenContacts', 'contact masqué', 'contacts masqués']
+    ]) {
+      const count = options[key];
+      if (count == null) continue;
+      if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
+        throw new RangeError('Les compteurs du filtre de légende doivent être des nombres positifs ou nuls.');
+      }
+      if (count > 0) legendFilter.push(`${counts.format(count)} ${count === 1 ? singular : plural}`);
+    }
+    if (legendFilter.length) details.push('Filtre de légende : ' + legendFilter.join(' · ') + '.');
     if (options.excludedCommonPipistrelle != null) {
       if (typeof options.excludedCommonPipistrelle !== 'number' || !Number.isFinite(options.excludedCommonPipistrelle) || options.excludedCommonPipistrelle < 0) {
         throw new RangeError('Le nombre de contacts exclus doit être un nombre positif ou nul.');
@@ -1522,19 +1627,33 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let chartMode = 'pie';
   let chartData = null;
   let chartExporting = false;
+  const hiddenChartKeys = new Set();
+  const chartTitle = 'Répartition des contacts selon les AUTO-ID';
 
   function renderDistribution() {
     if (!chartData) return;
+    const selection = BatActivityChart.select(chartData.rows, hiddenChartKeys);
     chartHost.innerHTML = chartData.total
-      ? BatActivityChart.render(chartData.rows, chartMode, { hasAutoId: currentImport.summary.hasAutoIdColumn })
+      ? BatActivityChart.render(chartData.rows, chartMode, {
+        interactive: true, hiddenKeys: hiddenChartKeys,
+        hasAutoId: currentImport.summary.hasAutoIdColumn, title: chartTitle
+      })
       : '<p class="activity-chart-empty">Aucun contact hors bruit à représenter.</p>';
+    const source = currentImport.summary.hasAutoIdColumn
+      ? 'AUTO-ID, hors Noise'
+      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    document.getElementById('distribution-caption').textContent = source + ' · ' + numbers.format(selection.total) + (selection.total === 1 ? ' contact représenté' : ' contacts représentés')
+      + (selection.hiddenCount ? ' · ' + numbers.format(selection.hiddenCount) + ' catégorie' + (selection.hiddenCount > 1 ? 's masquées' : ' masquée')
+        + ' (' + numbers.format(selection.hiddenContacts) + (selection.hiddenContacts === 1 ? ' contact)' : ' contacts)') : '');
     for (const scrollable of chartHost.querySelectorAll('.activity-legend, .activity-bar-list')) scrollable.tabIndex = 0;
     for (const button of chartModes) button.setAttribute('aria-pressed', String(button.dataset.chartMode === chartMode));
-    for (const button of chartExports) button.disabled = !chartData.total || chartExporting;
+    for (const button of chartExports) button.disabled = !selection.total || chartExporting;
   }
 
   async function exportDistribution(format) {
-    if (!currentImport || !chartData || !chartData.total || chartExporting) return;
+    if (!currentImport || !chartData || chartExporting) return;
+    const selection = BatActivityChart.select(chartData.rows, hiddenChartKeys);
+    if (!selection.total) return;
     const imported = currentImport;
     const data = chartData;
     const mode = chartMode;
@@ -1543,16 +1662,17 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     renderDistribution();
     chartStatus.textContent = 'Préparation de l’image…';
     try {
-      const result = await BatActivityExport.exportBlob(data.rows, mode, format, {
-        title: 'Répartition des contacts', source: 'auto-id',
+      const result = await BatActivityExport.exportBlob(selection.rows, mode, format, {
+        title: chartTitle, source: 'auto-id',
         noiseContacts: data.noiseCount, totalContacts: imported.summary.totalContacts,
-        hasAutoId: imported.summary.hasAutoIdColumn
+        hasAutoId: imported.summary.hasAutoIdColumn,
+        hiddenContacts: selection.hiddenContacts, hiddenCategories: selection.hiddenCount
       });
       const stem = imported.fileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'contacts';
       const link = document.createElement('a');
       const url = URL.createObjectURL(result.blob);
       link.href = url;
-      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + '.' + result.extension;
+      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + (selection.hiddenCount ? '_filtre' : '') + '.' + result.extension;
       document.body.append(link);
       try { link.click(); }
       finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
@@ -1594,9 +1714,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     startReview.disabled = summary.totalContacts === 0;
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
     chartData = PlecotusImportChart.build(result);
-    document.getElementById('distribution-caption').textContent = summary.hasAutoIdColumn
-      ? 'Identifications automatiques (AUTO-ID), hors Noise · ' + numbers.format(chartData.total) + ' contacts représentés'
-      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    hiddenChartKeys.clear();
     chartStatus.textContent = '';
     renderDistribution();
     overview.hidden = false;
@@ -1750,6 +1868,23 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     renderDistribution();
   });
   for (const button of chartExports) button.addEventListener('click', () => exportDistribution(button.dataset.chartExport));
+  chartHost.addEventListener('click', event => {
+    const button = event.target.closest('button[data-chart-key]');
+    if (!button || !chartHost.contains(button)) return;
+    const key = button.dataset.chartKey;
+    const list = button.closest('.activity-legend, .activity-bar-list');
+    const scrollTop = list ? list.scrollTop : 0;
+    if (hiddenChartKeys.has(key)) hiddenChartKeys.delete(key);
+    else hiddenChartKeys.add(key);
+    chartStatus.textContent = '';
+    renderDistribution();
+    const restored = [...chartHost.querySelectorAll('button[data-chart-key]')].find(item => item.dataset.chartKey === key);
+    if (restored) {
+      restored.focus({ preventScroll: true });
+      const restoredList = restored.closest('.activity-legend, .activity-bar-list');
+      if (restoredList) restoredList.scrollTop = scrollTop;
+    }
+  });
   backToSummary.addEventListener('click', () => {
     speciesOverview.hidden = true;
     overview.hidden = false;
