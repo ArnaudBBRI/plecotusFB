@@ -21,6 +21,7 @@ body { margin: 0; min-height: 100svh; }
 }
 
 .welcome-bat {
+  position: relative;
   display: block;
   width: min(84vw, 1000px, max(12rem, calc(160svh - 12rem)));
   padding: 0;
@@ -36,11 +37,26 @@ body { margin: 0; min-height: 100svh; }
 .welcome-bat .plecotus-bat { width: 100%; }
 .logo-fallback { font-size: clamp(2rem, 8vw, 5rem); letter-spacing: .12em; }
 
-.welcome[data-state="ready"] .plecotus-bat,
-.welcome[data-state="leaving"] .plecotus-bat {
+.welcome[data-state="ready"] .plecotus-bat {
   filter: brightness(1);
   animation: none;
 }
+
+/* Keep the original eyes aligned with the image while its artwork fades.
+   The image URL is shared at decode time, including the standalone data URI. */
+.welcome-eyes {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  background: var(--welcome-artwork) center / 100% 100% no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse .78% 1.2% at 47.4% 33.55%, #000 85%, transparent 100%),
+    radial-gradient(ellipse .78% 1.2% at 52.5% 33.55%, #000 85%, transparent 100%);
+  mask-image: radial-gradient(ellipse .78% 1.2% at 47.4% 33.55%, #000 85%, transparent 100%),
+    radial-gradient(ellipse .78% 1.2% at 52.5% 33.55%, #000 85%, transparent 100%);
+  pointer-events: none;
+}
+.welcome.has-logo[data-state="leaving"] .welcome-eyes { opacity: 1; }
 
 .welcome-hint {
   position: absolute;
@@ -59,13 +75,18 @@ body { margin: 0; min-height: 100svh; }
 
 .welcome[data-state="ready"] .welcome-hint { opacity: 1; }
 .welcome[data-state="leaving"] .welcome-bat {
-  animation: plecotus-depart .8s cubic-bezier(.45, 0, .75, .5) both;
+  outline: none;
   pointer-events: none;
 }
+.welcome[data-state="leaving"] .plecotus-bat,
+.welcome[data-state="leaving"] .logo-fallback {
+  filter: brightness(1);
+  animation: plecotus-welcome-fade 3s ease-in-out both;
+}
 
-@keyframes plecotus-depart {
-  from { transform: translateY(0); }
-  to { transform: translateY(calc(-100vh - 100%)); }
+@keyframes plecotus-welcome-fade {
+  from { opacity: 1; }
+  90%, to { opacity: 0; }
 }
 
 .dashboard { min-height: 100svh; background: #fff; outline: none; }
@@ -161,5 +182,4 @@ body { margin: 0; min-height: 100svh; }
 
 @media (prefers-reduced-motion: reduce) {
   .welcome-hint { transition: none; }
-  .welcome[data-state="leaving"] .welcome-bat { animation: none; }
 }

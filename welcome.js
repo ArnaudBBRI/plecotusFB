@@ -555,9 +555,8 @@
     if (state !== 'ready') return;
     setState('leaving');
     bat.disabled = true;
-    status.textContent = 'Ouverture du tableau de bord.';
-    if (reducedMotion.matches) showDashboard();
-    else cancelAnimation = afterAnimation(bat, 'plecotus-depart', showDashboard);
+    status.textContent = 'La chauve-souris s’efface. Ouverture du tableau de bord…';
+    cancelAnimation = afterAnimation(logo.hidden ? fallback : logo, 'plecotus-welcome-fade', showDashboard);
   }
 
   function illuminate() {
@@ -639,10 +638,13 @@
   reducedMotion.addEventListener('change', () => {
     if (!reducedMotion.matches) return;
     if (state === 'illuminating') ready();
-    else if (state === 'leaving') showDashboard();
   });
 
-  logo.decode().then(illuminate, () => {
+  logo.decode().then(() => {
+    welcome.style.setProperty('--welcome-artwork', 'url(' + JSON.stringify(logo.currentSrc || logo.src) + ')');
+    welcome.classList.add('has-logo');
+    illuminate();
+  }, () => {
     logo.hidden = true;
     fallback.hidden = false;
     setState('illuminating');
