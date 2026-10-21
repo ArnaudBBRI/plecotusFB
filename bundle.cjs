@@ -2,14 +2,20 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const root = __dirname;
-const read = name => fs.readFileSync(path.join(root,name),'utf8');
-const script = name => '<script>\n'+read(name).replace(/<\/script/gi,'<\\/script')+'\n</script>';
-const scriptFiles = ['core.js','automation.js','species.js','review-plan.js','activity-chart.js','activity-export.js','import-summary.js','bulk-confirmation.js','kaleidoscope.js','app.js'];
-let html=read('index.html');
-html=html.replace('<link rel="stylesheet" href="styles.css">','<style>\n'+read('styles.css')+'\n</style>');
-// Inline scripts execute after the body, equivalent to the source's defer.
-for(const name of scriptFiles)html=html.replace('  <script defer src="'+name+'"></script>\n','');
-html=html.replace('</body>',scriptFiles.map(script).join('\n')+'\n</body>');
-html=html.replace('href="index.html"','href="#"');
-fs.writeFileSync(path.join(root,'Plecotus.html'),html,'utf8');
+const read = name => fs.readFileSync(path.join(root, name), 'utf8');
+let html = read('index.html');
+
+for (const name of ['assets/branding/plecotus-bat.css', 'welcome.css']) {
+  html = html.replace('<link rel="stylesheet" href="' + name + '">', () => '<style>\n' + read(name) + '\n</style>');
+}
+
+const logoPath = 'assets/branding/plecotus-bat-v1.png';
+const logoData = fs.readFileSync(path.join(root, logoPath)).toString('base64');
+html = html.replaceAll('src="' + logoPath + '"', 'src="data:image/png;base64,' + logoData + '"');
+
+// Run after the body, equivalent to the source's deferred script.
+const script = '<script>\n' + read('welcome.js').replace(/<\/script/gi, '<\\/script') + '\n</script>';
+html = html.replace('  <script defer src="welcome.js"></script>', '');
+html = html.replace('</body>', () => script + '\n</body>');
+fs.writeFileSync(path.join(root, 'Plecotus.html'), html, 'utf8');
 console.log('Built Plecotus.html: a standalone browser tool.');

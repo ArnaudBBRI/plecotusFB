@@ -1,0 +1,96 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #080908;
+  color: #e8e4dc;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100svh; }
+
+.welcome {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #080908;
+}
+
+.welcome-bat {
+  display: block;
+  width: min(84vw, 1000px, max(12rem, calc(160svh - 12rem)));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.welcome-bat:disabled { cursor: default; }
+.welcome-bat:focus-visible { outline: 2px solid #c99662; outline-offset: 1.25rem; border-radius: 1rem; }
+.welcome-bat .plecotus-bat { width: 100%; }
+.logo-fallback { font-size: clamp(2rem, 8vw, 5rem); letter-spacing: .12em; }
+
+.welcome[data-state="ready"] .plecotus-bat,
+.welcome[data-state="leaving"] .plecotus-bat {
+  filter: brightness(1);
+  animation: none;
+}
+
+.welcome-hint {
+  position: absolute;
+  right: 1rem;
+  bottom: max(2rem, env(safe-area-inset-bottom));
+  left: 1rem;
+  margin: 0;
+  color: #96968e;
+  font-size: .8rem;
+  text-align: center;
+  letter-spacing: .025em;
+  opacity: 0;
+  transition: opacity .25s ease;
+  pointer-events: none;
+}
+
+.welcome[data-state="ready"] .welcome-hint { opacity: 1; }
+.welcome[data-state="leaving"] .welcome-bat {
+  animation: plecotus-depart .8s cubic-bezier(.45, 0, .75, .5) both;
+  pointer-events: none;
+}
+
+@keyframes plecotus-depart {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100vh - 100%)); }
+}
+
+.dashboard { min-height: 100svh; outline: none; }
+.dashboard-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 1.5rem clamp(1.25rem, 4vw, 3rem);
+  border-bottom: 1px solid #252722;
+}
+.wordmark { font-size: 1.15rem; font-weight: 500; letter-spacing: .08em; }
+.dashboard-header h1 { margin: 0; color: #96968e; font-size: .8rem; font-weight: 400; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.noscript-message { position: fixed; bottom: 1.5rem; width: 100%; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-hint { transition: none; }
+  .welcome[data-state="leaving"] .welcome-bat { animation: none; }
+}

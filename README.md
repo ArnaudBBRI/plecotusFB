@@ -1,5 +1,7 @@
 # Plecotus — classification des contacts de chauves-souris
 
+> **Refonte de l’interface en cours (`codex/gui-redesign`).** `index.html` et `Plecotus.html` ouvrent désormais l’accueil animé avec la chauve-souris, puis un tableau de bord vide. L’interface précédente est conservée sur la branche `main` ; la documentation ci-dessous décrit cette version précédente.
+
 Un outil local, en français, qui transforme un CSV Kaleidoscope en **nombres de contacts par espèce**, avec le nom scientifique et le nom français. Il présente le meilleur contact de chaque `AUTO-ID`, organise les vérifications manuelles, puis remplit `SEMIMANUAL ID` selon la procédure choisie pour le projet : validation des suggestions Kaleidoscope ou répartition au prorata des identifications manuelles. Le bilan détaillé distingue toujours les contacts manuels des attributions calculées. L'outil utilise le CSV ; il n'analyse pas les sons.
 
 Les champs source, codes d'espèces et étiquettes importées restent inchangés. Les règles précédentes Prudent/Équilibré/Rapide ont été remplacées par cette procédure.
