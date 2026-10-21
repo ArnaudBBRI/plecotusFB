@@ -1,12 +1,35 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), root);
-  else root.PlecotusContactDecisions = factory(root.BatReviewCore, root);
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, root) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./species.js'), root);
+  else root.PlecotusContactDecisions = factory(root.BatReviewCore, root.BatSpeciesNames, root);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Names, root) {
   'use strict';
 
   const prefix = 'plecotus.review-decisions.v1.';
   const statuses = new Set(['validated', 'invalidated']);
   const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  function manualLabel(value) {
+    if (typeof value !== 'string' || !value.trim() || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value)) {
+      throw new TypeError('Renseignez une identification manuelle sur une seule ligne.');
+    }
+    return value.trim();
+  }
+  const normalizedIdentity = value => value.replace(/\s+/g, ' ').trim();
+  function defaultManualId(sourceAutoId) {
+    const label = normalizedIdentity(sourceAutoId);
+    try { return manualLabel(label); }
+    catch { return null; }
+  }
+  function sameIdentity(left, right) {
+    const sourceLabel = normalizedIdentity(left);
+    const manual = normalizedIdentity(right);
+    if (!sourceLabel || !manual) return false;
+    if (Names && typeof Names.resolve === 'function') {
+      const source = Names.resolve(sourceLabel);
+      const identified = Names.resolve(manual);
+      if (source.known && identified.known) return source.key === identified.key;
+    }
+    return sourceLabel.toUpperCase() === manual.toUpperCase();
+  }
   function denseArray(value) {
     if (!Array.isArray(value)) return false;
     for (let index = 0; index < value.length; index++) if (!own(value, index)) return false;
@@ -66,12 +89,17 @@
       }
     }
 
-    function decisionFor(recordIndex, status, updatedAt) {
+    function autoIdFor(recordIndex) {
       const record = data.records[recordIndex];
-      const sourceAutoId = data.columns.autoId < 0 ? '' : String(record[data.columns.autoId] == null ? '' : record[data.columns.autoId]);
+      return data.columns.autoId < 0 ? '' : String(record[data.columns.autoId] == null ? '' : record[data.columns.autoId]);
+    }
+
+    function decisionFor(recordIndex, status, updatedAt, manualId = status === 'validated' ? defaultManualId(autoIdFor(recordIndex)) : null) {
+      const sourceAutoId = autoIdFor(recordIndex);
       return Object.freeze({ recordIndex, sourceRow: data.sourceRows[recordIndex], sourceAutoId,
         status, validated: status === 'validated',
         suggestedId: status === 'validated' && sourceAutoId.trim() ? sourceAutoId.trim() : null,
+        manualId,
         updatedAt });
     }
 
@@ -85,7 +113,14 @@
             || !Number.isFinite(Date.parse(item.updatedAt))) return;
           checkIndex(item.recordIndex);
           if (restored.has(item.recordIndex)) return;
-          const expected = decisionFor(item.recordIndex, item.status, item.updatedAt);
+          const sourceAutoId = autoIdFor(item.recordIndex);
+          // Version 1 reviews saved before manual corrections only carried the binary choice.
+          const manualId = own(item, 'manualId') ? item.manualId
+            : item.status === 'validated' ? defaultManualId(sourceAutoId) : null;
+          if (manualId !== null && (manualLabel(manualId) !== manualId
+            || sameIdentity(sourceAutoId, manualId) !== (item.status === 'validated'))) return;
+          if (manualId === null && item.status === 'validated' && defaultManualId(sourceAutoId) !== null) return;
+          const expected = decisionFor(item.recordIndex, item.status, item.updatedAt, manualId);
           if (item.sourceRow !== expected.sourceRow || item.sourceAutoId !== expected.sourceAutoId
             || item.validated !== expected.validated || item.suggestedId !== expected.suggestedId) return;
           restored.set(item.recordIndex, expected);
@@ -106,6 +141,12 @@
         .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })) };
     }
 
+    function persist() {
+      if (!persistenceAvailable) return;
+      try { storage.setItem(key, JSON.stringify(snapshot())); }
+      catch { persistenceAvailable = false; }
+    }
+
     function setMany(recordIndices, status) {
       if (!denseArray(recordIndices)) throw new TypeError('La sélection des contacts doit être une liste complète de numéros.');
       if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
@@ -122,11 +163,20 @@
         return decision;
       });
       for (const decision of changes) decisions.set(decision.recordIndex, decision);
-      if (changes.length && persistenceAvailable) {
-        try { storage.setItem(key, JSON.stringify(snapshot())); }
-        catch { persistenceAvailable = false; }
-      }
+      if (changes.length) persist();
       return Object.freeze(result);
+    }
+
+    function setManualId(recordIndex, value) {
+      checkIndex(recordIndex);
+      const manualId = manualLabel(value);
+      const status = sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated';
+      const previous = decisions.get(recordIndex);
+      if (previous && previous.status === status && previous.manualId === manualId) return previous;
+      const decision = decisionFor(recordIndex, status, new Date().toISOString(), manualId);
+      decisions.set(recordIndex, decision);
+      persist();
+      return decision;
     }
 
     return Object.freeze({
@@ -140,6 +190,7 @@
         return setMany([recordIndex], status)[0];
       },
       setMany,
+      setManualId,
       snapshot
     });
   }

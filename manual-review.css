@@ -90,7 +90,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.manual-species-count {
+.manual-species-count,
+.manual-assignment-status {
   display: block;
   margin-top: .15rem;
   color: #777e72;
@@ -98,6 +99,7 @@
   font-weight: 400;
   line-height: 1.4;
 }
+.manual-assignment-status { color: #5e7053; }
 
 .manual-progress {
   display: flex;

@@ -245,3 +245,77 @@ test('random validation supports a single contact and disables both macro button
   app.node('manual-plan-debug-random').fire('click');
   assert.equal(app.changes.length, 1);
 });
+
+test('an invalidated contact without its real ID keeps the progress incomplete and the prorata pending', () => {
+  const app = fixture();
+  const group = app.groups[0];
+  group.assignmentReady = false;
+  group.pendingIdentificationIndices = [1];
+  group.distribution = [{ label: 'NYCNOC', manualCount: 1, share: 1, assignedCount: 0 }];
+  group.proportionalAssignments = [];
+  app.plan.assignmentReady = false;
+  app.plan.pendingIdentificationIndices = [1];
+  app.plan.proportionalAssignments = [];
+  app.ui.showPlan();
+  assert.equal(app.progressLine(0).children[0].value, 0);
+  assert.match(app.row(0).children[0].children[2].textContent, /1 identification réelle à renseigner/);
+  assert.match(app.node('manual-plan-summary').textContent, /1 identification réelle à renseigner/);
+  app.open(0);
+  assert.match(app.node('manual-species-summary').textContent, /1 identification réelle à renseigner/);
+  assert.match(app.node('manual-species-method').textContent, /avant de calculer le prorata/);
+  assert.doesNotMatch(app.node('manual-species-method').textContent, /100\s*%|attribué au prorata/);
+});
+
+test('completed mixed manual identities expose observed shares and inferred counts without replacing contact cards', () => {
+  const app = fixture();
+  const group = app.groups[0];
+  group.assignmentReady = false;
+  group.pendingIdentificationIndices = [1];
+  group.proportionalAssignments = [];
+  app.ui.showPlan();
+  app.open(0);
+  const card = app.node('manual-contact-list').children[0];
+  group.assignmentReady = true;
+  group.pendingIdentificationIndices = [];
+  group.completed = 1;
+  group.remaining = 0;
+  group.progress = 1;
+  group.distribution = [
+    { label: 'NYCNOC', manualCount: 6, share: .6, assignedCount: 12 },
+    { label: 'MYODAU', manualCount: 4, share: .4, assignedCount: 8 }
+  ];
+  group.proportionalAssignments = Array.from({ length: 20 }, (_, index) => ({ recordIndex: index + 10, label: index < 12 ? 'NYCNOC' : 'MYODAU' }));
+  app.plan.assignmentReady = true;
+  app.plan.pendingIdentificationIndices = [];
+  app.plan.proportionalAssignments = group.proportionalAssignments;
+  app.ui.refresh();
+  assert.equal(app.node('manual-contact-list').children[0], card);
+  assert.match(app.node('manual-species-method').textContent, /60\s*% NYCNOC.*40\s*% MYODAU/);
+  assert.match(app.node('manual-species-method').textContent, /20 contacts attribués au prorata.*identifications manuelles sont conservées/);
+  assert.match(app.node('manual-species-summary').textContent, /Prorata appliqué/);
+  assert.match(app.node('manual-plan-summary').textContent, /20 contacts attribués au prorata/);
+});
+
+test('a sensitive small group with only its reviewed best contact shows prorata rather than automatic acceptance', () => {
+  const app = fixture();
+  const group = app.groups[0];
+  Object.assign(group, { total: 5, requiredIndices: [], completed: 0, remaining: 0, progress: 1,
+    assignmentReady: true, pendingIdentificationIndices: [],
+    distribution: [{ label: 'MYODAU', manualCount: 1, share: 1, assignedCount: 4 }],
+    proportionalAssignments: [2, 3, 4, 5].map(recordIndex => ({ recordIndex, label: 'MYODAU' })) });
+  app.ui.showPlan();
+  app.open(0);
+  assert.equal(app.rendered.length, 0);
+  assert.match(app.node('manual-species-method').textContent, /100\s*% MYODAU.*4 contacts attribués au prorata/);
+  assert.match(app.node('manual-contact-list').children[0].textContent, /attribués au prorata de son identification manuelle/);
+  assert.doesNotMatch(app.node('manual-species-summary').textContent, /Validation automatique/);
+});
+
+test('random debug output requests real identities for invalidations without inventing them', () => {
+  const app = fixture({ random: () => .75 });
+  app.preferences.debugMode = true;
+  app.ui.showPlan();
+  app.node('manual-plan-debug-random').fire('click');
+  assert.match(app.node('manual-plan-debug-result').textContent, /Renseignez l’identification réelle des contacts invalidés/);
+  assert.deepEqual(new Set(app.decisions.values()), new Set(['validated', 'invalidated']));
+});

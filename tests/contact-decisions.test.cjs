@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { webcrypto } = require('node:crypto');
 const Decisions = require('../contact-decisions.js');
+const Workflow = require('../manual-workflow.js');
 
 function imported(overrides = {}) {
   return { fileName: 'contacts.csv', sheetName: null,
@@ -24,6 +25,7 @@ test('the latest choice replaces the previous one; clicking the selected choice 
   const validated = model.set(0, 'validated');
   assert.equal(validated.validated, true);
   assert.equal(validated.suggestedId, 'PIPPIP');
+  assert.equal(validated.manualId, 'PIPPIP');
   assert.equal(validated.sourceAutoId, 'PIPPIP');
   assert.equal(validated.sourceRow, 5);
   assert.equal(model.set(0, 'validated'), validated);
@@ -31,6 +33,7 @@ test('the latest choice replaces the previous one; clicking the selected choice 
   assert.equal(invalidated.status, 'invalidated');
   assert.equal(invalidated.validated, false);
   assert.equal(invalidated.suggestedId, null);
+  assert.equal(invalidated.manualId, null);
   assert.equal(model.get(0), invalidated);
   assert.equal(model.snapshot().decisions.length, 1);
   assert.deepEqual(source, before);
@@ -39,12 +42,81 @@ test('the latest choice replaces the previous one; clicking the selected choice 
 
 test('contacts sharing a WAV keep independent decisions by original record and physical row', async () => {
   const model = await Decisions.create(imported(), options(memoryStorage()));
-  model.set(1, 'invalidated');
+  model.setManualId(1, 'MYODAU');
   model.set(0, 'validated');
   assert.equal(model.get(0).status, 'validated');
   assert.equal(model.get(1).status, 'invalidated');
   assert.equal(model.get(1).sourceRow, 8);
+  assert.equal(model.get(0).manualId, 'PIPPIP');
+  assert.equal(model.get(1).manualId, 'MYODAU');
   assert.deepEqual(model.snapshot().decisions.map(item => item.recordIndex), [0, 1]);
+});
+
+test('manual identification preserves the actual species without changing imported MANUAL ID cells', async () => {
+  const source = imported();
+  const before = structuredClone(source);
+  const model = await Decisions.create(source, options(memoryStorage()));
+  const corrected = model.setManualId(1, '  Murin de Daubenton  ');
+  assert.equal(Object.isFrozen(corrected), true);
+  assert.equal(corrected.status, 'invalidated');
+  assert.equal(corrected.validated, false);
+  assert.equal(corrected.manualId, 'Murin de Daubenton');
+  assert.equal(corrected.suggestedId, null);
+  assert.equal(corrected.sourceAutoId, 'MYODAS');
+  assert.equal(model.setManualId(1, 'Murin de Daubenton'), corrected);
+  assert.equal(model.set(1, 'invalidated'), corrected);
+  assert.equal(model.setMany([1, 1], 'invalidated')[0], corrected);
+  assert.deepEqual(source, before);
+  const accepted = model.set(1, 'validated');
+  assert.equal(accepted.manualId, 'MYODAS');
+  assert.equal(accepted.suggestedId, 'MYODAS');
+  assert.equal(model.set(1, 'invalidated').manualId, null);
+});
+
+test('known scientific names, French names, codes, and normalized unknown IDs derive matching status', async () => {
+  const model = await Decisions.create(imported(), options(memoryStorage()));
+  for (const label of ['Pipistrellus pipistrellus', 'Pipistrelle commune', 'pippip']) {
+    const decision = model.setManualId(0, label);
+    assert.equal(decision.status, 'validated');
+    assert.equal(decision.manualId, label);
+    assert.equal(decision.suggestedId, 'PIPPIP');
+    assert.equal(model.set(0, 'validated'), decision);
+  }
+  for (const label of ['MYODAU', 'NoID', 'Noise', 'Espèce à préciser / groupe inconnu']) {
+    assert.equal(model.setManualId(0, label).status, 'invalidated');
+    assert.equal(model.get(0).manualId, label);
+  }
+  const unknown = await Decisions.create(imported({ records: [['x.wav', ' CUSTOM-TAXON ', '0', '']], sourceRows: [5] }), options(memoryStorage()));
+  assert.equal(unknown.setManualId(0, ' custom-taxon ').status, 'validated');
+  assert.equal(unknown.get(0).manualId, 'custom-taxon');
+  assert.equal(unknown.get(0).suggestedId, 'CUSTOM-TAXON');
+});
+
+test('bulk validation replaces corrections while repeated invalidation retains them', async () => {
+  const model = await Decisions.create(imported(), options(memoryStorage()));
+  const corrected = model.setManualId(0, 'MYODAU');
+  const accepted = model.setManualId(1, 'Myotis dasycneme');
+  const invalidated = model.setMany([0, 1], 'invalidated');
+  assert.equal(invalidated[0], corrected);
+  assert.notEqual(invalidated[1], accepted);
+  assert.equal(invalidated[1].manualId, null);
+  model.setManualId(1, 'Noise');
+  model.setMany([0, 1], 'validated');
+  assert.deepEqual(model.snapshot().decisions.map(item => item.manualId), ['PIPPIP', 'MYODAS']);
+});
+
+test('invalid manual labels and indices cannot overwrite or persist a partial correction', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; } }));
+  const first = model.setManualId(0, 'MYODAU');
+  for (const label of [null, undefined, false, 0, {}, [], '', '   ', '\tPIPPIP', 'PIP\nPIP', 'MYO\rDAS', 'x\u0000y', 'x\u007fy', 'x\u0085y', 'x\u2028y', 'x\u2029y']) {
+    assert.throws(() => model.setManualId(0, label), /identification manuelle/);
+    assert.equal(model.get(0), first);
+  }
+  for (const index of [-1, 2, 0.5, '0', null]) {
+    assert.throws(() => model.setManualId(index, 'MYODAU'), /numéro du contact/);
+  }
+  assert.equal(writes, 1);
 });
 
 test('batch decisions replace opposite choices, deduplicate indices, and persist one complete snapshot', async () => {
@@ -123,6 +195,94 @@ test('identical source files restore decisions after a new model is created', as
   assert.match(second.snapshot().fileId, /^[a-f0-9]{64}$/);
 });
 
+test('manual corrections and accepted aliases are restored as immutable decisions', async () => {
+  const storage = memoryStorage();
+  const first = await Decisions.create(imported(), options(storage));
+  first.setManualId(0, 'Pipistrelle commune');
+  first.setManualId(1, 'Noise');
+  const second = await Decisions.create(imported(), options(storage));
+  assert.deepEqual(second.snapshot(), first.snapshot());
+  assert.equal(second.get(0).manualId, 'Pipistrelle commune');
+  assert.equal(second.get(1).manualId, 'Noise');
+  assert.equal(Object.isFrozen(second.get(1)), true);
+  const copy = second.snapshot();
+  copy.decisions[1].manualId = 'MYODAS';
+  assert.equal(second.get(1).manualId, 'Noise');
+});
+
+test('version 1 binary reviews migrate accepted AUTO IDs and retain unresolved rejections', async () => {
+  const storage = memoryStorage();
+  const first = await Decisions.create(imported(), options(storage));
+  first.set(0, 'validated');
+  first.set(1, 'invalidated');
+  const key = [...storage.values.keys()][0];
+  const legacy = first.snapshot();
+  for (const item of legacy.decisions) delete item.manualId;
+  storage.values.set(key, JSON.stringify(legacy));
+  const second = await Decisions.create(imported(), options(storage));
+  assert.equal(second.get(0).manualId, 'PIPPIP');
+  assert.equal(second.get(1).manualId, null);
+  assert.equal(second.get(1).status, 'invalidated');
+  assert.deepEqual(second.snapshot(), first.snapshot());
+});
+
+test('multiline AUTO names produce usable manual IDs without changing source or suggested labels', async () => {
+  const storage = memoryStorage();
+  const source = { fileName: 'multiline.csv', headers: ['IN FILE', 'AUTO-ID', 'MATCH RATIO'],
+    records: [['x.wav', '  Pipistrellus\n\tpipistrellus  ', '.9']] };
+  const before = structuredClone(source);
+  const first = await Decisions.create(source, options(storage));
+  const accepted = first.set(0, 'validated');
+  assert.equal(accepted.manualId, 'Pipistrellus pipistrellus');
+  assert.equal(accepted.sourceAutoId, source.records[0][1]);
+  assert.equal(accepted.suggestedId, 'Pipistrellus\n\tpipistrellus');
+  const plan = Workflow.build(source, first);
+  assert.equal(plan.ready, true);
+  assert.equal(plan.assignmentReady, true);
+  assert.equal(plan.groups[0].mode, 'auto');
+  const second = await Decisions.create(source, options(storage));
+  assert.deepEqual(second.snapshot(), first.snapshot());
+  assert.equal(Workflow.build(source, second).assignmentReady, true);
+  assert.deepEqual(source, before);
+  const key = [...storage.values.keys()][0];
+  const legacy = first.snapshot();
+  delete legacy.decisions[0].manualId;
+  storage.values.set(key, JSON.stringify(legacy));
+  const migrated = await Decisions.create(source, options(storage));
+  assert.equal(migrated.get(0).manualId, 'Pipistrellus pipistrellus');
+  assert.equal(Workflow.build(source, migrated).assignmentReady, true);
+  const unknown = await Decisions.create({ ...source, records: [['x.wav', 'CUSTOM\n\tTAXON', '.9']] }, options(memoryStorage()));
+  assert.equal(unknown.setManualId(0, 'custom  taxon').status, 'validated');
+});
+
+test('non-whitespace source controls remain unresolved and cannot restore forged manual labels', async () => {
+  const storage = memoryStorage();
+  const source = { fileName: 'control.csv', headers: ['IN FILE', 'AUTO-ID', 'MATCH RATIO'],
+    records: [['x.wav', 'PIP\u0000PIP', '.9']] };
+  const first = await Decisions.create(source, options(storage));
+  const accepted = first.set(0, 'validated');
+  assert.equal(accepted.manualId, null);
+  assert.equal(accepted.sourceAutoId, 'PIP\u0000PIP');
+  assert.equal(accepted.suggestedId, 'PIP\u0000PIP');
+  assert.equal(Workflow.build(source, first).ready, false);
+  const restored = await Decisions.create(source, options(storage));
+  assert.deepEqual(restored.snapshot(), first.snapshot());
+  const key = [...storage.values.keys()][0];
+  const legacy = first.snapshot();
+  delete legacy.decisions[0].manualId;
+  storage.values.set(key, JSON.stringify(legacy));
+  const migrated = await Decisions.create(source, options(storage));
+  assert.equal(migrated.get(0).manualId, null);
+  assert.equal(Workflow.build(source, migrated).ready, false);
+  const forged = first.snapshot();
+  forged.decisions[0].manualId = 'PIP\u0000PIP';
+  storage.values.set(key, JSON.stringify(forged));
+  assert.deepEqual((await Decisions.create(source, options(storage))).snapshot().decisions, []);
+  assert.throws(() => first.setManualId(0, 'PIP\u0000PIP'), /identification manuelle/);
+  first.setManualId(0, 'NoID');
+  assert.equal(Workflow.build(source, first).ready, true);
+});
+
 test('changed data, order, source rows, headers, filename, or sheet cannot inherit a review', async () => {
   const storage = memoryStorage();
   const first = await Decisions.create(imported(), options(storage));
@@ -155,6 +315,14 @@ test('invalid or forged persisted records are rejected together without partiall
     { ...original, decisions: [{ ...original.decisions[0], validated: false }] },
     { ...original, decisions: [{ ...original.decisions[0], status: 'pending' }] },
     { ...original, decisions: [{ ...original.decisions[0], updatedAt: 'bad' }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: null }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: 'MYODAU' }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: '' }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: ' PIPPIP ' }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: 'PIP\nPIP' }] },
+    { ...original, decisions: [{ ...original.decisions[0], manualId: 123 }] },
+    { ...original, decisions: [{ ...original.decisions[0], status: 'invalidated', validated: false,
+      suggestedId: null, manualId: 'Pipistrelle commune' }] },
     { ...original, decisions: [original.decisions[0], { ...original.decisions[0], recordIndex: 99 }] },
     { ...original, decisions: [original.decisions[0], original.decisions[0]] }
   ];
@@ -211,6 +379,10 @@ test('absent AUTO-ID and source row metadata stay explicit without inventing an 
   assert.equal(model.set(0, 'validated').suggestedId, null);
   assert.equal(model.get(0).sourceAutoId, '');
   assert.equal(model.get(0).sourceRow, 2);
+  assert.equal(model.get(0).manualId, null);
+  const manual = model.setManualId(0, 'NoID');
+  assert.equal(manual.status, 'invalidated');
+  assert.equal(manual.manualId, 'NoID');
 });
 
 test('invalid contacts, row indices, and statuses fail clearly without saving a partial choice', async () => {

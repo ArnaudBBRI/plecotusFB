@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./best-contacts.js'), require('./species.js'));
-  else root.PlecotusManualWorkflow = factory(root.BatReviewCore, root.PlecotusBestContacts, root.BatSpeciesNames);
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Best, Names) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./best-contacts.js'), require('./species.js'), require('./proportional-allocation.js'));
+  else root.PlecotusManualWorkflow = factory(root.BatReviewCore, root.PlecotusBestContacts, root.BatSpeciesNames, root.PlecotusProportionalAllocation);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Best, Names, Proportional) {
   'use strict';
 
   const excludedSpecies = Object.freeze(['BARBAR', 'RHIFER', 'RHIHIP', 'MYOBEC', 'MYODAS', 'MYOMYO', 'MYOEMA', 'NYCNOC', 'NYCLEI']);
@@ -16,6 +16,22 @@
   ]);
   const text = value => String(value == null ? '' : value).trim();
   const knownStatus = status => status === 'validated' || status === 'invalidated';
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+
+  function identity(value) {
+    const label = text(value);
+    if (!label) return '';
+    const resolved = Names.resolve(label);
+    return resolved.known ? resolved.key : label.toUpperCase();
+  }
+
+  function allocationLabel(value) {
+    const label = text(value);
+    const resolved = Names.resolve(label);
+    // Known taxonomic aliases contribute to one proportion. Preserve the raw
+    // human label in MANUAL ID and on the manually identified contact itself.
+    return resolved.known ? resolved.code || (resolved.category === 'noise' ? 'Noise' : resolved.scientificName) || label : label;
+  }
 
   function numeric(value) {
     let source = text(value);
@@ -70,7 +86,9 @@
     const result = new Map();
     for (const item of source.decisions) {
       if (!item || !Number.isInteger(item.recordIndex) || item.recordIndex < 0 || item.recordIndex >= count
-        || !knownStatus(item.status) || result.has(item.recordIndex)) throw new TypeError('Une décision de contact du plan est invalide.');
+        || !knownStatus(item.status) || result.has(item.recordIndex)
+        || own(item, 'manualId') && item.manualId !== null && (typeof item.manualId !== 'string'
+          || !item.manualId.trim() || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(item.manualId))) throw new TypeError('Une décision de contact du plan est invalide.');
       result.set(item.recordIndex, item);
     }
     return result;
@@ -124,7 +142,17 @@
     const qualityColumns = imported.headers.map((header, index) => ({ index, name: text(header).toUpperCase().replace(/[^A-Z0-9]/g, '') })).filter(item => item.name === 'QUAL');
     const qualColumn = qualityColumns.length ? qualityColumns[0].index : -1;
     const decisions = decisionMap(source, imported.records.length);
-    const pendingBestIndices = bestResult.groups.filter(group => group.best && !decisions.has(group.best.recordIndex)).map(group => group.best.recordIndex);
+    const manualIds = imported.records.map((record, index) => {
+      const decision = decisions.get(index);
+      if (decision) {
+        if (own(decision, 'manualId')) return text(decision.manualId);
+        // Older version-1 decisions did not persist the actual identification.
+        return decision.status === 'validated' && columns.autoId >= 0 ? text(record[columns.autoId]) : '';
+      }
+      return columns.manualId >= 0 ? text(record[columns.manualId]) : '';
+    });
+    const pendingBestIndices = bestResult.groups.filter(group => group.best
+      && (!decisions.has(group.best.recordIndex) || !manualIds[group.best.recordIndex])).map(group => group.best.recordIndex);
     const byKey = new Map(bestResult.groups.map(group => [group.key, []]));
     imported.records.forEach((record, index) => {
       const rawAuto = columns.autoId < 0 ? '' : String(record[columns.autoId] == null ? '' : record[columns.autoId]);
@@ -142,8 +170,12 @@
       const qualifyingCount = contacts.filter(contact => contact.ratio != null && contact.ratio >= .6).length;
       const qualifyingShare = qualifyingCount / contacts.length;
       const best = bestGroup.best;
-      const referenceMatches = Boolean(best && decisions.get(best.recordIndex)?.status === 'validated');
-      const automatic = isSpecies && referenceMatches && qualifyingCount * 2 >= contacts.length && !sensitive;
+      const referenceMatches = Boolean(best && decisions.get(best.recordIndex)?.status === 'validated'
+        && manualIds[best.recordIndex] && identity(manualIds[best.recordIndex]) === identity(bestGroup.label));
+      const contradictoryManualIds = indices.filter(index => manualIds[index] && identity(manualIds[index]) !== identity(bestGroup.label));
+      const unresolvedDecisions = indices.filter(index => decisions.has(index) && !manualIds[index]);
+      const automatic = isSpecies && referenceMatches && qualifyingCount * 2 >= contacts.length && !sensitive
+        && !contradictoryManualIds.length && !unresolvedDecisions.length;
       const mode = automatic ? 'auto' : isSpecies ? 'sample' : 'individual';
       const reasons = [];
       if (!isSpecies) reasons.push('Sans espèce identifiée de façon univoque, chaque contact est contrôlé individuellement.');
@@ -153,6 +185,8 @@
         : 'Le meilleur contact reste à valider ou invalider.');
       if (qualifyingCount * 2 < contacts.length) reasons.push('Moins de 50 % des contacts ont un MATCH RATIO supérieur ou égal à 0,6.');
       if (sensitive) reasons.push('Cette espèce appartient à la liste d’exclusion de la validation directe du projet.');
+      if (contradictoryManualIds.length) reasons.push('Des identifications manuelles attribuent déjà certains contacts à une autre espèce : elles sont conservées et intégrées au prorata.');
+      if (unresolvedDecisions.length) reasons.push('Une identification réelle reste à renseigner après une invalidation.');
       if (automatic) reasons.push('Meilleur contact validé, au moins 50 % des ratios supérieurs ou égaux à 0,6 et espèce hors liste d’exclusion.');
       let selectedIndices = [], sampleTarget = 0;
       const bins = ratioBins.map(bin => ({ ...bin, count: 0, selectedCount: 0 }));
@@ -180,13 +214,21 @@
       }
       for (const recordIndex of selectedIndices) bins[binFor(byIndex.get(recordIndex).ratio)].selectedCount++;
       const requiredIndices = selectedIndices.filter(index => !best || index !== best.recordIndex);
-      const completed = requiredIndices.filter(index => decisions.has(index)).length;
+      const completed = requiredIndices.filter(index => manualIds[index]).length;
       const remaining = requiredIndices.length - completed;
+      const pendingIdentificationIndices = [...new Set([...selectedIndices.filter(index => !manualIds[index]), ...unresolvedDecisions])];
+      const assignmentReady = !pendingIdentificationIndices.length && (!best || decisions.has(best.recordIndex));
+      const observations = indices.filter(index => manualIds[index]).map(recordIndex => ({ recordIndex, label: allocationLabel(manualIds[recordIndex]) }));
+      const allocation = Proportional.allocate(mode === 'sample' && assignmentReady
+        ? indices.filter(index => !manualIds[index]) : [], observations);
       return { key: bestGroup.key, label: bestGroup.label, kind: bestGroup.kind, total: contacts.length, best,
         mode, sensitive, qualifyingCount, qualifyingShare, referenceMatches, reasons,
         sampleTarget, selectedIndices, requiredIndices, completed, remaining,
+        assignmentReady, pendingIdentificationIndices,
+        distribution: allocation.distribution, proportionalAssignments: allocation.assignments,
         progress: requiredIndices.length ? completed / requiredIndices.length : 1,
-        contacts: requiredIndices.map(index => ({ ...byIndex.get(index), status: decisions.get(index)?.status || null })), bins };
+        contacts: requiredIndices.map(index => ({ ...byIndex.get(index), status: decisions.get(index)?.status || null,
+          manualId: manualIds[index] || null })), bins };
     });
     const headers = imported.headers.slice();
     const manualColumn = columns.manualId < 0 ? headers.push('MANUAL ID') - 1 : columns.manualId;
@@ -199,16 +241,25 @@
       copy[semiColumn] = '';
       return copy;
     });
-    for (const [recordIndex, decision] of decisions) {
-      records[recordIndex][manualColumn] = decision.status === 'validated' && columns.autoId >= 0
-        ? text(imported.records[recordIndex][columns.autoId]) : '';
-    }
+    for (const [recordIndex] of decisions) records[recordIndex][manualColumn] = manualIds[recordIndex];
     for (const item of automaticAssignments) records[item.recordIndex][semiColumn] = item.value;
+    for (const group of groups) {
+      if (group.mode === 'auto') continue;
+      // A human identification always remains tied to its own recording.
+      // Only the remaining, genuinely unobserved contacts are extrapolated.
+      for (const recordIndex of byKey.get(group.key)) {
+        if (manualIds[recordIndex]) records[recordIndex][semiColumn] = manualIds[recordIndex];
+      }
+      for (const assignment of group.proportionalAssignments) records[assignment.recordIndex][semiColumn] = assignment.label;
+    }
     const requiredIndices = groups.flatMap(group => group.requiredIndices);
     const completed = groups.reduce((sum, group) => sum + group.completed, 0);
     const remaining = groups.reduce((sum, group) => sum + group.remaining, 0);
     return { ready: !pendingBestIndices.length, pendingBestIndices, groups,
       excludedNoiseCount: bestResult.excludedNoiseCount, requiredIndices, completed, remaining,
+      assignmentReady: groups.every(group => group.assignmentReady),
+      pendingIdentificationIndices: groups.flatMap(group => group.pendingIdentificationIndices),
+      proportionalAssignments: groups.flatMap(group => group.proportionalAssignments),
       progress: requiredIndices.length ? completed / requiredIndices.length : 1,
       automaticAssignments, processed: { headers, records,
         statuses: imported.records.map((_, index) => decisions.get(index)?.status || null) } };

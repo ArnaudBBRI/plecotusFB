@@ -80,11 +80,19 @@
   }
 
   function updateNextStep() {
-    const pending = currentBestContacts.filter(contact => !currentDecisions || !currentDecisions.get(contact.recordIndex));
+    const pending = pendingBestContacts();
     nextReviewStep.setAttribute('aria-disabled', String(!currentImport || Boolean(pending.length)));
     nextReviewStatus.textContent = pending.length
-      ? numbers.format(pending.length) + (pending.length === 1 ? ' meilleur contact reste à valider ou invalider.' : ' meilleurs contacts restent à valider ou invalider.')
+      ? numbers.format(pending.length) + (pending.length === 1 ? ' meilleur contact reste à identifier.' : ' meilleurs contacts restent à identifier.')
+        + ' Validez l’AUTO-ID ou invalidez-le puis renseignez l’identification réelle.'
       : 'Tous les meilleurs contacts ont été contrôlés. Vous pouvez continuer.';
+  }
+
+  function pendingBestContacts() {
+    return currentBestContacts.filter(contact => {
+      const decision = currentDecisions && currentDecisions.get(contact.recordIndex);
+      return !decision || !decision.manualId;
+    });
   }
 
   function syncDecisions(refreshManual = true) {
@@ -93,6 +101,7 @@
     for (const row of document.querySelectorAll('tr[data-contact-index]')) {
       refreshContactDecision(row, Number(row.dataset.contactIndex));
     }
+    for (const editor of document.querySelectorAll('[data-identification-index]')) refreshIdentification(editor);
     updateNextStep();
     if (currentManualPlan) {
       if (refreshManual) manualScreens.refresh();
@@ -100,13 +109,71 @@
     }
   }
 
-  function decideContact(recordIndex, status) {
+  function decideContact(recordIndex, status, card) {
     currentDecisions.set(recordIndex, status);
     syncDecisions();
     const sourceLine = currentDecisions.get(recordIndex).sourceRow;
     reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(sourceLine)
-      + (status === 'validated' ? ' validé.' : ' invalidé.') + decisionPersistenceMessage();
+      + (status === 'validated' ? ' validé.' : ' invalidé : renseignez son identification réelle ci-dessous.') + decisionPersistenceMessage();
     reviewSaveStatus.hidden = false;
+    if (status === 'invalidated') {
+      const editor = card.querySelector('[data-identification-index="' + recordIndex + '"]');
+      if (editor && !editor.hidden) editor.querySelector('select').focus({ preventScroll: true });
+    }
+  }
+
+  function refreshIdentification(editor) {
+    const decision = currentDecisions.get(Number(editor.dataset.identificationIndex));
+    editor.hidden = !decision || decision.status !== 'invalidated' && Boolean(decision.manualId);
+    const select = editor.querySelector('select');
+    select.value = decision && decision.manualId || '';
+    select.setAttribute('aria-invalid', String(Boolean(decision && !decision.manualId)));
+    const message = editor.querySelector('p');
+    message.textContent = decision && decision.manualId
+      ? 'Identification enregistrée : ' + decision.manualId + '. Ce contrôle est terminé.'
+      : 'Choisissez l’espèce réelle, ou une catégorie non identifiée si nécessaire. Ce contrôle reste à compléter.';
+    editor.dataset.pending = String(Boolean(decision && !decision.manualId));
+  }
+
+  function appendIdentificationEditor(card, contact) {
+    const editor = document.createElement('div');
+    editor.className = 'contact-identification';
+    editor.dataset.identificationIndex = String(contact.recordIndex);
+    const label = document.createElement('label');
+    label.textContent = 'Identification réelle · ligne ' + numbers.format(contact.lineNumber);
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', 'Identification réelle du contact de la ligne ' + contact.lineNumber);
+    select.required = true;
+    const choices = [['', 'Choisir l’identification réelle…'],
+      ...BatSpeciesNames.SPECIES.map(species => [species.code, species.code + ' · ' + species.frenchName]),
+      ...BatSpeciesNames.IDENTIFICATION_LABELS.map(item => [item.label, item.label + ' · ' + item.description]),
+      ['Noise', 'Noise · Bruit']];
+    const existing = currentDecisions.get(contact.recordIndex);
+    if (existing && existing.manualId && !choices.some(([value]) => value === existing.manualId)) {
+      choices.push([existing.manualId, existing.manualId]);
+    }
+    for (const [value, text] of choices) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = text;
+      option.disabled = !value;
+      select.append(option);
+    }
+    select.addEventListener('change', () => {
+      if (!select.value) return;
+      currentDecisions.setManualId(contact.recordIndex, select.value);
+      syncDecisions();
+      if (editor.hidden) card.querySelector('button[data-decision="validated"]').focus({ preventScroll: true });
+      reviewSaveStatus.textContent = 'Identification réelle enregistrée pour la ligne ' + numbers.format(contact.lineNumber)
+        + '.' + decisionPersistenceMessage();
+      reviewSaveStatus.hidden = false;
+    });
+    const message = document.createElement('p');
+    message.setAttribute('role', 'status');
+    label.append(select);
+    editor.append(label, message);
+    card.append(editor);
+    refreshIdentification(editor);
   }
 
   function createManualContactCard(contact, groupLabel) {
@@ -351,7 +418,7 @@
       control.className = 'contact-decision-button';
       control.dataset.decision = status;
       control.textContent = label;
-      control.addEventListener('click', () => decideContact(contact.recordIndex, status));
+      control.addEventListener('click', () => decideContact(contact.recordIndex, status, card));
       actionGroup.append(control);
     }
     actions.append(actionGroup);
@@ -361,6 +428,7 @@
     table.append(header, body);
     wrapper.append(table);
     card.append(wrapper);
+    appendIdentificationEditor(card, contact);
   }
 
   function showSpecies() {
@@ -499,9 +567,9 @@
   startReview.addEventListener('click', showSpecies);
   nextReviewStep.addEventListener('click', () => {
     if (!currentImport || !currentDecisions || speciesOverview.hidden) return;
-    const pending = currentBestContacts.filter(contact => !currentDecisions.get(contact.recordIndex));
+    const pending = pendingBestContacts();
     if (pending.length) {
-      nextReviewStatus.textContent = 'Impossible de continuer : validez ou invalidez chaque meilleur contact ('
+      nextReviewStatus.textContent = 'Impossible de continuer : validez l’AUTO-ID ou renseignez l’identification réelle de chaque meilleur contact ('
         + numbers.format(pending.length) + (pending.length === 1 ? ' restant).' : ' restants).');
       return;
     }

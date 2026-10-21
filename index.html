@@ -22,6 +22,7 @@
   <script defer src="import-chart.js"></script>
   <script defer src="best-contacts.js"></script>
   <script defer src="contact-decisions.js"></script>
+  <script defer src="proportional-allocation.js"></script>
   <script defer src="manual-workflow.js"></script>
   <script defer src="manual-review-ui.js"></script>
   <script defer src="wav-opening.js"></script>
@@ -119,7 +120,7 @@
             <p>Égalité complète : le premier contact dans l’ordre du fichier est retenu.</p>
             <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. MATCHING n’est pas un critère de tri.</p>
             <p><strong>Noise</strong> est exclu de la liste. Les compteurs du fichier ne changent pas.</p>
-            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Utilisez « Valider » ou « Invalider » pour enregistrer votre décision. Chaque choix remplace le précédent.</p>
+            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. « Valider » confirme l’AUTO-ID. Après « Invalider », renseignez l’identification réelle pour terminer le contrôle. Chaque choix remplace le précédent.</p>
             <p class="best-contact-note" id="best-missing-columns" hidden></p>
           </aside>
           <div class="review-next-step">
@@ -158,7 +159,9 @@
             <p class="manual-method-codes">Espèces exclues : BARBAR, RHIFER, RHIHIP, MYOBEC, MYODAS, MYOMYO, MYOEMA, NYCNOC, NYCLEI.</p>
             <p>Sinon, un échantillon d’au moins <strong>20 %</strong> des contacts est contrôlé, arrondi au supérieur. Le meilleur contact déjà contrôlé est compris dans ce quota.</p>
             <p>La sélection est répartie proportionnellement entre les classes de MATCH RATIO : [0 ; 0,2], ]0,2 ; 0,4], ]0,4 ; 0,6], ]0,6 ; 0,8], ]0,8 ; 1], plus une classe pour les ratios absents ou invalides. Les quotas entiers utilisent les plus forts restes et incluent le meilleur contact.</p>
-            <p>Les barres suivent les <strong>contrôles supplémentaires</strong> : « Valider » et « Invalider » terminent chacun un contrôle. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu.</p>
+            <p>Après « Invalider », choisissez <strong>l’identification réelle</strong> du contact. Le contrôle n’est terminé qu’une fois cette identification renseignée. Le meilleur contact contribue aussi aux proportions.</p>
+            <p>Une fois l’échantillon entièrement identifié, les contacts restants reçoivent une identification dans <strong>SEMIMANUAL ID au prorata des identifications manuelles</strong> du groupe. Les arrondis par les plus forts restes conservent le nombre total de contacts. Les contacts déjà identifiés à la main gardent leur identification.</p>
+            <p>Les barres suivent les <strong>contrôles supplémentaires terminés</strong>. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu. L’attribution au prorata est une estimation des effectifs sur les contacts non écoutés.</p>
           </aside>
         </div>
       </section>

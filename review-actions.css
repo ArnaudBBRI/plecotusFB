@@ -97,6 +97,30 @@
 .wav-opening-status[data-error="true"],
 .review-save-status[data-error="true"] { color: #8a3423; }
 
+.contact-identification {
+  margin: .8rem 0 0;
+  padding: .9rem 1rem;
+  border: 1px solid #ebccc5;
+  border-radius: .45rem;
+  background: #fff7f5;
+  color: #773e34;
+  font-size: .8rem;
+}
+.contact-identification label { display: grid; gap: .5rem; font-weight: 550; }
+.contact-identification select {
+  width: 100%;
+  padding: .65rem;
+  border: 1px solid #d6bbb6;
+  border-radius: .35rem;
+  background: #fff;
+  color: #33382e;
+  font: inherit;
+  font-weight: 400;
+}
+.contact-identification select:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.contact-identification p { margin: .5rem 0 0; line-height: 1.5; font-weight: 400; }
+.contact-identification[data-pending="false"] { border-color: #d8dfd1; background: #f6f8f2; color: #535a4c; }
+
 .wav-settings {
   width: min(calc(100% - 2rem), 35rem);
   max-height: calc(100svh - 2rem);

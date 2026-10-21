@@ -14,7 +14,7 @@ const logoData = fs.readFileSync(path.join(root, logoPath)).toString('base64');
 html = html.replaceAll('src="' + logoPath + '"', 'src="data:image/png;base64,' + logoData + '"');
 
 // Run after the body in dependency order, equivalent to the deferred scripts.
-const scriptFiles = ['vendor/sheetjs/xlsx.full.min.js', 'core.js', 'kaleidoscope.js', 'file-import.js', 'species.js', 'activity-chart.js', 'activity-export.js', 'import-chart.js', 'best-contacts.js', 'contact-decisions.js', 'manual-workflow.js', 'manual-review-ui.js', 'wav-opening.js', 'welcome.js'];
+const scriptFiles = ['vendor/sheetjs/xlsx.full.min.js', 'core.js', 'kaleidoscope.js', 'file-import.js', 'species.js', 'activity-chart.js', 'activity-export.js', 'import-chart.js', 'best-contacts.js', 'contact-decisions.js', 'proportional-allocation.js', 'manual-workflow.js', 'manual-review-ui.js', 'wav-opening.js', 'welcome.js'];
 const scripts = scriptFiles.map(name => {
   html = html.replace('  <script defer src="' + name + '"></script>', '');
   return '<script>\n' + read(name).replace(/<\/script/gi, '<\\/script') + '\n</script>';

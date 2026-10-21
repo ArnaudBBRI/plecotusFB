@@ -5,6 +5,7 @@
   'use strict';
 
   const numbers = new Intl.NumberFormat('fr-FR');
+  const percentages = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 });
   const count = (value, singular, plural) => numbers.format(value) + ' ' + (value === 1 ? singular : plural);
 
   function groupLabel(group) {
@@ -30,16 +31,39 @@
     let selectedKey = null;
     let detailSignature = null;
 
+    function assignmentStatus(group, compact = false) {
+      if (typeof group.assignmentReady !== 'boolean') return '';
+      if (!group.assignmentReady) {
+        const pending = (group.pendingIdentificationIndices || []).length;
+        return count(pending, 'identification réelle à renseigner', 'identifications réelles à renseigner')
+          + (compact ? '' : (group.mode === 'sample' ? ' avant de calculer le prorata.' : '.'));
+      }
+      if (group.mode === 'auto') {
+        return compact ? 'SEMIMANUAL ID = AUTO-ID' : 'SEMIMANUAL ID reprend l’AUTO-ID de chacun des '
+          + count(group.total, 'contact', 'contacts') + '.';
+      }
+      if (group.mode === 'individual') {
+        return compact ? 'Identifications manuelles reprises' : 'Les identifications manuelles sont reprises dans SEMIMANUAL ID.';
+      }
+      if (compact) return 'Prorata appliqué';
+      const distribution = (group.distribution || []).map(item => percentages.format(item.share) + ' ' + item.label).join(' · ');
+      return (distribution ? 'Répartition manuelle : ' + distribution + '. ' : '')
+        + count((group.proportionalAssignments || []).length, 'contact attribué au prorata', 'contacts attribués au prorata')
+        + ' ; les identifications manuelles sont conservées.';
+    }
+
     function summary(group) {
       const total = count(group.total, 'contact', 'contacts');
+      const assignment = assignmentStatus(group, true);
+      const suffix = assignment ? ' · ' + assignment : '';
       if (!group.requiredIndices.length) {
         return total + (group.mode === 'auto'
           ? ' · Validation automatique : aucun contrôle supplémentaire requis.'
-          : ' · Aucun contrôle supplémentaire requis ; le meilleur contact a déjà été contrôlé.');
+          : ' · Aucun contrôle supplémentaire requis ; le meilleur contact a déjà été contrôlé.') + suffix;
       }
       return total + ' · ' + numbers.format(group.completed) + ' / '
         + count(group.requiredIndices.length, 'contrôle supplémentaire effectué', 'contrôles supplémentaires effectués')
-        + ' · ' + count(group.remaining, 'restant', 'restants');
+        + ' · ' + count(group.remaining, 'restant', 'restants') + suffix;
     }
 
     function renderRows(plan) {
@@ -59,6 +83,13 @@
         total.className = 'manual-species-count';
         total.textContent = count(group.total, 'contact', 'contacts');
         name.append(label, total);
+        const assignment = assignmentStatus(group, true);
+        if (assignment) {
+          const assignmentNote = doc.createElement('small');
+          assignmentNote.className = 'manual-assignment-status';
+          assignmentNote.textContent = assignment;
+          name.append(assignmentNote);
+        }
 
         const progressCell = doc.createElement('td');
         progressCell.className = 'manual-progress-cell';
@@ -95,6 +126,14 @@
           + count(plan.remaining, 'contrôle supplémentaire à effectuer', 'contrôles supplémentaires à effectuer')
           + (automatic ? ' · ' + count(automatic, 'groupe validé automatiquement', 'groupes validés automatiquement') : '')
         : 'Aucune espèce hors Noise à vérifier.';
+      if (typeof plan.assignmentReady === 'boolean') {
+        const assigned = (plan.proportionalAssignments || []).length;
+        const pending = (plan.pendingIdentificationIndices || []).length;
+        if (assigned) node('manual-plan-summary').textContent += ' · '
+          + count(assigned, 'contact attribué au prorata', 'contacts attribués au prorata');
+        if (pending) node('manual-plan-summary').textContent += ' · '
+          + count(pending, 'identification réelle à renseigner', 'identifications réelles à renseigner');
+      }
       debug.hidden = !options.getPreferences().debugMode;
       debugButton.disabled = !plan.requiredIndices.length;
       debugRandomButton.disabled = !plan.requiredIndices.length;
@@ -106,8 +145,9 @@
       const label = groupLabel(group);
       node('manual-species-heading').textContent = label;
       node('manual-species-summary').textContent = summary(group);
-      node('manual-species-method').textContent = group.reasons.join(' ');
-      const signature = JSON.stringify([group.key, group.requiredIndices]);
+      node('manual-species-method').textContent = [...group.reasons, assignmentStatus(group)].filter(Boolean).join(' ');
+      const signature = JSON.stringify([group.key, group.requiredIndices,
+        group.requiredIndices.length ? null : [group.mode, group.assignmentReady]]);
       if (signature !== detailSignature) {
         list.replaceChildren();
         if (!group.requiredIndices.length) {
@@ -115,7 +155,10 @@
           empty.className = 'manual-empty-message';
           empty.textContent = group.mode === 'auto'
             ? 'Tous les contacts de cette espèce sont validés automatiquement selon la méthode. Aucun contrôle supplémentaire n’est nécessaire.'
-            : 'Le quota de vérification est atteint avec le meilleur contact déjà contrôlé.';
+            : group.assignmentReady === false
+              ? 'Renseignez l’identification réelle du meilleur contact avant de calculer les attributions.'
+              : 'Le quota de vérification est atteint avec le meilleur contact déjà contrôlé.'
+                + (group.assignmentReady === true ? ' Les autres contacts sont attribués au prorata de son identification manuelle.' : '');
           list.append(empty);
         } else {
           const contacts = new Map(group.contacts.map(contact => [contact.recordIndex, contact]));
@@ -213,7 +256,8 @@
       options.onDecisionsChanged();
       refresh();
       debugResult.textContent = 'Tirage aléatoire : ' + count(validated.length, 'contact validé', 'contacts validés')
-        + ' et ' + count(invalidated.length, 'contact invalidé', 'contacts invalidés') + '.';
+        + ' et ' + count(invalidated.length, 'contact invalidé', 'contacts invalidés') + '.'
+        + (invalidated.length ? ' Renseignez l’identification réelle des contacts invalidés pour terminer leurs contrôles et calculer le prorata.' : '');
       debugResult.hidden = false;
     });
 
