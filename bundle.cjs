@@ -9,7 +9,7 @@ for (const name of ['assets/branding/plecotus-bat.css', 'welcome.css', 'import-c
   html = html.replace('<link rel="stylesheet" href="' + name + '">', () => '<style>\n' + read(name) + '\n</style>');
 }
 
-const logoPath = 'assets/branding/plecotus-faune-biotopes-v2.png';
+const logoPath = 'assets/branding/plecotus-faune-biotopes-v3-black.png';
 const logoData = fs.readFileSync(path.join(root, logoPath)).toString('base64');
 html = html.replaceAll('src="' + logoPath + '"', 'src="data:image/png;base64,' + logoData + '"');
 
