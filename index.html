@@ -8,6 +8,9 @@
   <title>Plecotus · Accueil</title>
   <link rel="stylesheet" href="assets/branding/plecotus-bat.css">
   <link rel="stylesheet" href="welcome.css">
+  <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
+  <script defer src="core.js"></script>
+  <script defer src="file-import.js"></script>
   <script defer src="welcome.js"></script>
 </head>
 <body>
@@ -35,6 +38,35 @@
       <span class="wordmark">plecotus</span>
     </header>
     <h1 class="visually-hidden">Tableau de bord</h1>
+    <div class="dashboard-content">
+      <p class="import-error" id="import-error" role="alert" hidden></p>
+      <section class="sheet-picker" id="sheet-picker" aria-labelledby="sheet-picker-heading" hidden>
+        <h2 id="sheet-picker-heading">Choisir une feuille</h2>
+        <p>Ce classeur contient plusieurs feuilles de contacts. Choisissez celle à analyser.</p>
+        <label for="contact-sheet">Feuille de contacts</label>
+        <select id="contact-sheet"></select>
+      </section>
+      <section class="file-overview" id="file-overview" aria-labelledby="file-heading" hidden>
+        <div class="overview-heading">
+          <div><p class="eyebrow">Fichier importé</p><h2 id="file-heading"></h2><p class="sheet-name" id="sheet-name" hidden></p></div>
+          <span class="file-kind" id="file-kind"></span>
+        </div>
+        <p class="manual-summary" id="manual-summary"></p>
+        <dl class="file-metrics">
+          <div><dt>Contacts au total</dt><dd id="total-contacts"></dd><p>Bruit compris</p></div>
+          <div><dt>Contacts hors bruit</dt><dd id="contacts-without-noise"></dd><p id="noise-detail"></p></div>
+          <div><dt>Identifications manuelles</dt><dd id="manual-identifications"></dd><p>Cellules MANUAL ID renseignées</p></div>
+        </dl>
+        <details class="import-warnings" id="import-warnings" hidden><summary>Remarques sur le fichier</summary><ul id="import-warning-list"></ul></details>
+        <div class="overview-actions"><button class="start-review" id="start-review" type="button" hidden>Commencer la vérification manuelle par espèce</button></div>
+      </section>
+      <section class="species-overview" id="species-overview" aria-labelledby="species-heading" hidden>
+        <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
+        <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
+        <p>Contacts regroupés selon leur identification automatique (AUTO-ID).</p>
+        <table class="species-table"><thead><tr><th scope="col">Espèce ou groupe proposé</th><th scope="col">Contacts</th></tr></thead><tbody id="species-groups"></tbody></table>
+      </section>
+    </div>
   </main>
   <noscript><p class="noscript-message">Activez JavaScript pour ouvrir Plecotus.</p></noscript>
 </body>

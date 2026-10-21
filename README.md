@@ -1,6 +1,8 @@
 # Plecotus — classification des contacts de chauves-souris
 
-> **Refonte de l’interface en cours (`codex/gui-redesign`).** `index.html` et `Plecotus.html` ouvrent désormais l’accueil animé avec la chauve-souris, puis un tableau de bord vide. L’interface précédente est conservée sur la branche `main` ; la documentation ci-dessous décrit cette version précédente.
+> **Refonte de l’interface en cours (`codex/gui-redesign`).** `index.html` et `Plecotus.html` ouvrent désormais l’accueil animé avec la chauve-souris, puis le nouveau tableau de bord. L’interface précédente est conservée sur la branche `main` ; la documentation ci-dessous décrit cette version précédente.
+
+Le nouveau tableau de bord lit les fichiers CSV, XLS et XLSX localement. Son résumé compte tous les contacts, les contacts dont l’AUTO-ID n’est pas `Noise` et les cellules `MANUAL ID` renseignées. Toute valeur non vide, même `NoID`, `Noise` ou une note, indique qu’une vérification a déjà commencé. Un fichier sans identification manuelle est affiché comme **Fichier vierge** et propose **Commencer la vérification manuelle par espèce**, qui ouvre le regroupement des contacts par AUTO-ID. Si un classeur contient plusieurs feuilles de contacts compatibles, choisissez celle à importer. Une colonne AUTO-ID absente laisse le nombre hors bruit indisponible ; une colonne MANUAL ID absente est signalée dans les remarques.
 
 Un outil local, en français, qui transforme un CSV Kaleidoscope en **nombres de contacts par espèce**, avec le nom scientifique et le nom français. Il présente le meilleur contact de chaque `AUTO-ID`, organise les vérifications manuelles, puis remplit `SEMIMANUAL ID` selon la procédure choisie pour le projet : validation des suggestions Kaleidoscope ou répartition au prorata des identifications manuelles. Le bilan détaillé distingue toujours les contacts manuels des attributions calculées. L'outil utilise le CSV ; il n'analyse pas les sons.
 

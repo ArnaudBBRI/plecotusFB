@@ -99,6 +99,47 @@ body { margin: 0; min-height: 100svh; }
 .selected-file { margin: 0; color: #646960; font-size: .8rem; overflow-wrap: anywhere; }
 .wordmark { font-size: 1.15rem; font-weight: 500; letter-spacing: .08em; }
 
+.dashboard-content { width: min(100%, 1160px); margin: 0 auto; padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 3vw, 2rem); }
+.overview-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.eyebrow { margin: 0 0 .6rem; color: #777e72; font-size: .7rem; letter-spacing: .09em; text-transform: uppercase; }
+.overview-heading h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 550; overflow-wrap: anywhere; }
+.sheet-name { margin: .5rem 0 0; color: #646960; font-size: .85rem; }
+.file-kind { flex-shrink: 0; padding: .45rem .7rem; border-radius: 999px; background: #f2f3f0; color: #535a4c; font-size: .75rem; }
+.file-kind.is-vanilla { background: #edf4e8; color: #476039; }
+.manual-summary { margin: 1rem 0 0; color: #646960; font-size: .9rem; line-height: 1.6; }
+.file-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0 0; }
+.file-metrics > div { padding: 1.5rem; border: 1px solid #e8e9e6; border-radius: .75rem; }
+.file-metrics dt { color: #53594d; font-size: .85rem; }
+.file-metrics dd { margin: .65rem 0 .5rem; font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 550; letter-spacing: -.035em; }
+.file-metrics p { margin: 0; color: #777e72; font-size: .75rem; line-height: 1.5; }
+.overview-actions { margin-top: 2rem; }
+.start-review { padding: .9rem 1.2rem; border: 1px solid #33452b; border-radius: .5rem; background: #33452b; color: #fff; font: inherit; font-size: .85rem; cursor: pointer; }
+.start-review:hover { background: #26351f; }
+.start-review:focus-visible, .sheet-picker select:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.start-review:disabled { background: #e8e9e6; border-color: #e8e9e6; color: #777e72; cursor: default; }
+.import-error { margin: 0; padding: 1rem 1.2rem; border: 1px solid #ebccc5; border-radius: .5rem; background: #fff7f5; color: #8a3423; line-height: 1.6; }
+.import-warnings { margin-top: 1.5rem; color: #646960; font-size: .8rem; line-height: 1.6; }
+.import-warnings summary { cursor: pointer; }
+.import-warnings ul { padding-left: 1.25rem; }
+.sheet-picker h2 { margin: 0 0 .75rem; font-size: 1.3rem; }
+.sheet-picker p { color: #646960; line-height: 1.6; }
+.sheet-picker label { display: block; margin-bottom: .5rem; font-size: .85rem; }
+.sheet-picker select { max-width: 100%; min-width: min(100%, 18rem); padding: .7rem; border: 1px solid #d6d8d2; border-radius: .5rem; background: #fff; color: inherit; font: inherit; }
+.back-to-summary { padding: .3rem 0; border: 0; background: transparent; color: #535a4c; font: inherit; font-size: .85rem; cursor: pointer; }
+.back-to-summary:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.species-overview h2 { margin: 1.5rem 0 .75rem; font-size: 1.5rem; }
+.species-overview > p { color: #646960; font-size: .9rem; }
+.species-table { width: 100%; margin-top: 1.5rem; border-collapse: collapse; font-size: .9rem; text-align: left; }
+.species-table th { padding: 1rem; background: #f6f7f4; color: #535a4c; font-weight: 500; }
+.species-table td { padding: 1rem; border-bottom: 1px solid #e8e9e6; overflow-wrap: anywhere; }
+.species-table th:last-child, .species-table td:last-child { text-align: right; }
+
+@media (max-width: 720px) {
+  .overview-heading { flex-direction: column; }
+  .file-metrics { grid-template-columns: 1fr; }
+  .start-review { width: 100%; line-height: 1.5; }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

@@ -13,9 +13,12 @@ const logoPath = 'assets/branding/plecotus-bat-v1.png';
 const logoData = fs.readFileSync(path.join(root, logoPath)).toString('base64');
 html = html.replaceAll('src="' + logoPath + '"', 'src="data:image/png;base64,' + logoData + '"');
 
-// Run after the body, equivalent to the source's deferred script.
-const script = '<script>\n' + read('welcome.js').replace(/<\/script/gi, '<\\/script') + '\n</script>';
-html = html.replace('  <script defer src="welcome.js"></script>', '');
-html = html.replace('</body>', () => script + '\n</body>');
+// Run after the body in dependency order, equivalent to the deferred scripts.
+const scriptFiles = ['vendor/sheetjs/xlsx.full.min.js', 'core.js', 'file-import.js', 'welcome.js'];
+const scripts = scriptFiles.map(name => {
+  html = html.replace('  <script defer src="' + name + '"></script>', '');
+  return '<script>\n' + read(name).replace(/<\/script/gi, '<\\/script') + '\n</script>';
+});
+html = html.replace('</body>', () => scripts.join('\n') + '\n</body>');
 fs.writeFileSync(path.join(root, 'Plecotus.html'), html, 'utf8');
 console.log('Built Plecotus.html: a standalone browser tool.');
