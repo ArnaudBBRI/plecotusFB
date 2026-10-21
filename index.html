@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Plecotus · Classification des contacts de chauves-souris</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="core.js"></script>
+  <script defer src="automation.js"></script>
+  <script defer src="species.js"></script>
+  <script defer src="review-plan.js"></script>
+  <script defer src="activity-chart.js"></script>
+  <script defer src="activity-export.js"></script>
+  <script defer src="import-summary.js"></script>
+  <script defer src="bulk-confirmation.js"></script>
+  <script defer src="kaleidoscope.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body class="minimal-mode">
+  <aside class="sidebar">
+    <a class="brand" href="index.html" aria-label="Accueil Plecotus"><svg viewBox="0 0 44 40" aria-hidden="true"><path d="M22 19 17 7l-2 10L2 9l4 15 10-2 6 12 6-12 10 2 4-15-13 8-2-10Z"/></svg><span>plecotus<small>VALIDATION DES CONTACTS</small></span></a>
+    <div class="local-tag"><span></span> Espace local · Belgique</div>
+    <button class="primary upload-button" id="upload">＋ Importer un CSV</button>
+    <input id="csv-file" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" hidden>
+    <input id="project-file" type="file" accept=".json,application/json" hidden>
+    <div class="nav-label">VOTRE ESPACE DE TRAVAIL</div>
+    <button class="nav-button active" id="all-groups">Tous les contacts <span id="sidebar-count">0</span></button>
+    <div class="nav-label">SUGGESTIONS AUTOMATIQUES</div>
+    <nav id="species-list" aria-label="Filtrer les identifications automatiques"><p class="sidebar-hint">Vos groupes d’espèces apparaîtront ici.</p></nav>
+    <div class="sidebar-bottom">
+      <button class="nav-button" id="method">ⓘ Guide de classement et de validation</button>
+      <button class="nav-button" id="open-project">↗ Ouvrir un projet enregistré</button>
+      <button class="nav-button" id="load-demo">◷ Essayer des contacts d’exemple</button>
+      <p>Les fichiers restent dans ce navigateur.<br>Aucun compte ni installation requis.</p>
+    </div>
+  </aside>
+  <main>
+    <header class="topbar"><div class="breadcrumb"><span class="workspace-label">ESPACE DE TRAVAIL <span>/</span></span><strong id="dataset-name">Nouvelle classification</strong></div><div class="top-actions"><span id="save-status" role="status">Prêt à importer</span><button id="minimal-import">＋ Importer un CSV</button><button id="reviewer-settings">Définir le vérificateur</button><button id="rules">⚙ Règles de classification</button><button id="save-project" disabled>Enregistrer le projet</button><button id="view-mode" aria-pressed="false">Vue complète</button><button class="dark" id="export" disabled>Exporter les résultats ↓</button></div></header>
+    <div id="welcome" class="welcome">
+      <div class="eyebrow">MOINS DE SAISIE. PLUS D’ÉCOUTE.</div>
+      <h1>Des enregistrements<br>aux contacts par espèce.</h1>
+      <p>Importez le CSV de Kaleidoscope et vérifiez le meilleur contact de chaque espèce. Selon le résultat et les ratios de concordance, validez les suggestions restantes ou contrôlez un échantillon représentatif avant leur attribution au prorata. Consultez les totaux et l’origine de chaque identification.</p>
+      <div class="welcome-actions"><button class="primary" id="welcome-import">Importer votre id.csv ↗</button><button id="welcome-demo">Découvrir un exemple</button></div>
+      <div class="workflow"><div><b>01</b><h3>Vérifier la référence</h3><p>Confirmez ou corrigez le meilleur contact de l’espèce dans la colonne MANUAL ID.</p></div><div><b>02</b><h3>Adapter l’échantillon</h3><p>Lorsque la validation globale ne s’applique pas, contrôlez 20 % des contacts par défaut, répartis entre les classes de ratio. Vous pouvez modifier la sélection.</p></div><div><b>03</b><h3>Compléter et compter</h3><p>Les attributions automatiques remplissent SEMIMANUAL ID. Le résumé distingue les contacts vérifiés de ceux attribués par les règles.</p></div></div>
+      <p class="welcome-note">L’attribution au prorata est une extrapolation de l’échantillon : elle ne confirme pas l’espèce audible dans chaque contact attribué.</p>
+    </div>
+    <section id="workspace" hidden>
+      <div class="page-heading"><div><div class="eyebrow">CLASSIFICATION GUIDÉE</div><h1>Classer et compter les contacts</h1><p id="dataset-caption"></p></div><div class="progress-block"><div><strong id="progress-label"></strong><span>traités ou ignorés</span></div><div class="progress-track"><i id="progress-fill"></i></div></div></div>
+      <div class="stats" id="stats"></div>
+      <p class="storage-warning" id="storage-warning" role="status" hidden>La sauvegarde automatique dans ce navigateur est indisponible ou pleine. Utilisez « Enregistrer le projet » pour conserver ce CSV et vos décisions avant de fermer ou recharger la page.</p>
+      <section class="imported-manual-banner" id="imported-manual-banner" aria-labelledby="imported-manual-title" hidden>
+        <h2 id="imported-manual-title"></h2>
+        <p id="imported-manual-note"></p>
+        <p class="imported-manual-warning" id="imported-manual-warning" hidden></p>
+        <details><summary>Voir les identifications importées et les contrôles restants</summary><div id="imported-manual-details"></div></details>
+      </section>
+      <section class="minimal-overview" id="minimal-overview" aria-labelledby="overview-title" hidden>
+        <div class="overview-heading"><div class="eyebrow">VOTRE PARCOURS DE VÉRIFICATION</div><h2 id="overview-title">Vérifications à effectuer</h2><p id="overview-note"></p></div>
+        <div class="review-chart" id="review-chart" aria-label="Nombre de vérifications manuelles restantes par espèce"></div>
+        <div class="overview-actions"><button class="primary" id="minimal-start">Démarrer <span aria-hidden="true">→</span></button></div>
+      </section>
+      <div class="minimal-focus-caption" id="minimal-focus-caption" role="status"></div>
+      <div class="minimal-complete" id="minimal-complete" hidden><div class="completion-mark" aria-hidden="true">✓</div><div class="eyebrow">CONTRÔLES TERMINÉS</div><h2>Vos contrôles sont terminés.</h2><p>Consultez le tableau des activités ou poursuivez vos vérifications.</p><div class="completion-actions"><button class="primary" id="minimal-results">Voir le tableau final</button><button id="minimal-all">Vérifier un autre contact</button></div><button class="text-button" id="minimal-undo" hidden>Annuler le dernier enregistrement</button></div>
+      <details class="summary-panel" id="activities-panel" open>
+        <summary><strong>Activités des chiroptères</strong><span id="activities-state"></span></summary>
+        <div class="summary-content">
+          <div class="activities-noise" role="status"><strong id="activities-noise-count">0</strong><div><b id="activities-noise-label">contacts Noise ignorés</b><span>Exclus du tableau et du graphique</span></div></div>
+          <div class="summary-explanation" id="activities-note"></div>
+          <section class="activities-distribution" aria-labelledby="activities-chart-title">
+            <div class="activities-chart-heading"><h3 id="activities-chart-title">Répartition des contacts</h3><div class="activities-chart-switch" role="group" aria-label="Type de graphique"><button type="button" id="activities-chart-pie" aria-pressed="true">Camembert</button><button type="button" id="activities-chart-bar" aria-pressed="false">Barres</button></div></div>
+            <div class="activities-chart-filter-row"><label title="Pipistrellus pipistrellus · PIPPIP"><input type="checkbox" id="activities-include-pipistrelle" checked>Inclure la Pipistrelle commune</label><span>Graphiques et images uniquement</span></div>
+            <p id="activities-chart-note" class="activities-chart-note"></p>
+            <div id="activities-chart" aria-live="polite"></div>
+            <div class="activities-image-export"><label for="activities-image-format">Exporter le graphique</label><select id="activities-image-format"><option value="png">PNG</option><option value="jpeg">JPEG</option><option value="svg">SVG</option></select><button type="button" id="activities-image-export" disabled>Télécharger l’image ↓</button><span id="activities-image-status" role="status"></span></div>
+          </section>
+          <div class="summary-scroll"><table class="activities-table"><thead><tr><th>Nom scientifique</th><th>Nom vernaculaire</th><th>Nombre de contacts</th></tr></thead><tbody id="activities-body"></tbody><tfoot id="activities-footer"></tfoot></table></div>
+          <div class="summary-actions"><span>Les espèces sont regroupées par nom scientifique ; les cinq catégories NoID gardent leurs codes. Les attributions au prorata restent des estimations.</span><button id="activities-export" disabled>Exporter activites_chiropteres.csv ↓</button></div>
+        </div>
+      </details>
+      <details class="summary-panel" id="summary-panel"><summary><strong>Bilan détaillé et provenance des résultats</strong><span id="summary-state"></span></summary><div class="summary-content"><div class="summary-explanation" id="summary-explanation"></div><div class="summary-scroll"><table><thead><tr><th>Espèce / résultat</th><th>Vérifiés manuellement</th><th>Attribués par les règles</th><th>Ignorés</th><th>Total des contacts</th></tr></thead><tbody id="summary-body"></tbody><tfoot id="summary-footer"></tfoot></table></div><div class="summary-actions"><span id="policy-caption"></span><button id="summary-export">Exporter le bilan détaillé ↓</button></div></div></details>
+      <details class="group-panel" id="species-workflow-panel" open><summary><strong>Parcours par espèce</strong><span>Référence → échantillon → attribution</span></summary><div class="species-workflow-content"><p class="species-workflow-intro">Chaque parcours rassemble les contacts d’une même Auto-ID dans tout le CSV. Vous pouvez ajouter ou retirer des contacts de l’échantillon, puis vérifier davantage de lignes à tout moment.</p><div id="species-workflow" class="species-workflow-grid"></div></div></details>
+      <div class="banner" id="data-banner" hidden></div>
+      <div class="queue-toolbar"><div class="tabs" role="group" aria-label="Filtrer les contacts à vérifier"><button data-tab="pending" class="active">Contrôles sélectionnés <span id="pending-count"></span></button><button data-tab="anchors">Références</button><button data-tab="audits">Échantillon</button><button data-tab="waiting">En attente des contrôles</button><button data-tab="inferred">Attribués par les règles</button><button data-tab="noid">NoID · non identifiés</button><button data-tab="noise">Noise · bruit</button><button data-tab="reviewed">Manuels</button><button data-tab="all">Tous</button></div><div class="queue-controls"><input id="search" type="search" placeholder="Rechercher un fichier ou une identification…" aria-label="Rechercher des contacts"><select id="sort" aria-label="Ordre des contacts"><option value="guided">Ordre guidé</option><option value="source">Ordre du CSV</option></select></div></div>
+      <div class="review-layout"><section class="queue-panel" aria-label="Liste des contacts"><div class="panel-heading"><h2>Contacts à vérifier</h2><span id="queue-count"></span></div><div class="table-scroll"><table><thead><tr><th scope="col">Contact / identification automatique</th><th scope="col">Impulsions concordantes</th><th scope="col">Ratio</th><th scope="col">Validation</th></tr></thead><tbody id="queue-body"></tbody></table></div><div class="queue-footer"><span id="page-label"></span><div><button id="prev-page" aria-label="Page précédente">←</button><button id="next-page" aria-label="Page suivante">→</button></div></div></section><div class="review-focus-shell"><section id="detail" class="detail-panel" aria-label="Vérifier le contact sélectionné"></section><aside class="minimal-progress" id="minimal-progress" aria-label="Progression des vérifications manuelles" hidden><div class="review-progress-heading">VÉRIFICATIONS RESTANTES</div><div class="review-progress-item" id="species-progress"></div><div class="review-progress-item" id="total-progress"></div><div class="review-rule-explanation" aria-labelledby="review-rule-title"><h3 id="review-rule-title">Pourquoi ces contrôles ?</h3><p id="review-rule-reason"></p><p id="review-rule-calculation"></p></div><button class="text-button" id="minimal-overview-back">← Vue d’ensemble</button></aside></div></div>
+      <footer class="workspace-footer"><span>MANUAL ID : vérification humaine · SEMIMANUAL ID : attribution automatique.</span><span>Clavier : <kbd>J</kbd> suivant · <kbd>K</kbd> précédent · <kbd>Ctrl</kbd> + <kbd>Entrée</kbd> enregistrer</span></footer>
+    </section>
+  </main>
+  <dialog id="guide-dialog">
+    <button class="dialog-close" data-close="guide-dialog" aria-label="Fermer le guide">×</button>
+    <div class="eyebrow">UN PARCOURS PAR ESPÈCE</div><h2>Vérifier, compléter et compter</h2>
+    <p>Chaque parcours rassemble <b>toutes les lignes d’une même Auto-ID dans le CSV importé</b>, quels que soient le dossier et la nuit. Le meilleur contact devient la référence. Le classement utilise :</p>
+    <ol><li><b>MATCHING, décroissant :</b> le nombre d’impulsions correspondant à l’espèce suggérée.</li><li><b>MATCH RATIO, décroissant :</b> le ratio d’impulsions concordantes, pour départager les ex æquo.</li><li><b>MARGIN, décroissant :</b> un autre critère de départage, comparé uniquement au sein d’une même espèce.</li><li><b>La ligne d’origine du CSV :</b> un ordre stable en cas d’égalité.</li></ol>
+    <p>Les valeurs manquantes ou invalides sont placées en dernier. Le classement et le ratio ne sont pas des pourcentages de confiance dans l’identification.</p>
+    <h3>1. Vérifier le meilleur contact</h3><p>Examinez la référence dans Kaleidoscope, puis enregistrez la confirmation ou la correction dans <b>MANUAL ID</b>. Une valeur déjà présente dans cette colonne reste visible pour reprendre votre travail.</p>
+    <h3>2. Appliquer la validation globale, si ses trois conditions sont remplies</h3>
+    <ul class="guide-conditions"><li>Le MANUAL ID de la référence correspond à son Auto-ID.</li><li><b>Strictement plus de 50 %</b> des contacts de cette Auto-ID ont un MATCH RATIO <b>strictement supérieur à 0,6</b>. Le dénominateur comprend toutes les lignes de l’espèce, y compris celles dont le ratio manque.</li><li>L’Auto-ID ne fait pas partie de la liste d’exclusion : <b>BARBAR, RHIFER, RHIHIP, MYOBEC, MYODAS, MYOMYO, MYOEMA, NYCNOC, NYCLEI</b>.</li></ul>
+    <p>L’AUTO-ID original de chaque ligne de l’espèce est alors recopié dans <b>SEMIMANUAL ID</b>, y compris sur les contacts déjà vérifiés. Les décisions manuelles enregistrées restent prioritaires pour le résultat final et le bilan.</p>
+    <h3>3. Sinon, contrôler un échantillon représentatif</h3><p>La cible est de <b>20 % des contacts de l’espèce par défaut</b>, arrondie à l’entier supérieur. La sélection se répartit entre les classes de MATCH RATIO, avec une classe distincte pour les ratios absents ou invalides. La référence vérifiée contribue à l’échantillon.</p><p>Vous pouvez modifier le pourcentage, ajouter ou retirer des contacts sélectionnés et vérifier plus de lignes. Les contrôles retenus doivent être renseignés avant de compléter les contacts restants.</p>
+    <h3>4. Attribuer les contacts restants au prorata</h3><p>Le remplissage de SEMIMANUAL ID suit les proportions des identifications manuelles de l’espèce d’origine. Par exemple, si les contrôles donnent 10 % A, 80 % B et 10 % C, ces mêmes proportions sont appliquées aux contacts encore non vérifiés, avec un arrondi conservant le nombre total de contacts.</p><p class="guide-estimate"><b>Il s’agit d’une attribution statistique.</b> Une ligne attribuée au prorata n’a pas été identifiée individuellement par son audio. Le résumé et les exports conservent cette origine ; une nouvelle vérification manuelle entraîne un recalcul.</p>
+    <h3>Conserver les incertitudes et le bruit</h3><p>Le menu <b>Étiquettes NoID</b> permet d’attribuer <b>NoID</b> (chauve-souris non identifiée), <b>NoID Pip</b> (pipistrelle non identifiée), <b>NoID Ser</b> (sérotule non identifiée), <b>NoID Myo</b> (murin non identifié) ou <b>NoID Ple</b> (oreillard non identifié). Enregistrez ensuite la décision : ces cinq catégories sont comptées séparément dans le tableau final, les graphiques et leurs exports. Les AUTO-ID NoID sans décision restent à vérifier individuellement. Les Noise sans décision manuelle sont ignorés par défaut : ils sont écartés du parcours et du tableau des activités, mais conservés dans les données et le bilan détaillé. Vous pouvez les examiner dans la vue complète ou décocher « Ignorer les contacts Noise » dans les règles pour réactiver leur vérification.</p><p>Les décisions manuelles restent prioritaires, y compris lorsqu’un Noise a été corrigé en espèce ou en étiquette NoID. Le résumé distingue les décisions manuelles, les attributions automatiques, les bruits ignorés et les contacts en attente. Les totaux issus du prorata restent des estimations.</p>
+    <h3>Exporter les activités des chiroptères</h3><p>Une fois les contrôles terminés, exportez <b>activites_chiropteres.csv</b> : nom scientifique (ou code NoID), nom vernaculaire français et nombre de contacts. La page finale indique aussi le nombre de <b>Noise ignorés</b> et présente un <b>camembert</b> de la répartition des contacts, avec un bouton <b>Barres</b> pour changer de graphique. Les parts sont calculées sur les contacts du tableau, étiquettes NoID incluses, sans bruit ni contacts encore en attente.</p><p>Les codes, noms latins et noms français reconnus d’une même espèce sont regroupés. Les catégories NoID gardent leurs codes et descriptions françaises, sans nom latin inventé. Les autres incertitudes non résolues restent dans le bilan détaillé. Les groupes et libellés libres sont conservés sans leur attribuer une espèce certaine.</p>
+    <h3>Réglages et ouverture des WAV</h3><p>Le bouton <b>Réglages</b> mémorise votre nom ou vos initiales et votre logiciel d’ouverture des WAV : <b>Kaleidoscope</b> par défaut, ou <b>ChiroSurf</b>. Le chemin de chaque logiciel est conservé séparément. En démarrant Plecotus avec <b>Demarrer-Plecotus.cmd</b>, cliquez sur le nom du WAV dans sa fiche pour l’ouvrir avec le logiciel choisi. Retrouvez ensuite le canal et le décalage indiqués. Vous pouvez changer de logiciel dans les réglages à tout moment. Le champ de vérificateur de la fiche modifie aussi ce défaut ; les décisions déjà enregistrées conservent leur auteur.</p>
+    <h3>Kaleidoscope Lite</h3><p>Lite fournit la visualisation et l’identification manuelle. L’Auto-ID des chauves-souris nécessite Pro ou sa version d’essai ; Plecotus utilise les résultats automatiques existants. Pour la Belgique, vérifiez le choix du classificateur européen et les espèces plausibles localement. Le champ d’identification accepte aussi du texte libre.</p>
+    <p class="source-links"><a href="METHODS.md" target="_blank">Méthodologie complète et dictionnaire des champs ↗</a><br><a href="https://www.wildlifeacoustics.com/uploads/user-guides/Kaleidoscope03192025.pdf" target="_blank" rel="noreferrer">Guide d’utilisation Wildlife Acoustics ↗</a><br><a href="https://www.wildlifeacoustics.com/products/kaleidoscope/automatic-bat-identification" target="_blank" rel="noreferrer">Conseils du fabricant sur l’Auto-ID ↗</a></p>
+  </dialog>
+  <dialog id="reviewer-dialog">
+    <button class="dialog-close" data-close="reviewer-dialog" aria-label="Fermer les réglages">×</button>
+    <div class="eyebrow">VOS PRÉFÉRENCES</div><h2>Réglages</h2>
+    <form id="reviewer-form">
+      <label class="field-label" for="default-reviewer">Nom ou initiales du vérificateur</label><input id="default-reviewer" type="text" autocomplete="off" placeholder="Nom / initiales">
+      <p class="settings-note">Repris pour les prochains contacts et CSV. Les décisions déjà enregistrées conservent leur vérificateur.</p>
+      <label class="field-label" for="wav-viewer">Logiciel d’ouverture des WAV</label><select id="wav-viewer" aria-describedby="wav-viewer-note"><option value="kaleidoscope">Kaleidoscope (par défaut)</option><option value="chirosurf">ChiroSurf</option></select>
+      <p id="wav-viewer-note" class="settings-note">Ce choix s’applique aux prochains contacts. Vous pouvez le modifier ici à tout moment ; le chemin de chaque logiciel est mémorisé séparément.</p>
+      <label class="field-label" id="wav-viewer-executable-label" for="wav-viewer-executable">Chemin de l’exécutable Kaleidoscope</label><input id="wav-viewer-executable" type="text" autocomplete="off" spellcheck="false" placeholder="C:\Logiciels\kaleidoscope.exe" aria-describedby="wav-viewer-path-note">
+      <p id="wav-viewer-path-note" class="settings-note">Copiez le chemin de l’exécutable du logiciel choisi depuis l’Explorateur Windows.</p>
+      <div id="wav-viewer-connection" class="settings-connection" role="status"></div>
+      <button id="stop-local-launcher" class="text-button" type="button" hidden>Arrêter le lanceur local</button>
+      <p class="settings-note">Le logiciel choisi, les chemins et le vérificateur sont mémorisés dans ce navigateur. L’ouverture du WAV ne valide aucun contact.</p>
+      <p id="settings-error" class="settings-error" role="alert" hidden></p>
+      <button class="primary" type="submit">Enregistrer les réglages</button>
+    </form>
+  </dialog>
+  <dialog id="rules-dialog">
+    <button class="dialog-close" data-close="rules-dialog" aria-label="Fermer les règles">×</button>
+    <div class="eyebrow">UNE SÉLECTION QUE VOUS POUVEZ ADAPTER</div><h2>Règles de classification</h2>
+    <p>Vérifiez d’abord le meilleur contact de chaque espèce. La validation globale s’applique si sa confirmation correspond à l’Auto-ID, si plus de la moitié des contacts ont un ratio supérieur à 0,6 et si l’espèce n’est pas exclue ci-dessous.</p>
+    <form id="rules-form">
+      <label class="field-label" for="policy-sample">Échantillon manuel recommandé (%)</label><div class="sample-percent-field"><input id="policy-sample" type="number" min="0.1" max="100" step="0.1" value="20" required><span>% des contacts de l’espèce</span></div>
+      <p class="draft-note">Lorsque la validation globale ne s’applique pas : cible arrondie à l’entier supérieur, répartie entre les classes de MATCH RATIO. La référence compte dans l’échantillon. Vous pouvez aussi modifier la sélection de contacts directement dans le parcours.</p>
+      <label class="policy-toggle"><input id="policy-ignore-noise" type="checkbox" checked><span><b>Ignorer les contacts Noise</b><br>Les Noise sans décision manuelle sont écartés des contrôles. Vous pouvez toujours les vérifier depuis la vue complète.</span></label>
+      <div class="policy-exclusions"><h3>Espèces exclues de la validation globale</h3><p>Ces espèces passent par la vérification d’un échantillon, même si la référence et la majorité des ratios remplissent les deux autres conditions.</p><div class="species-codes" aria-label="Liste des espèces exclues"><code>BARBAR</code><code>RHIFER</code><code>RHIHIP</code><code>MYOBEC</code><code>MYODAS</code><code>MYOMYO</code><code>MYOEMA</code><code>NYCNOC</code><code>NYCLEI</code></div></div>
+      <p class="draft-note">Après vérification de l’échantillon retenu, les contacts restants reçoivent une attribution au prorata dans SEMIMANUAL ID. Cette extrapolation ne confirme pas l’espèce audible de chaque contact attribué. Les décisions enregistrées dans MANUAL ID sont conservées.</p>
+      <div class="policy-preview" id="policy-preview" role="status"></div><button class="primary" type="submit">Appliquer et recalculer</button>
+    </form>
+  </dialog>
+  <dialog id="export-dialog">
+    <button class="dialog-close" data-close="export-dialog" aria-label="Fermer les exports">×</button>
+    <div class="eyebrow">EMPORTEZ VOTRE TRAVAIL</div><h2>Exporter les résultats de classification</h2><p id="export-caption"></p>
+    <div class="export-options">
+      <button id="export-activities" disabled><b>Activités des chiroptères · CSV ↓</b><span>activites_chiropteres.csv : nom scientifique, nom vernaculaire français et nombre de contacts. Disponible lorsque les contrôles sont terminés.</span></button>
+      <button id="export-summary"><b>Bilan détaillé · CSV ↓</b><span>Contacts par identification : vérifiés manuellement, attribués par les règles, ignorés et total. Le bruit, les incertitudes et les contacts en attente restent distincts.</span></button>
+      <button id="export-semimanual"><b>Résultats avec SEMIMANUAL ID · CSV ↓</b><span>Colonnes et ordre d’origine, décisions humaines dans MANUAL ID et attributions automatiques dans SEMIMANUAL ID.</span></button>
+      <button id="export-classified"><b>Tous les contacts et leur provenance · CSV ↓</b><span>Colonnes d’origine, identification attribuée, origine, statut, motif et règles. La validation globale et l’attribution au prorata restent identifiables.</span></button>
+      <button id="export-id"><b>Identifications manuelles pour Kaleidoscope ↓</b><span>Ordre et colonnes d’origine. MANUAL ID est mis à jour uniquement pour les décisions manuelles enregistrées.</span></button>
+      <button id="export-audit"><b>Journal de validation · CSV ↓</b><span>Une ligne par contact, avec les décisions manuelles, la sélection de l’échantillon et la provenance des attributions automatiques.</span></button>
+      <button id="export-pending"><b>Contrôles sélectionnés restants · CSV ↓</b><span>Les références et contacts de l’échantillon encore à vérifier, avec leur motif et leur localisation.</span></button>
+    </div>
+    <p>Conservez le CSV d’origine. Ouvrez la copie des identifications manuelles dans Kaleidoscope via <b>File → Open Results…</b>. SEMIMANUAL ID est une colonne de Plecotus ; les métadonnées audio ne sont pas modifiées.</p><p>Les décomptes sont incomplets tant que des contacts attendent un résultat. Les décomptes issus du prorata restent des estimations après vérification de l’échantillon.</p>
+  </dialog>
+  <dialog id="replace-dialog"><h2>Enregistrer d’abord ce projet ?</h2><p>L’ouverture d’un autre jeu de données remplace cet espace de travail. Enregistrez une sauvegarde du projet pour conserver toutes les identifications et les notes.</p><div class="dialog-actions"><button id="cancel-replace">Annuler</button><button id="backup-replace">Sauvegarder et continuer</button><button id="continue-replace">Continuer sans sauvegarde</button></div></dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

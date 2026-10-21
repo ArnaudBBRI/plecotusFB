@@ -1,0 +1,21 @@
+IN FILE,AUTO ID,MANUAL ID,MATCHING,PULSES,MATCH RATIO,MARGIN,DATE,NOTES
+chart-serotine-code.wav,EPTSER,EPTSER,9,10,0.9,2,2026-09-01,Démonstration fictive
+chart-serotine-latin.wav,EPTSER,Eptesicus serotinus,8,10,0.8,2,2026-09-01,Alias scientifique
+chart-serotine-francais.wav,EPTSER,Sérotine commune,7,10,0.7,2,2026-09-01,Alias vernaculaire
+chart-serotine-synonyme.wav,EPTSER,Cnephaeus serotinus,6,10,0.6,2,2026-09-01,Alias scientifique accepté
+chart-bruit-corrige.wav,Noise,EPTSER,0,0,0,0,2026-09-01,La correction manuelle d'un Noise compte comme espèce
+chart-pipistrelle-1.wav,PIPPIP,PIPPIP,9,10,0.9,2,2026-09-01,Démonstration fictive
+chart-pipistrelle-2.wav,PIPPIP,Pipistrellus pipistrellus,8,10,0.8,2,2026-09-01,Alias scientifique
+chart-pipistrelle-3.wav,PIPPIP,Pipistrelle commune,7,10,0.7,2,2026-09-01,Alias vernaculaire
+chart-pipistrelle-4.wav,PIPPIP,PIPPIP,6,10,0.6,2,2026-09-01,Démonstration fictive
+chart-murin-marais-1.wav,MYODAS,MYODAS,9,10,0.9,2,2026-09-01,Démonstration fictive
+chart-murin-marais-2.wav,MYODAS,Myotis dasycneme,8,10,0.8,2,2026-09-01,Alias scientifique
+chart-murin-marais-3.wav,MYODAS,Murin des marais,7,10,0.7,2,2026-09-01,Alias vernaculaire
+chart-groupe-1.wav,NoID,Myotis sp.,0,0,0,0,2026-09-01,Un groupe ne doit pas devenir une espèce certaine
+chart-groupe-2.wav,NoID,MYOSP,0,0,0,0,2026-09-01,Alias du même groupe
+chart-complexe.wav,NoID,Complexe local A / B,0,0,0,0,2026-09-01,Nom inconnu conservé sans taxon inventé
+chart-bruit-ignore-1.wav,Noise,,0,0,0,0,2026-09-01,Bruit ignoré par défaut
+chart-bruit-ignore-2.wav,Noise,,0,0,0,0,2026-09-01,Bruit ignoré par défaut
+chart-bruit-ignore-3.wav,Noise,,0,0,0,0,2026-09-01,Bruit ignoré par défaut
+chart-bruit-verifie.wav,Noise,Noise,0,0,0,0,2026-09-01,Bruit vérifié manuellement distinct des Noise ignorés
+chart-non-identifie.wav,NoID,NoID,0,0,0,0,2026-09-01,Identification indéterminée exclue du tableau d'activité

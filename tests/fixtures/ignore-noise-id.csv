@@ -1,0 +1,9 @@
+IN FILE,AUTO ID,MANUAL ID,MATCHING,PULSES,MATCH RATIO,MARGIN,SEMIMANUAL ID
+bruit-1.wav,Noise,,0,0,0,0,ancien-resultat
+bruit-2.wav,Noise,,0,0,0,0,
+bruit-3.wav,Noise,,0,0,0,0,
+bruit-corrige.wav,Noise,EPTSER,0,0,0,0,
+bruit-verifie.wav,Noise,Noise,0,0,0,0,
+pipistrelle-reference.wav,PIPPIP,PIPPIP,9,10,0.9,2,
+pipistrelle-2.wav,PIPPIP,,8,10,0.8,2,
+pipistrelle-3.wav,PIPPIP,,7,10,0.7,2,

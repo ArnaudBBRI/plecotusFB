@@ -1,0 +1,17 @@
+IN FILE;FOLDER;DATE;DATE-12;AUTO ID;PULSES;MATCHING;MATCH RATIO;MARGIN;OFFSET;CHANNEL;MANUAL ID;SOURCE NOTE
+nycnoc-reference.wav;Site A;2026-09-02;2026-09-01;NYCNOC;10;10;1;0.9;0;1;;référence
+nycnoc-second.wav;Site A;2026-09-02;2026-09-01;NYCNOC;10;9;0.9;0.8;0;1;;second
+nycnoc-lowercase.wav;Site A;2026-09-02;2026-09-01;nycnoc;10;8;0.8;0.7;0;1;;respecter la casse de chaque AUTO ID
+nycnoc-imported-correction.wav;Site B;2026-09-03;2026-09-02;NYCNOC;10;7;0.7;0.6;0;1;NYCLEI;correction manuelle importée
+nycnoc-other-night.wav;Site B;2026-09-03;2026-09-02;NYCNOC;10;6;0.6;0.5;0;1;;autre site et nuit
+nycnoc-segment.wav;Site B;2026-09-03;2026-09-02;NYCNOC;10;5;0.5;0.4;0;1;;segment 1
+nycnoc-segment.wav;Site B;2026-09-03;2026-09-02;NYCNOC;10;4;0.4;0.3;5;1;;segment 2
+nycnoc-low.wav;Site C;2026-09-04;2026-09-03;NYCNOC;10;3;0.3;0.2;0;1;;faible ratio
+nycnoc-last.wav;Site C;2026-09-04;2026-09-03;NYCNOC;10;2;0.2;0.1;0;1;;dernier
+nycnoc-missing-ratio.wav;Site C;2026-09-04;2026-09-03;NYCNOC;10;;;0.1;0;1;;ratio absent
+pippip-reference.wav;Site A;2026-09-02;2026-09-01;PIPPIP;10;9;0.9;0.9;0;1;;autre espèce
+pippip-second.wav;Site C;2026-09-04;2026-09-03;PIPPIP;10;8;0.8;0.8;0;1;;autre espèce autre nuit
+noid.wav;Site A;2026-09-02;2026-09-01;NoID;10;0;0;0;0;1;;à vérifier individuellement
+unclassified.wav;Site B;2026-09-03;2026-09-02;;10;0;0;0;0;1;;non classé
+noise-one.wav;Site A;2026-09-02;2026-09-01;Noise;2;0;0;0;0;1;;bruit ignoré
+noise-two.wav;Site B;2026-09-03;2026-09-02;Noise;2;0;0;0;0;1;;bruit ignoré

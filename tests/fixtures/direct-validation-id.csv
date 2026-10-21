@@ -1,0 +1,13 @@
+FOLDER;IN FILE;CHANNEL;OFFSET;DATE;DATE-12;AUTO ID;PULSES;MATCHING;MATCH RATIO;MANUAL ID;SEMIMANUAL ID;NOTES
+Site A;pip-1.wav;0;0;2026-09-01;2026-08-31;PIPPIP;40;40;1;PIPPIP;ANCIEN;Référence humaine importée
+Site B;pip-2.wav;1;0.5;2026-09-03;2026-09-02;pippip;40;32;0.8;;ANCIEN;Texte Auto-ID source conservé
+Site A;pip-3.wav;0;0;2026-09-01;2026-08-31;PIPPIP;40;28;0.7;PIPNAT;ANCIEN;Correction humaine prioritaire
+Site B;pip-4.wav;1;0;2026-09-03;2026-09-02;PIPPIP;40;12;0.3;;ANCIEN;Ratio faible inclus dans la validation globale
+Site A;pip-5.wav;0;0;2026-09-01;2026-08-31;PIPPIP;40;4;0.1;;ANCIEN;Ratio faible inclus dans la validation globale
+Site B;nyc-1.wav;1;0;2026-09-03;2026-09-02;NYCNOC;50;45;0.9;NYCNOC;ANCIEN;Espèce exclue de la validation directe
+Site A;nyc-2.wav;0;0;2026-09-01;2026-08-31;NYCNOC;40;36;0.9;;ANCIEN;
+Site B;nyc-3.wav;1;0;2026-09-03;2026-09-02;NYCNOC;40;36;0.9;;ANCIEN;
+Site A;nyc-4.wav;0;0;2026-09-01;2026-08-31;NYCNOC;40;36;0.9;;ANCIEN;
+Site B;nyc-5.wav;1;0;2026-09-03;2026-09-02;NYCNOC;40;36;0.9;;ANCIEN;
+Site A;noise-1.wav;0;0;2026-09-01;2026-08-31;Noise;0;0;;;ANCIEN;Valeur semi-manuelle périmée à effacer
+Site B;noid-1.wav;1;0;2026-09-03;2026-09-02;NoID;10;0;0;;ANCIEN;Valeur semi-manuelle périmée à effacer

@@ -1,0 +1,5 @@
+IN FILE,AUTO ID,MATCHING,PULSES,MATCH RATIO,MARGIN,DATE-12
+valid.wav,PIPPIP,8,10,0.8,0.2,2026-10-14
+missing.wav,PIPNAT,,,,,2026-10-14
+noise-a.wav,Noise,,,,,
+noise-b.wav,Noise,,,,,

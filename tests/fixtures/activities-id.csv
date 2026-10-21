@@ -1,0 +1,7 @@
+INDIR;FOLDER;IN FILE;CHANNEL;OFFSET;DATE;TIME;DATE-12;AUTO ID;PULSES;MATCHING;MATCH RATIO;MARGIN;MANUAL ID;NOTES
+C:\Releves\Belgique;Site A;activite-1.wav;0;0;2026-09-01;22:00:00;2026-08-31;EPTSER;100;90;0.9;0.8;EPTSER;Démonstration fictive
+C:\Releves\Belgique;Site A;activite-2.wav;0;0;2026-09-01;22:01:00;2026-08-31;Eptesicus serotinus;100;80;0.8;0.7;Eptesicus serotinus;Alias scientifique conservé
+C:\Releves\Belgique;Site B;activite-3.wav;0;0;2026-09-03;22:02:00;2026-09-02;NYCNOC;100;70;0.7;0.6;Sérotine commune;La correction manuelle prime sur NYCNOC
+C:\Releves\Belgique;Site A;activite-4.wav;0;0;2026-09-01;22:03:00;2026-08-31;MYODAS;100;60;0.6;0.5;MYODAS;Démonstration fictive
+C:\Releves\Belgique;Site B;activite-5.wav;0;0;2026-09-03;22:04:00;2026-09-02;Murin des marais;100;50;0.5;0.4;Myotis dasycneme;Alias vernaculaire source et scientifique manuel
+C:\Releves\Belgique;Site B;activite-6.wav;0;0;2026-09-03;22:05:00;2026-09-02;Noise;0;0;0;0;Noise;Bruit exclu du rapport d’activité

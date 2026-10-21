@@ -1,0 +1,8 @@
+# Synthetic CSV for import verification; no actual recording exists.
+INDIR;FOLDER;IN FILE;CHANNEL;OFFSET;DATE;TIME;DATE-12;AUTO-ID;PULSES;MATCHING;MATCH RATIO;MARGIN;MANUAL ID;NOTES
+\\survey-share\bats;Belgium\site-A;"contact;001.wav";0;0;2026-09-18;23:59:00;2026-09-18;PIPPIP;12;10;0,833333;1,2;;"Quoted note with ""double quotes""
+and a second line."
+\\survey-share\bats;Belgium\site-A;"contact;001.wav";0;5;2026-09-19;00:00:00;2026-09-18;PIPPIP;2;2;1;0,5;;Segment identity must remain separate
+\\survey-share\bats;Belgium\site-A;unidentified.wav;1;0;2026-09-19;00:01:00;2026-09-18;NoID;9;0;0;0;;No automatic species
+\\survey-share\bats;Belgium\site-A;noise.wav;0;0;2026-09-19;00:02:00;2026-09-18;Noise;1;0;0;0;;Noise still needs review
+\\survey-share\bats;Belgium\site-A;imported.wav;0;0;2026-09-19;00:03:00;2026-09-18;MYODAU;6;4;0,666667;0,8;Myotis sp.;An existing label is preserved

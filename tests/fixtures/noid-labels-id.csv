@@ -1,0 +1,8 @@
+IN FILE;AUTO ID;PULSES;MATCHING;MATCH RATIO;MANUAL ID;NOTES
+non-identifie.wav;NoID;10;0;0;NoID;Contact fictif confirmé comme chauve-souris non identifiée
+pipistrelle-non-identifiee.wav;NoID;10;0;0;NoID Pip;Contact fictif confirmé comme pipistrelle non identifiée
+serotule-non-identifiee.wav;NoID;10;0;0;NoID Ser;Contact fictif confirmé comme sérotule non identifiée
+murin-non-identifie.wav;NoID;10;0;0;NoID Myo;Contact fictif confirmé comme murin non identifié
+oreillard-non-identifie.wav;NoID;10;0;0;NoID Ple;Contact fictif confirmé comme oreillard non identifié
+pipistrelle-commune.wav;PIPPIP;10;9;0.9;PIPPIP;Espèce fictive à conserver dans les résultats
+noise-ignore.wav;Noise;0;0;0;;Noise fictif ignoré par défaut
