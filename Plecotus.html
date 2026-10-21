@@ -1224,7 +1224,7 @@ body { margin: 0; min-height: 100svh; }
         <div class="debug-review-actions manual-debug-actions" id="manual-plan-debug" hidden>
           <div class="manual-debug-buttons">
             <button id="manual-plan-debug-all" type="button">Valider tous les contrôles de toutes les espèces</button>
-            <button id="manual-plan-debug-random" type="button">Valider / invalider au hasard</button>
+            <button id="manual-plan-debug-random" type="button" title="Simuler les contrôles et attribuer une espèce aléatoire aux contacts invalidés">Valider / invalider au hasard</button>
           </div>
           <p id="manual-plan-debug-result" role="status" hidden></p>
         </div>
@@ -2998,16 +2998,37 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       return Object.freeze(result);
     }
 
+    function setManualIds(entries) {
+      if (!denseArray(entries)) throw new TypeError('Les identifications manuelles doivent être une liste complète de contacts.');
+      const seen = new Set();
+      // Validate the complete batch before changing a choice or saving it.
+      const prepared = entries.map(entry => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+          throw new TypeError('Chaque identification manuelle doit préciser le contact et son identification.');
+        }
+        const recordIndex = entry.recordIndex;
+        checkIndex(recordIndex);
+        if (seen.has(recordIndex)) throw new TypeError('Un contact ne peut recevoir qu’une identification manuelle par lot.');
+        seen.add(recordIndex);
+        const manualId = manualLabel(entry.manualId);
+        return { recordIndex, manualId, status: sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated' };
+      });
+      const updatedAt = new Date().toISOString();
+      const changes = [];
+      const result = prepared.map(({ recordIndex, manualId, status }) => {
+        const previous = decisions.get(recordIndex);
+        if (previous && previous.status === status && previous.manualId === manualId) return previous;
+        const decision = decisionFor(recordIndex, status, updatedAt, manualId);
+        changes.push(decision);
+        return decision;
+      });
+      for (const decision of changes) decisions.set(decision.recordIndex, decision);
+      if (changes.length) persist();
+      return Object.freeze(result);
+    }
+
     function setManualId(recordIndex, value) {
-      checkIndex(recordIndex);
-      const manualId = manualLabel(value);
-      const status = sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated';
-      const previous = decisions.get(recordIndex);
-      if (previous && previous.status === status && previous.manualId === manualId) return previous;
-      const decision = decisionFor(recordIndex, status, new Date().toISOString(), manualId);
-      decisions.set(recordIndex, decision);
-      persist();
-      return decision;
+      return setManualIds([{ recordIndex, manualId: value }])[0];
     }
 
     return Object.freeze({
@@ -3022,6 +3043,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       },
       setMany,
       setManualId,
+      setManualIds,
       snapshot
     });
   }
@@ -3676,22 +3698,37 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       const plan = options.getPlan();
       if (!plan || !plan.ready || !plan.requiredIndices.length) return;
       const indices = [...new Set(plan.requiredIndices)];
+      const sourceLabels = new Map(plan.groups.flatMap(group => group.requiredIndices.map(index => [index, group.label])));
+      const canConfirm = index => {
+        const label = String(sourceLabels.get(index) || '').replace(/\s+/g, ' ').trim();
+        return Boolean(label && !/[\u0000-\u001f\u007f-\u009f]/.test(label));
+      };
       const validated = [], invalidated = [];
-      for (const index of indices) (random() < 0.5 ? validated : invalidated).push(index);
-      // With multiple contacts this debug action must exercise both outcomes,
-      // including when the random draws happen to produce a single outcome.
-      if (indices.length > 1 && (!validated.length || !invalidated.length)) {
-        const from = validated.length ? validated : invalidated;
-        const to = validated.length ? invalidated : validated;
-        to.push(from.pop());
+      for (const index of indices) {
+        const draw = random();
+        (draw < 0.5 && canConfirm(index) ? validated : invalidated).push(index);
       }
+      // With multiple contacts this debug action must exercise both outcomes,
+      // when there is a nonempty AUTO-ID that can actually be confirmed.
+      if (indices.length > 1 && !invalidated.length) invalidated.push(validated.pop());
+      else if (indices.length > 1 && !validated.length) {
+        const confirmable = invalidated.slice().reverse().find(canConfirm);
+        if (confirmable !== undefined) validated.push(...invalidated.splice(invalidated.indexOf(confirmable), 1));
+      }
+      const identifications = invalidated.map(recordIndex => {
+        const original = Names.resolve(sourceLabels.get(recordIndex));
+        const candidates = Names.SPECIES.filter(species => species.key !== original.key);
+        const position = Math.min(candidates.length - 1, Math.max(0, Math.floor(random() * candidates.length)));
+        return { recordIndex, manualId: candidates[position].code };
+      });
       if (validated.length) options.setMany(validated, 'validated');
-      if (invalidated.length) options.setMany(invalidated, 'invalidated');
+      if (identifications.length) options.setManualIds(identifications);
       options.onDecisionsChanged();
       refresh();
-      debugResult.textContent = 'Tirage aléatoire : ' + count(validated.length, 'contact validé', 'contacts validés')
+      debugResult.textContent = 'Simulation de débogage : ' + count(validated.length, 'contact validé', 'contacts validés')
         + ' et ' + count(invalidated.length, 'contact invalidé', 'contacts invalidés') + '.'
-        + (invalidated.length ? ' Renseignez l’identification réelle des contacts invalidés pour terminer leurs contrôles et calculer le prorata.' : '');
+        + (identifications.length ? ' ' + count(identifications.length, 'espèce attribuée au hasard', 'espèces attribuées au hasard')
+          + ' aux contacts invalidés pour terminer les contrôles et calculer le prorata.' : '');
       debugResult.hidden = false;
     });
 
@@ -4464,6 +4501,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     getPreferences: () => uiPreferences,
     renderContactCard: createManualContactCard,
     setMany: (indices, status) => currentDecisions.setMany(indices, status),
+    setManualIds: entries => currentDecisions.setManualIds(entries),
     onDecisionsChanged: () => syncDecisions(false),
     onBackToBest: showSpecies,
     onFinalize() {

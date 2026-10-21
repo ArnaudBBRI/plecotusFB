@@ -278,22 +278,37 @@
       const plan = options.getPlan();
       if (!plan || !plan.ready || !plan.requiredIndices.length) return;
       const indices = [...new Set(plan.requiredIndices)];
+      const sourceLabels = new Map(plan.groups.flatMap(group => group.requiredIndices.map(index => [index, group.label])));
+      const canConfirm = index => {
+        const label = String(sourceLabels.get(index) || '').replace(/\s+/g, ' ').trim();
+        return Boolean(label && !/[\u0000-\u001f\u007f-\u009f]/.test(label));
+      };
       const validated = [], invalidated = [];
-      for (const index of indices) (random() < 0.5 ? validated : invalidated).push(index);
-      // With multiple contacts this debug action must exercise both outcomes,
-      // including when the random draws happen to produce a single outcome.
-      if (indices.length > 1 && (!validated.length || !invalidated.length)) {
-        const from = validated.length ? validated : invalidated;
-        const to = validated.length ? invalidated : validated;
-        to.push(from.pop());
+      for (const index of indices) {
+        const draw = random();
+        (draw < 0.5 && canConfirm(index) ? validated : invalidated).push(index);
       }
+      // With multiple contacts this debug action must exercise both outcomes,
+      // when there is a nonempty AUTO-ID that can actually be confirmed.
+      if (indices.length > 1 && !invalidated.length) invalidated.push(validated.pop());
+      else if (indices.length > 1 && !validated.length) {
+        const confirmable = invalidated.slice().reverse().find(canConfirm);
+        if (confirmable !== undefined) validated.push(...invalidated.splice(invalidated.indexOf(confirmable), 1));
+      }
+      const identifications = invalidated.map(recordIndex => {
+        const original = Names.resolve(sourceLabels.get(recordIndex));
+        const candidates = Names.SPECIES.filter(species => species.key !== original.key);
+        const position = Math.min(candidates.length - 1, Math.max(0, Math.floor(random() * candidates.length)));
+        return { recordIndex, manualId: candidates[position].code };
+      });
       if (validated.length) options.setMany(validated, 'validated');
-      if (invalidated.length) options.setMany(invalidated, 'invalidated');
+      if (identifications.length) options.setManualIds(identifications);
       options.onDecisionsChanged();
       refresh();
-      debugResult.textContent = 'Tirage aléatoire : ' + count(validated.length, 'contact validé', 'contacts validés')
+      debugResult.textContent = 'Simulation de débogage : ' + count(validated.length, 'contact validé', 'contacts validés')
         + ' et ' + count(invalidated.length, 'contact invalidé', 'contacts invalidés') + '.'
-        + (invalidated.length ? ' Renseignez l’identification réelle des contacts invalidés pour terminer leurs contrôles et calculer le prorata.' : '');
+        + (identifications.length ? ' ' + count(identifications.length, 'espèce attribuée au hasard', 'espèces attribuées au hasard')
+          + ' aux contacts invalidés pour terminer les contrôles et calculer le prorata.' : '');
       debugResult.hidden = false;
     });
 

@@ -167,16 +167,37 @@
       return Object.freeze(result);
     }
 
+    function setManualIds(entries) {
+      if (!denseArray(entries)) throw new TypeError('Les identifications manuelles doivent être une liste complète de contacts.');
+      const seen = new Set();
+      // Validate the complete batch before changing a choice or saving it.
+      const prepared = entries.map(entry => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+          throw new TypeError('Chaque identification manuelle doit préciser le contact et son identification.');
+        }
+        const recordIndex = entry.recordIndex;
+        checkIndex(recordIndex);
+        if (seen.has(recordIndex)) throw new TypeError('Un contact ne peut recevoir qu’une identification manuelle par lot.');
+        seen.add(recordIndex);
+        const manualId = manualLabel(entry.manualId);
+        return { recordIndex, manualId, status: sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated' };
+      });
+      const updatedAt = new Date().toISOString();
+      const changes = [];
+      const result = prepared.map(({ recordIndex, manualId, status }) => {
+        const previous = decisions.get(recordIndex);
+        if (previous && previous.status === status && previous.manualId === manualId) return previous;
+        const decision = decisionFor(recordIndex, status, updatedAt, manualId);
+        changes.push(decision);
+        return decision;
+      });
+      for (const decision of changes) decisions.set(decision.recordIndex, decision);
+      if (changes.length) persist();
+      return Object.freeze(result);
+    }
+
     function setManualId(recordIndex, value) {
-      checkIndex(recordIndex);
-      const manualId = manualLabel(value);
-      const status = sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated';
-      const previous = decisions.get(recordIndex);
-      if (previous && previous.status === status && previous.manualId === manualId) return previous;
-      const decision = decisionFor(recordIndex, status, new Date().toISOString(), manualId);
-      decisions.set(recordIndex, decision);
-      persist();
-      return decision;
+      return setManualIds([{ recordIndex, manualId: value }])[0];
     }
 
     return Object.freeze({
@@ -191,6 +212,7 @@
       },
       setMany,
       setManualId,
+      setManualIds,
       snapshot
     });
   }

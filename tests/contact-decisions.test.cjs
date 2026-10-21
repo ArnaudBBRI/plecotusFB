@@ -119,6 +119,83 @@ test('invalid manual labels and indices cannot overwrite or persist a partial co
   assert.equal(writes, 1);
 });
 
+test('batch manual identifications derive mixed statuses, keep input order and save one complete snapshot', async () => {
+  const source = imported();
+  const before = structuredClone(source);
+  const storage = memoryStorage();
+  const writes = [];
+  const write = storage.setItem;
+  storage.setItem = (key, value) => { writes.push(JSON.parse(value)); write(key, value); };
+  const model = await Decisions.create(source, options(storage));
+  const result = model.setManualIds([
+    { recordIndex: 1, manualId: '  MYODAU  ' },
+    { recordIndex: 0, manualId: 'Pipistrelle commune' }
+  ]);
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(result.every(Object.isFrozen), true);
+  assert.deepEqual(result.map(item => item.recordIndex), [1, 0]);
+  assert.deepEqual(result.map(item => item.manualId), ['MYODAU', 'Pipistrelle commune']);
+  assert.deepEqual(result.map(item => item.status), ['invalidated', 'validated']);
+  assert.equal(result[0].updatedAt, result[1].updatedAt);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0], model.snapshot());
+  assert.deepEqual(source, before);
+  const restored = await Decisions.create(source, options(storage));
+  assert.deepEqual(restored.snapshot(), model.snapshot());
+});
+
+test('invalid manual batches and duplicate contacts cannot partially replace choices or save them', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; } }));
+  const first = model.setManualId(0, 'MYODAU');
+  const before = model.snapshot();
+  const valid = { recordIndex: 1, manualId: 'Noise' };
+  writes = 0;
+  const invalid = [null, {}, new Set([valid]), 'manual IDs', Array(1), [valid, , valid],
+    [valid, null], [valid, []], [valid, 'PIPPIP'], [valid, { recordIndex: 0, manualId: '' }],
+    [valid, { recordIndex: 0, manualId: 'PIP\nPIP' }], [valid, { recordIndex: 99, manualId: 'PIPPIP' }],
+    [valid, { recordIndex: '0', manualId: 'PIPPIP' }], [valid, valid],
+    [valid, { recordIndex: 1, manualId: 'MYODAU' }]];
+  for (const entries of invalid) {
+    assert.throws(() => model.setManualIds(entries), /liste complète|identification manuelle|numéro du contact/);
+    assert.deepEqual(model.snapshot(), before);
+    assert.equal(model.get(0), first);
+    assert.equal(model.get(1), null);
+  }
+  assert.equal(writes, 0);
+});
+
+test('unchanged and empty manual batches retain decision objects and timestamps without extra writes', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; } }));
+  const first = model.setManualIds([{ recordIndex: 0, manualId: 'MYODAU' }, { recordIndex: 1, manualId: 'MYODAS' }]);
+  assert.equal(writes, 1);
+  const repeated = model.setManualIds([{ recordIndex: 1, manualId: ' MYODAS ' }, { recordIndex: 0, manualId: 'MYODAU' }]);
+  assert.equal(repeated[0], first[1]);
+  assert.equal(repeated[1], first[0]);
+  assert.equal(model.setManualId(0, 'MYODAU'), first[0]);
+  const empty = model.setManualIds([]);
+  assert.equal(Object.isFrozen(empty), true);
+  assert.deepEqual(empty, []);
+  assert.equal(writes, 1);
+  const mixed = model.setManualIds([{ recordIndex: 0, manualId: 'MYODAU' }, { recordIndex: 1, manualId: 'Noise' }]);
+  assert.equal(mixed[0], first[0]);
+  assert.notEqual(mixed[1], first[1]);
+  assert.equal(writes, 2);
+});
+
+test('a failed manual batch persistence write retains all corrected session identifications', async () => {
+  let writes = 0;
+  const model = await Decisions.create(imported(), options({ getItem() { return null; }, setItem() { writes++; throw Error('quota'); } }));
+  const result = model.setManualIds([{ recordIndex: 0, manualId: 'MYODAU' }, { recordIndex: 1, manualId: 'Noise' }]);
+  assert.equal(writes, 1);
+  assert.equal(model.persistenceAvailable, false);
+  assert.deepEqual(result.map(item => item.manualId), ['MYODAU', 'Noise']);
+  assert.deepEqual(model.snapshot().decisions.map(item => item.manualId), ['MYODAU', 'Noise']);
+  model.setManualId(1, 'MYODAS');
+  assert.equal(writes, 1);
+});
+
 test('batch decisions replace opposite choices, deduplicate indices, and persist one complete snapshot', async () => {
   const storage = memoryStorage();
   const writes = [];

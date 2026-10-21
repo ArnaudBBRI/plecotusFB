@@ -69,6 +69,7 @@
     getPreferences: () => uiPreferences,
     renderContactCard: createManualContactCard,
     setMany: (indices, status) => currentDecisions.setMany(indices, status),
+    setManualIds: entries => currentDecisions.setManualIds(entries),
     onDecisionsChanged: () => syncDecisions(false),
     onBackToBest: showSpecies,
     onFinalize() {
