@@ -57,7 +57,7 @@
     return escape(`${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts (${percentageFormat.format(row.percentage)} %)`);
   }
 
-  function pie(data) {
+  function pie(data, options) {
     const parts = [];
     const center = 160, radius = 148;
     if (data.rows.length === 1) {
@@ -76,7 +76,7 @@
       });
     }
     const description = data.rows.map(row => `${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts, ${percentageFormat.format(row.percentage)} %`).join(' ; ');
-    const chart = `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="Répartition des contacts par espèce"><title>Répartition des contacts par espèce</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts, hors Noise.</desc>${parts.join('')}</svg>`;
+    const chart = `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="Répartition des contacts par espèce"><title>Répartition des contacts par espèce</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>`;
     const many = data.rows.length > 8;
     const legend = `<div class="activity-legend-panel">${many?`<p class="activity-legend-caption">${data.rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>`:''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many?' tabindex="0"':''}>${data.rows.map(row => `<li class="activity-legend-item" title="${tooltip(row)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</li>`).join('')}</ul></div>`;
     return `<div class="activity-chart-layout${many?' activity-chart-many':''}">${chart}${legend}</div>`;
@@ -88,10 +88,10 @@
     return `<ol class="activity-bar-list" aria-label="Répartition des contacts par espèce">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
   }
 
-  function render(rows, mode) {
+  function render(rows, mode, options) {
     const data = prepare(rows);
     if (!data.total) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
-    return mode === 'bar' ? bars(data) : pie(data);
+    return mode === 'bar' ? bars(data) : pie(data, options);
   }
 
   return Object.freeze({ prepare, render });

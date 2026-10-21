@@ -8,9 +8,14 @@
   <title>Plecotus · Accueil</title>
   <link rel="stylesheet" href="assets/branding/plecotus-bat.css">
   <link rel="stylesheet" href="welcome.css">
+  <link rel="stylesheet" href="import-chart.css">
   <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
   <script defer src="core.js"></script>
   <script defer src="file-import.js"></script>
+  <script defer src="species.js"></script>
+  <script defer src="activity-chart.js"></script>
+  <script defer src="activity-export.js"></script>
+  <script defer src="import-chart.js"></script>
   <script defer src="welcome.js"></script>
 </head>
 <body>
@@ -57,6 +62,24 @@
           <div><dt>Contacts hors bruit</dt><dd id="contacts-without-noise"></dd><p id="noise-detail"></p></div>
           <div><dt>Identifications manuelles</dt><dd id="manual-identifications"></dd><p>Cellules MANUAL ID renseignées</p></div>
         </dl>
+        <section class="import-distribution" aria-labelledby="distribution-heading">
+          <div class="distribution-toolbar">
+            <div class="distribution-heading"><h3 id="distribution-heading">Répartition des contacts</h3><p id="distribution-caption"></p></div>
+            <div class="chart-actions">
+              <div class="chart-toggle" role="group" aria-label="Type de graphique">
+                <button type="button" data-chart-mode="pie" aria-pressed="true">Camembert</button>
+                <button type="button" data-chart-mode="bar" aria-pressed="false">Barres</button>
+              </div>
+              <div class="chart-exports" role="group" aria-label="Exporter le graphique">
+                <button type="button" data-chart-export="png" aria-label="Exporter le graphique en PNG" disabled>PNG</button>
+                <button type="button" data-chart-export="jpeg" aria-label="Exporter le graphique en JPEG" disabled>JPEG</button>
+                <button type="button" data-chart-export="svg" aria-label="Exporter le graphique en SVG" disabled>SVG</button>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-chart" id="distribution-chart"></div>
+          <p class="chart-export-status" id="chart-export-status" role="status"></p>
+        </section>
         <details class="import-warnings" id="import-warnings" hidden><summary>Remarques sur le fichier</summary><ul id="import-warning-list"></ul></details>
         <div class="overview-actions"><button class="start-review" id="start-review" type="button" hidden>Commencer la vérification manuelle par espèce</button></div>
       </section>

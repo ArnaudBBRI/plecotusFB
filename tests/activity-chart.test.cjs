@@ -52,6 +52,12 @@ test('one species uses a full circle instead of a degenerate SVG arc', () => {
   assert.equal(Chart.prepare([sample[0]]).rows[0].proportion, 1);
 });
 
+test('a missing AUTO-ID column does not claim known Noise exclusion in the chart description', () => {
+  const output = Chart.render([{ scientificName: 'Sans identification automatique', contacts: 3 }], 'pie', { hasAutoId: false });
+  assert.match(output, /Total : 3 contacts\.<\/desc>/);
+  assert.doesNotMatch(output, /hors Noise/);
+});
+
 test('bars use the same total denominator, names, values, and palette as the pie chart', () => {
   const output = Chart.render(sample, 'bar');
   assert.equal((output.match(/class="activity-bar-item"/g) || []).length, 3);

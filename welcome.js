@@ -17,6 +17,10 @@
   const startReview = document.getElementById('start-review');
   const speciesOverview = document.getElementById('species-overview');
   const backToSummary = document.getElementById('back-to-summary');
+  const chartHost = document.getElementById('distribution-chart');
+  const chartStatus = document.getElementById('chart-export-status');
+  const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
+  const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const numbers = new Intl.NumberFormat('fr-FR');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'loading';
@@ -24,6 +28,51 @@
   let currentFile = null;
   let currentImport = null;
   let importVersion = 0;
+  let chartMode = 'pie';
+  let chartData = null;
+  let chartExporting = false;
+
+  function renderDistribution() {
+    if (!chartData) return;
+    chartHost.innerHTML = chartData.total
+      ? BatActivityChart.render(chartData.rows, chartMode, { hasAutoId: currentImport.summary.hasAutoIdColumn })
+      : '<p class="activity-chart-empty">Aucun contact hors bruit à représenter.</p>';
+    for (const scrollable of chartHost.querySelectorAll('.activity-legend, .activity-bar-list')) scrollable.tabIndex = 0;
+    for (const button of chartModes) button.setAttribute('aria-pressed', String(button.dataset.chartMode === chartMode));
+    for (const button of chartExports) button.disabled = !chartData.total || chartExporting;
+  }
+
+  async function exportDistribution(format) {
+    if (!currentImport || !chartData || !chartData.total || chartExporting) return;
+    const imported = currentImport;
+    const data = chartData;
+    const mode = chartMode;
+    const version = importVersion;
+    chartExporting = true;
+    renderDistribution();
+    chartStatus.textContent = 'Préparation de l’image…';
+    try {
+      const result = await BatActivityExport.exportBlob(data.rows, mode, format, {
+        title: 'Répartition des contacts', source: 'auto-id',
+        noiseContacts: data.noiseCount, totalContacts: imported.summary.totalContacts,
+        hasAutoId: imported.summary.hasAutoIdColumn
+      });
+      const stem = imported.fileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'contacts';
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(result.blob);
+      link.href = url;
+      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + '.' + result.extension;
+      document.body.append(link);
+      try { link.click(); }
+      finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      if (version === importVersion) chartStatus.textContent = 'Image ' + result.extension.toUpperCase() + ' exportée.';
+    } catch (error) {
+      if (version === importVersion) chartStatus.textContent = error.message || 'Impossible d’exporter le graphique.';
+    } finally {
+      chartExporting = false;
+      renderDistribution();
+    }
+  }
 
   function renderImport(result) {
     const summary = result.summary;
@@ -53,6 +102,12 @@
     startReview.hidden = !summary.vanilla;
     startReview.disabled = summary.totalContacts === 0;
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
+    chartData = PlecotusImportChart.build(result);
+    document.getElementById('distribution-caption').textContent = summary.hasAutoIdColumn
+      ? 'Identifications automatiques (AUTO-ID), hors Noise · ' + numbers.format(chartData.total) + ' contacts représentés'
+      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    chartStatus.textContent = '';
+    renderDistribution();
     overview.hidden = false;
   }
 
@@ -60,6 +115,7 @@
     const version = ++importVersion;
     currentFile = file;
     currentImport = null;
+    chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
     sheetPicker.hidden = true;
@@ -197,6 +253,12 @@
     if (currentFile && contactSheet.value) readFile(currentFile, contactSheet.value);
   });
   startReview.addEventListener('click', showSpecies);
+  for (const button of chartModes) button.addEventListener('click', () => {
+    chartMode = button.dataset.chartMode;
+    chartStatus.textContent = '';
+    renderDistribution();
+  });
+  for (const button of chartExports) button.addEventListener('click', () => exportDistribution(button.dataset.chartExport));
   backToSummary.addEventListener('click', () => {
     speciesOverview.hidden = true;
     overview.hidden = false;

@@ -78,7 +78,9 @@
   }
 
   function metadata(options, total) {
-    const details = [`${counts.format(total)} contacts représentés (hors Noise).`];
+    const automatic = options.source === 'auto-id';
+    const unknownNoise = automatic && options.hasAutoId === false;
+    const details = [`${counts.format(total)} contacts représentés${unknownNoise ? '' : ' (hors Noise)'}.`];
     const counters = [];
     for (const [key, label] of [['ignoredNoise', 'Noise ignorés'], ['totalContacts', 'contacts dans le fichier'], ['pendingContacts', 'contacts en attente de classification']]) {
       if (options[key] == null) continue;
@@ -87,6 +89,12 @@
       }
       counters.push(`${counts.format(options[key])} ${label}`);
     }
+    if (options.noiseContacts != null) {
+      if (typeof options.noiseContacts !== 'number' || !Number.isFinite(options.noiseContacts) || options.noiseContacts < 0) {
+        throw new RangeError('Les compteurs du graphique doivent être des nombres positifs ou nuls.');
+      }
+      if (!unknownNoise) counters.push(`${counts.format(options.noiseContacts)} contacts Noise exclus (AUTO-ID)`);
+    }
     if (counters.length) details.push(counters.join(' · '));
     if (options.excludedCommonPipistrelle != null) {
       if (typeof options.excludedCommonPipistrelle !== 'number' || !Number.isFinite(options.excludedCommonPipistrelle) || options.excludedCommonPipistrelle < 0) {
@@ -94,9 +102,15 @@
       }
       details.push(`Pipistrelle commune exclue du graphique : ${counts.format(options.excludedCommonPipistrelle)} contacts.`);
     }
-    details.push(options.provisional || options.pendingContacts > 0
-      ? 'Bilan provisoire : la classification comporte encore des contacts en attente.'
-      : 'Bilan final.');
+    if (automatic) {
+      details.push(unknownNoise
+        ? 'Colonne AUTO-ID absente : identification automatique et nombre de Noise non disponibles.'
+        : 'Répartition selon les suggestions automatiques AUTO-ID, avant vérification manuelle.');
+    } else {
+      details.push(options.provisional || options.pendingContacts > 0
+        ? 'Bilan provisoire : la classification comporte encore des contacts en attente.'
+        : 'Bilan final.');
+    }
     return details;
   }
 
@@ -117,7 +131,7 @@
       `${line.scientific && row.isSpecies ? 'font-style="italic" ' : ''}fill="${line.scientific ? '#17352e' : '#607269'}"`)).join('');
   }
 
-  function pie(data, top) {
+  function pie(data, top, options) {
     const compact = data.rows.length > 8;
     const parts = [], cx = compact ? WIDTH / 2 : 220, cy = top + (compact ? 176 : 198), radius = 164;
     if (data.rows.length === 1) {
@@ -131,7 +145,8 @@
         angle = end;
       });
     }
-    parts.push(text(cx, cy + radius + 34, 'Répartition hors Noise', 14, 'text-anchor="middle" fill="#607269"'));
+    const caption = options.source === 'auto-id' && options.hasAutoId === false ? 'Répartition des contacts importés' : 'Répartition hors Noise';
+    parts.push(text(cx, cy + radius + 34, caption, 14, 'text-anchor="middle" fill="#607269"'));
     if (compact) {
       const columns = 3, gap = 26, columnWidth = (1120 - gap * (columns - 1)) / columns;
       let y = top + 414;
@@ -195,7 +210,7 @@
     }
     y += 22;
     if (data.total) {
-      const chart = mode === 'bar' ? bars(data, y) : pie(data, y);
+      const chart = mode === 'bar' ? bars(data, y) : pie(data, y, options);
       parts.push(...chart.parts); y = chart.bottom;
     } else {
       parts.push(text(40, y + 24, 'Aucun contact attribué à une espèce à afficher.', 16));

@@ -203,6 +203,39 @@ test('provisional and imported Noise counters are included without changing char
   for (const ignoredNoise of [-1, NaN, Infinity, '2']) assert.throws(() => Export.svg(sample, 'pie', { ignoredNoise }), RangeError);
 });
 
+test('AUTO-ID exports explain source suggestions without claiming a final or pending classification', () => {
+  for (const mode of ['pie', 'bar']) {
+    const output = Export.svg(sample, mode, { source: 'auto-id', title: 'Répartition des contacts', noiseContacts: 7, totalContacts: 107, hasAutoId: true, provisional: true, pendingContacts: 0 });
+    assert.match(output.svg, /100 contacts représentés \(hors Noise\)/);
+    assert.match(output.svg, /7 contacts Noise exclus \(AUTO-ID\)/);
+    assert.match(output.svg, /107 contacts dans le fichier/);
+    assert.match(output.svg, /suggestions automatiques AUTO-ID, avant vérification manuelle/);
+    assert.doesNotMatch(output.svg, /Bilan final|Bilan provisoire/);
+    assert.equal((output.svg.match(/data-series=/g) || []).length, 3);
+  }
+  assert.match(Export.svg(sample, 'pie').svg, /Bilan final/);
+  assert.match(Export.svg(sample, 'pie', { provisional: true }).svg, /Bilan provisoire/);
+});
+
+test('AUTO-ID exports do not claim known Noise exclusion when the source column is missing', () => {
+  for (const mode of ['pie', 'bar']) {
+    const output = Export.svg(sample, mode, { source: 'auto-id', hasAutoId: false, noiseContacts: 0, totalContacts: 100 });
+    assert.match(output.svg, /100 contacts représentés\./);
+    assert.match(output.svg, /Colonne AUTO-ID absente/);
+    assert.match(output.svg, /nombre de Noise non disponibles/);
+    assert.doesNotMatch(output.svg, /hors Noise|Noise exclus|Bilan final|Bilan provisoire/);
+    if (mode === 'pie') assert.match(output.svg, /Répartition des contacts importés/);
+  }
+});
+
+test('source Noise counters reject invalid values and retain explicit zero', () => {
+  for (const noiseContacts of [-1, NaN, Infinity, '2']) {
+    assert.throws(() => Export.svg(sample, 'pie', { source: 'auto-id', noiseContacts }), RangeError);
+    assert.throws(() => Export.svg(sample, 'pie', { source: 'auto-id', hasAutoId: false, noiseContacts }), RangeError);
+  }
+  assert.match(Export.svg(sample, 'pie', { source: 'auto-id', noiseContacts: 0 }).svg, /0 contacts Noise exclus \(AUTO-ID\)/);
+});
+
 test('filtered pie and bars recalculate the visible denominator and visibly annotate excluded common pipistrelle', () => {
   const original = structuredClone(sample);
   const filtered = Species.chartRows(sample, false);

@@ -201,6 +201,98 @@ body { margin: 0; min-height: 100svh; }
 }
 
 </style>
+  <style>
+.import-distribution {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e8e9e6;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+.import-distribution .distribution-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.import-distribution .distribution-heading { min-width: 0; }
+.import-distribution .distribution-heading h3 { margin: 0; font-size: 1rem; font-weight: 550; }
+.import-distribution .distribution-heading p { margin: .4rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.5; }
+.import-distribution .chart-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .8rem; }
+.import-distribution .chart-toggle { display: inline-flex; gap: .15rem; padding: .15rem; border: 1px solid #e2e5dd; border-radius: .45rem; background: #f6f7f4; }
+.import-distribution .chart-toggle button,
+.import-distribution .chart-exports button {
+  min-height: 2rem;
+  padding: .4rem .65rem;
+  border: 1px solid transparent;
+  border-radius: .3rem;
+  background: transparent;
+  color: #535a4c;
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.import-distribution .chart-toggle button[aria-pressed="true"] { background: #33452b; color: #fff; }
+.import-distribution .chart-toggle button:not([aria-pressed="true"]):hover { background: #e9ece4; }
+.import-distribution .chart-exports { display: inline-flex; flex-wrap: wrap; gap: .35rem; }
+.import-distribution .chart-exports button { border-color: #d6d8d2; background: #fff; }
+.import-distribution .chart-exports button:hover { background: #f5f6f3; border-color: #aeb3a7; }
+.import-distribution button:focus-visible,
+.import-distribution .activity-legend:focus-visible,
+.import-distribution .activity-bar-list:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.import-distribution button:disabled { color: #92978c; background: #f6f7f4; border-color: #e8e9e6; cursor: default; }
+.import-distribution .chart-export-status { margin: .75rem 0 0; color: #646960; font-size: .75rem; line-height: 1.5; }
+.import-distribution .chart-export-status:empty { margin: 0; }
+
+.import-distribution .distribution-chart { min-width: 0; }
+.import-distribution .activity-chart-layout { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); align-items: center; gap: 2rem; }
+.import-distribution .activity-chart-svg { display: block; width: 100%; max-width: 220px; height: auto; margin: 0 auto; }
+.import-distribution .activity-legend-panel { min-width: 0; }
+.import-distribution .activity-legend { list-style: none; margin: 0; padding: 0 .35rem 0 0; max-height: 260px; overflow: auto; scrollbar-width: thin; }
+.import-distribution .activity-legend-item { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .45rem 0; border-bottom: 1px solid #edf0e9; }
+.import-distribution .activity-legend-item:last-child { border-bottom: 0; }
+.import-distribution .activity-legend-swatch { display: block; width: 9px; height: 9px; border-radius: 2px; }
+.import-distribution .activity-legend-names { min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
+.import-distribution .activity-legend-name { display: block; font-size: .75rem; font-weight: 500; }
+.import-distribution .activity-legend-french { display: block; margin-top: .1rem; color: #777e72; font-size: .65rem; }
+.import-distribution .activity-legend-value { display: flex; align-items: baseline; justify-content: flex-end; gap: .5rem; font-size: .75rem; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.import-distribution .activity-legend-value strong { font-weight: 600; }
+.import-distribution .activity-legend-value > span { color: #777e72; font-size: .65rem; }
+.import-distribution .activity-legend-caption { margin: 0 0 .45rem; color: #777e72; font-size: .65rem; line-height: 1.4; }
+.import-distribution .activity-legend-caption > span { display: block; margin-top: .1rem; }
+.import-distribution .activity-chart-many .activity-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.2rem; align-content: start; }
+.import-distribution .activity-chart-many .activity-legend-item { grid-template-columns: 9px minmax(0, 1fr); align-items: start; align-content: start; gap: .15rem .5rem; padding: .4rem 0; }
+.import-distribution .activity-chart-many .activity-legend-swatch { margin-top: .25rem; }
+.import-distribution .activity-chart-many .activity-legend-value { grid-column: 2; justify-content: flex-start; }
+
+.import-distribution .activity-bar-list { list-style: none; margin: 0; padding: 0 .4rem 0 0; max-height: 300px; overflow: auto; scrollbar-width: thin; }
+.import-distribution .activity-bar-item { padding: .5rem 0 .7rem; border-bottom: 1px solid #edf0e9; }
+.import-distribution .activity-bar-item:last-child { border-bottom: 0; }
+.import-distribution .activity-bar-heading { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: .6rem; margin-bottom: .45rem; }
+.import-distribution .activity-bar-track { width: 100%; height: 7px; overflow: hidden; border-radius: 3px; background: #edf0e9; }
+.import-distribution .activity-bar-fill { display: block; height: 100%; border-radius: 3px; }
+.import-distribution .activity-chart-empty { margin: 0; padding: 2rem 1rem; border-radius: .5rem; background: #f6f7f4; color: #777e72; font-size: .85rem; line-height: 1.6; text-align: center; }
+
+@media (max-width: 640px) {
+  .import-distribution { padding: 1rem; }
+  .import-distribution .distribution-toolbar { gap: .9rem; }
+  .import-distribution .chart-actions { width: 100%; justify-content: space-between; }
+  .import-distribution .activity-chart-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .import-distribution .activity-chart-svg { max-width: 200px; }
+  .import-distribution .activity-chart-many .activity-legend { grid-template-columns: minmax(0, 1fr); }
+  .import-distribution .chart-toggle button,
+  .import-distribution .chart-exports button { min-height: 2.25rem; }
+}
+
+</style>
+
+
+
+
 
 
 
@@ -250,6 +342,24 @@ body { margin: 0; min-height: 100svh; }
           <div><dt>Contacts hors bruit</dt><dd id="contacts-without-noise"></dd><p id="noise-detail"></p></div>
           <div><dt>Identifications manuelles</dt><dd id="manual-identifications"></dd><p>Cellules MANUAL ID renseignées</p></div>
         </dl>
+        <section class="import-distribution" aria-labelledby="distribution-heading">
+          <div class="distribution-toolbar">
+            <div class="distribution-heading"><h3 id="distribution-heading">Répartition des contacts</h3><p id="distribution-caption"></p></div>
+            <div class="chart-actions">
+              <div class="chart-toggle" role="group" aria-label="Type de graphique">
+                <button type="button" data-chart-mode="pie" aria-pressed="true">Camembert</button>
+                <button type="button" data-chart-mode="bar" aria-pressed="false">Barres</button>
+              </div>
+              <div class="chart-exports" role="group" aria-label="Exporter le graphique">
+                <button type="button" data-chart-export="png" aria-label="Exporter le graphique en PNG" disabled>PNG</button>
+                <button type="button" data-chart-export="jpeg" aria-label="Exporter le graphique en JPEG" disabled>JPEG</button>
+                <button type="button" data-chart-export="svg" aria-label="Exporter le graphique en SVG" disabled>SVG</button>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-chart" id="distribution-chart"></div>
+          <p class="chart-export-status" id="chart-export-status" role="status"></p>
+        </section>
         <details class="import-warnings" id="import-warnings" hidden><summary>Remarques sur le fichier</summary><ul id="import-warning-list"></ul></details>
         <div class="overview-actions"><button class="start-review" id="start-review" type="button" hidden>Commencer la vérification manuelle par espèce</button></div>
       </section>
@@ -776,6 +886,609 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 </script>
 <script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.BatSpeciesNames = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  // Labels are reconciled for presentation/counting only. This catalog never
+  // changes an acoustic identification, the source CSV, or workflow rules.
+  // Keep the scientific names used by Kaleidoscope, notably Eptesicus serotinus;
+  // newer Cnephaeus names are accepted aliases rather than a silent relabelling.
+  const SOURCES = Object.freeze({
+    codes: Object.freeze({ title: 'Wildlife Acoustics — Bat Auto-ID Supported Species and Abbreviated Codes', url: 'https://answers.wildlifeacoustics.com/r/en-US/Bat-Auto-ID-Performance-and-Supported-Species/Bat-Auto-ID-Supported-Species-and-Abbreviated-Codes' }),
+    belgium: Object.freeze({ title: 'Plecotus / Natagora — Les différentes espèces de chauves-souris', url: 'https://plecotus.natagora.be/decouvrez-les-chauves-souris/especes' }),
+    wallonia: Object.freeze({ title: 'SPW / Natagora — Liste rouge des chauves-souris en Wallonie (2021)', url: 'https://biodiversite.wallonie.be/files/02.DOCUMENTS/01.eval_biologique/01.monitoring_especes/Mammif%C3%A8res/Chauves-souris/listerouge_chauvessouris_2021.pdf' }),
+    walloniaAliases: Object.freeze({ title: 'SPW — Les espèces (non-Oiseaux), noms vernaculaires historiques', url: 'https://biodiversite-old.wallonie.be/servlet/Repository/intro-especes.pdf?ID=31438&saveFile=true' }),
+    france: Object.freeze({ title: 'Plan national d’actions en faveur des Chiroptères — Les espèces', url: 'https://plan-actions-chiropteres.fr/les-chauves-souris/les-especes/' }),
+    inpn: Object.freeze({ title: 'INPN — Référentiel de sensibilité à la diffusion (noms de chiroptères)', url: 'https://inpn.mnhn.fr/docs-web/docs/download/435603' }),
+    isabelle: Object.freeze({ title: 'SECEM — Eptesicus isabellinus', url: 'https://secem.es/index.php/pt/mamiferos/atlas/eptesicus-isabellinus' })
+  });
+
+  const records = [
+    ['BARBAR', 'Barbastella barbastellus', 'Barbastelle d’Europe', ['Barbastelle commune']],
+    ['EPTISA', 'Eptesicus isabellinus', 'Sérotine isabelle', ['Cnephaeus isabellinus']],
+    ['EPTNIL', 'Eptesicus nilssonii', 'Sérotine de Nilsson', ['Cnephaeus nilssonii', 'Sérotine boréale']],
+    ['EPTSER', 'Eptesicus serotinus', 'Sérotine commune', ['Cnephaeus serotinus']],
+    ['HYPSAV', 'Hypsugo savii', 'Vespère de Savi', ['Pipistrelle de Savi']],
+    ['MINSCH', 'Miniopterus schreibersii', 'Minioptère de Schreibers', []],
+    ['MYOALC', 'Myotis alcathoe', 'Murin d’Alcathoé', ['Murin d’Alcathoe']],
+    ['MYOBEC', 'Myotis bechsteinii', 'Murin de Bechstein', ['Myotis bechsteini', 'Vespertilion de Bechstein']],
+    ['MYOBRA', 'Myotis brandtii', 'Murin de Brandt', ['Vespertilion de Brandt']],
+    ['MYOCAP', 'Myotis capaccinii', 'Murin de Capaccini', []],
+    ['MYODAS', 'Myotis dasycneme', 'Murin des marais', ['Vespertilion des marais']],
+    ['MYODAU', 'Myotis daubentonii', 'Murin de Daubenton', ['Myotis daubentoni', 'Vespertilion de Daubenton']],
+    ['MYOEMA', 'Myotis emarginatus', 'Murin à oreilles échancrées', ['Vespertilion à oreilles échancrées']],
+    ['MYOESC', 'Myotis escalerai', 'Murin d’Escalera', []],
+    ['MYOMYO', 'Myotis myotis', 'Grand murin', []],
+    ['MYOMYS', 'Myotis mystacinus', 'Murin à moustaches', ['Vespertilion à moustaches']],
+    ['MYONAT', 'Myotis nattereri', 'Murin de Natterer', ['Vespertilion de Natterer']],
+    ['NYCLAS', 'Nyctalus lasiopterus', 'Grande noctule', []],
+    ['NYCLEI', 'Nyctalus leisleri', 'Noctule de Leisler', []],
+    ['NYCNOC', 'Nyctalus noctula', 'Noctule commune', []],
+    ['PIPKUH', 'Pipistrellus kuhlii', 'Pipistrelle de Kuhl', ['Pipistrelle de Kühl']],
+    ['PIPNAT', 'Pipistrellus nathusii', 'Pipistrelle de Nathusius', []],
+    ['PIPPIP', 'Pipistrellus pipistrellus', 'Pipistrelle commune', []],
+    ['PIPPYG', 'Pipistrellus pygmaeus', 'Pipistrelle pygmée', ['Pipistrelle soprane']],
+    ['PLEAUR', 'Plecotus auritus', 'Oreillard roux', ['Oreillard brun']],
+    ['PLEAUS', 'Plecotus austriacus', 'Oreillard gris', ['Oreillard méridional']],
+    ['RHIEUR', 'Rhinolophus euryale', 'Rhinolophe euryale', []],
+    ['RHIFER', 'Rhinolophus ferrumequinum', 'Grand rhinolophe', []],
+    ['RHIHIP', 'Rhinolophus hipposideros', 'Petit rhinolophe', []],
+    ['TADTEN', 'Tadarida teniotis', 'Molosse de Cestoni', []],
+    ['VESMUR', 'Vespertilio murinus', 'Sérotine bicolore', ['Vespertilion bicolore']]
+  ];
+  const SPECIES = Object.freeze(records.map(([code, scientificName, frenchName, aliases]) => Object.freeze({
+    key: code, code, scientificName, frenchName, aliases: Object.freeze(aliases), isSpecies: true, known: true, category: 'species'
+  })));
+  const normalize = value => String(value == null ? '' : value).trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘`´]/g, "'").replace(/\s+/g, ' ').toLowerCase();
+  const lookup = new Map();
+  for (const item of SPECIES) for (const alias of [item.code, item.scientificName, item.frenchName, ...item.aliases]) lookup.set(normalize(alias), item);
+
+  function registerGroup(scientificName, frenchName, aliases) {
+    const item = Object.freeze({ key: 'group:' + scientificName, code: '', scientificName, frenchName, isSpecies: false, known: true, category: 'group' });
+    for (const alias of [scientificName, frenchName, ...aliases]) lookup.set(normalize(alias), item);
+  }
+  registerGroup('Myotis sp.', 'Murin indéterminé', ['Myotis', 'Myotis sp', 'Myotis spp.', 'MYO', 'MYOSP', 'Myotis indet.', 'Murins']);
+  registerGroup('Pipistrellus sp.', 'Pipistrelle indéterminée', ['Pipistrellus', 'Pipistrellus sp', 'Pipistrellus spp.', 'PIP', 'PIPSP', 'Pipistrelles']);
+  registerGroup('Plecotus sp.', 'Oreillard indéterminé', ['Plecotus', 'Plecotus sp', 'Plecotus spp.', 'PLE', 'PLESP', 'Oreillards']);
+  registerGroup('Nyctalus sp.', 'Noctule indéterminée', ['Nyctalus', 'Nyctalus sp', 'Nyctalus spp.', 'NYC', 'NYCSP', 'Noctules']);
+  registerGroup('Eptesicus sp.', 'Sérotine indéterminée', ['Eptesicus', 'Eptesicus sp', 'Eptesicus spp.', 'EPT', 'EPTSP', 'Cnephaeus sp.', 'Cnephaeus sp', 'Sérotines']);
+  registerGroup('Rhinolophus sp.', 'Rhinolophe indéterminé', ['Rhinolophus', 'Rhinolophus sp', 'Rhinolophus spp.', 'RHI', 'RHISP', 'Rhinolophes']);
+
+  // These are completed identifications at a deliberately broader level, not
+  // unanswered checks. Keep their visible codes: no Latin species is implied.
+  // In particular, "sérotule" is the requested acoustic group, not Eptesicus.
+  const IDENTIFICATION_LABELS = Object.freeze([
+    ['NoID', 'Chauve-souris non identifiée'],
+    ['NoID Pip', 'Pipistrelle non identifiée'],
+    ['NoID Ser', 'Sérotule non identifiée'],
+    ['NoID Myo', 'Murin non identifié'],
+    ['NoID Ple', 'Oreillard non identifié']
+  ].map(([label, description]) => Object.freeze({ label, description })));
+
+  const special = new Map();
+  function registerSpecial(key, frenchName, category, aliases) {
+    const item = Object.freeze({ key, code: '', scientificName: '', frenchName, isSpecies: false, known: true, category });
+    for (const alias of aliases) special.set(normalize(alias), item);
+  }
+  registerSpecial('noise', 'Bruit', 'noise', ['Noise', 'Bruit']);
+  registerSpecial('pending', 'À vérifier', 'pending', ['', 'Pending classification', 'À vérifier', 'En attente de classification']);
+  registerSpecial('uncertain', 'Identification incertaine', 'uncertain', ['Uncertain / unresolved', 'Uncertain', 'Incertain', 'Identification incertaine']);
+  const identificationAliases = [
+    ['No ID', 'No-ID', 'No_ID', 'Unclassified', 'Unresolved', 'Unknown', 'Unidentified bat', 'Chiroptère non identifié', 'Chiroptère indéterminé', 'Chiroptera sp.', 'Chiroptera indet.'],
+    ['No ID Pip', 'NoIDPip', 'NoID-Pip', 'NoID_Pip'],
+    ['No ID Ser', 'NoIDSer', 'NoID-Ser', 'NoID_Ser'],
+    ['No ID Myo', 'NoIDMyo', 'NoID-Myo', 'NoID_Myo'],
+    ['No ID Ple', 'NoIDPle', 'NoID-Ple', 'NoID_Ple']
+  ];
+  IDENTIFICATION_LABELS.forEach(({ label, description }, index) => {
+    const item = Object.freeze({ key: index === 0 ? 'unidentified' : 'unidentified:' + label, code: label, scientificName: label, frenchName: description, isSpecies: false, known: true, category: 'unidentified' });
+    for (const alias of [label, description, ...identificationAliases[index]]) special.set(normalize(alias), item);
+  });
+
+  function resolve(label) {
+    const text = String(label == null ? '' : label).trim().replace(/\s+/g, ' ');
+    const normalized = normalize(text);
+    const exact = lookup.get(normalized) || special.get(normalized);
+    if (exact) return { ...exact };
+    // Only remove an explicit trailing taxonomic authority containing a year.
+    // Slashes, "cf.", "?" and complexes are never reduced to the first species.
+    const authority = text.match(/^([A-Za-z]+\s+[a-z]+)\s+(?:\([^)]*\b\d{4}\)|[A-Za-z][A-Za-z .&,-]*\b\d{4})$/);
+    const named = authority && lookup.get(normalize(authority[1]));
+    if (named) return { ...named };
+    return { key: 'unknown:' + text.toLocaleLowerCase('fr'), code: '', scientificName: text, frenchName: 'Nom non renseigné', isSpecies: false, known: false, category: 'unknown' };
+  }
+
+  function isActivitySummaryEntry(entry) {
+    if (!entry || !['taxon', 'unresolved'].includes(entry.category)) return false;
+    const name = resolve(entry.label);
+    if (['noise', 'pending', 'uncertain'].includes(name.category)) return false;
+    // "unresolved" is also used by the classifier for a finalized NoID label.
+    // A genuinely pending check must not enter this report, even if its draft
+    // label mentions one of these outcomes.
+    return entry.category === 'taxon' || name.category === 'unidentified';
+  }
+
+  function activityRows(summary) {
+    if (!Array.isArray(summary)) throw new TypeError('Le bilan des contacts doit être un tableau.');
+    const totals = new Map();
+    for (const entry of summary) {
+      // The classifier's final summary has already applied MANUAL ID priority.
+      // Count its total once; manual/inferred are subsets, not extra contacts.
+      if (!isActivitySummaryEntry(entry)) continue;
+      if (!Number.isSafeInteger(entry.total) || entry.total < 0) throw new TypeError('Le nombre de contacts doit être un entier positif ou nul.');
+      if (!entry.total) continue;
+      const name = resolve(entry.label);
+      if (!totals.has(name.key)) totals.set(name.key, { key: name.key, scientificName: name.scientificName, frenchName: name.frenchName, isSpecies: name.isSpecies, known: name.known, category: name.category, contacts: 0 });
+      totals.get(name.key).contacts += entry.total;
+      if (!Number.isSafeInteger(totals.get(name.key).contacts)) throw new RangeError('Le total des contacts est trop élevé.');
+    }
+    return [...totals.values()].sort((a, b) => a.scientificName.localeCompare(b.scientificName, 'fr') || a.frenchName.localeCompare(b.frenchName, 'fr'));
+  }
+
+  // This is only a view filter. The complete activity table, CSV export and
+  // classification keep their original rows and counts. Use the primary
+  // identity so an ambiguous scientific label cannot be hidden merely because
+  // a secondary display name happens to mention the common pipistrelle.
+  function chartRows(rows, includeCommonPipistrelle = true) {
+    if (!Array.isArray(rows)) throw new TypeError('Les données du graphique doivent être un tableau.');
+    const visible = [];
+    let omittedContacts = 0;
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') throw new TypeError('Une ligne du graphique est invalide.');
+      if (!Number.isSafeInteger(row.contacts) || row.contacts < 0) throw new TypeError('Le nombre de contacts doit être un entier positif ou nul.');
+      const identity = [row.key, row.scientificName, row.frenchName].find(value => value != null && String(value).trim());
+      if (!includeCommonPipistrelle && resolve(identity).key === 'PIPPIP') {
+        omittedContacts += row.contacts;
+        if (!Number.isSafeInteger(omittedContacts)) throw new RangeError('Le total des contacts exclus est trop élevé.');
+      } else visible.push(row);
+    }
+    return { rows: visible, omittedContacts };
+  }
+
+  return { SOURCES, SPECIES, IDENTIFICATION_LABELS, normalize, resolve, isActivitySummaryEntry, activityRows, chartRows };
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.BatActivityChart = factory();
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const PALETTE = Object.freeze([
+    '#1b7663', '#d78631', '#6284b5', '#a15b82', '#8a9b44', '#6c63a5',
+    '#c6654f', '#4c9ea5', '#927645', '#ac82b0', '#447ab0', '#8b613d',
+    '#9b3862', '#79964d', '#805bb3', '#cd984b', '#466a73', '#a84e41',
+    '#787aab', '#418468'
+  ]);
+  const countFormat = new Intl.NumberFormat('fr-BE');
+  const percentageFormat = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 1 });
+  const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const compareNames = (left, right) => left === right ? 0 : left < right ? -1 : 1;
+
+  function prepare(input) {
+    if (input == null) input = [];
+    if (!Array.isArray(input)) throw new TypeError('Les données du graphique doivent être une liste.');
+    const rows = [];
+    for (const source of input) {
+      if (!source || typeof source !== 'object') throw new TypeError('Une ligne du graphique est invalide.');
+      const scientificName = String(source.scientificName == null ? '' : source.scientificName).trim();
+      const frenchName = String(source.frenchName == null ? '' : source.frenchName).trim();
+      // The caller supplies the final activity table. This guard also prevents
+      // a mistakenly supplied noise row from entering its count denominator.
+      if (source.category === 'noise' || /^(noise|bruit)$/i.test(scientificName)) continue;
+      const contacts = source.contacts;
+      if (typeof contacts !== 'number' || !Number.isFinite(contacts) || contacts < 0) {
+        throw new RangeError('Le nombre de contacts doit être un nombre positif ou nul.');
+      }
+      if (contacts === 0) continue;
+      rows.push({ scientificName, frenchName, contacts, isSpecies: source.isSpecies === true, known: source.known === true });
+    }
+    rows.sort((left, right) => right.contacts - left.contacts || compareNames(left.scientificName, right.scientificName) || compareNames(left.frenchName, right.frenchName));
+    const total = rows.reduce((sum, row) => sum + row.contacts, 0);
+    if (!Number.isFinite(total)) throw new RangeError('Le total des contacts est trop élevé.');
+    rows.forEach((row, index) => {
+      row.proportion = total ? row.contacts / total : 0;
+      row.percentage = row.proportion * 100;
+      row.color = PALETTE[index] || `hsl(${(index * 137.508) % 360} 52% ${index % 2 ? 42 : 54}%)`;
+    });
+    return { rows, total };
+  }
+
+  function names(row) {
+    const scientificName = escape(row.scientificName || row.frenchName || 'Identification non renseignée');
+    return `<span class="activity-legend-names"><${row.isSpecies ? 'i' : 'span'} class="activity-legend-name">${scientificName}</${row.isSpecies ? 'i' : 'span'}>${row.frenchName ? `<span class="activity-legend-french">${escape(row.frenchName)}</span>` : ''}</span>`;
+  }
+
+  function value(row) {
+    return `<span class="activity-legend-value"><strong>${countFormat.format(row.contacts)}</strong><span>${percentageFormat.format(row.percentage)} %</span></span>`;
+  }
+
+  function tooltip(row) {
+    return escape(`${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts (${percentageFormat.format(row.percentage)} %)`);
+  }
+
+  function pie(data, options) {
+    const parts = [];
+    const center = 160, radius = 148;
+    if (data.rows.length === 1) {
+      const row = data.rows[0];
+      parts.push(`<circle class="activity-chart-slice" cx="${center}" cy="${center}" r="${radius}" fill="${row.color}" stroke="#fff" stroke-width="2"><title>${tooltip(row)}</title></circle>`);
+    } else {
+      let angle = -Math.PI / 2;
+      data.rows.forEach((row, index) => {
+        const end = index === data.rows.length - 1 ? Math.PI * 1.5 : angle + row.proportion * Math.PI * 2;
+        const x1 = center + radius * Math.cos(angle), y1 = center + radius * Math.sin(angle);
+        const x2 = center + radius * Math.cos(end), y2 = center + radius * Math.sin(end);
+        const arc = end - angle > Math.PI ? 1 : 0;
+        const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${arc} 1 ${x2} ${y2} Z`;
+        parts.push(`<path class="activity-chart-slice" d="${path}" fill="${row.color}" stroke="#fff" stroke-width="2" stroke-linejoin="round"><title>${tooltip(row)}</title></path>`);
+        angle = end;
+      });
+    }
+    const description = data.rows.map(row => `${row.scientificName || row.frenchName} : ${countFormat.format(row.contacts)} contacts, ${percentageFormat.format(row.percentage)} %`).join(' ; ');
+    const chart = `<svg class="activity-chart-svg" viewBox="0 0 320 320" role="img" aria-label="Répartition des contacts par espèce"><title>Répartition des contacts par espèce</title><desc>${escape(description)}. Total : ${countFormat.format(data.total)} contacts${options && options.hasAutoId === false ? '' : ', hors Noise'}.</desc>${parts.join('')}</svg>`;
+    const many = data.rows.length > 8;
+    const legend = `<div class="activity-legend-panel">${many?`<p class="activity-legend-caption">${data.rows.length} libellés · effectif et part des contacts<span>Défilez pour parcourir toute la légende.</span></p>`:''}<ul class="activity-legend" aria-label="Espèces et nombres de contacts"${many?' tabindex="0"':''}>${data.rows.map(row => `<li class="activity-legend-item" title="${tooltip(row)}"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</li>`).join('')}</ul></div>`;
+    return `<div class="activity-chart-layout${many?' activity-chart-many':''}">${chart}${legend}</div>`;
+  }
+
+  function bars(data) {
+    // Widths use total contacts, exactly like the pie shares; they therefore
+    // remain directly comparable when the user switches chart mode.
+    return `<ol class="activity-bar-list" aria-label="Répartition des contacts par espèce">${data.rows.map(row => `<li class="activity-bar-item"><div class="activity-bar-heading"><span class="activity-legend-swatch" style="background:${row.color}" aria-hidden="true"></span>${names(row)}${value(row)}</div><div class="activity-bar-track" aria-hidden="true"><span class="activity-bar-fill" style="width:${row.percentage}%;background:${row.color}"></span></div></li>`).join('')}</ol>`;
+  }
+
+  function render(rows, mode, options) {
+    const data = prepare(rows);
+    if (!data.total) return '<p class="activity-chart-empty">Aucun contact attribué à une espèce à afficher.</p>';
+    return mode === 'bar' ? bars(data) : pie(data, options);
+  }
+
+  return Object.freeze({ prepare, render });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./activity-chart.js'));
+  else root.BatActivityExport = factory(root.BatActivityChart);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Chart) {
+  'use strict';
+
+  const WIDTH = 1200, MAX_SIDE = 8192, MAX_PIXELS = 16000000;
+  const counts = new Intl.NumberFormat('fr-BE');
+  const percentages = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 1 });
+  const escape = value => String(value == null ? '' : value)
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
+    .replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+
+  // Hard-wrap even a single long CSV label. Conservative character limits fit
+  // the column with common Unicode fonts; no row or legend is truncated.
+  function wrap(value, limit) {
+    const words = String(value).trim().split(/\s+/u), lines = [];
+    let line = '';
+    for (const word of words) {
+      const chunks = Array.from(word);
+      if (line && Array.from(line).length + 1 + chunks.length <= limit) {
+        line += ' ' + word;
+        continue;
+      }
+      if (line) { lines.push(line); line = ''; }
+      while (chunks.length > limit) lines.push(chunks.splice(0, limit).join(''));
+      line = chunks.join('');
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  // Conservative Arial widths let narrow Latin names use the whole column
+  // while long words, capitals and Unicode labels still wrap before its edge.
+  // This works in SVG downloads without needing a browser or a canvas.
+  const letterWidths = {
+    A: 10.1, B: 10.1, C: 10.9, D: 10.9, E: 10.1, F: 9.3, G: 11.8, H: 10.9,
+    I: 4.3, J: 7.6, K: 10.1, L: 8.5, M: 12.7, N: 10.9, O: 11.8, P: 10.1,
+    Q: 11.8, R: 10.9, S: 10.1, T: 9.3, U: 10.9, V: 10.1, W: 14.4, X: 10.1,
+    Y: 10.1, Z: 9.3, a: 8.5, b: 8.5, c: 7.6, d: 8.5, e: 8.5, f: 4.3,
+    g: 8.5, h: 8.5, i: 3.5, j: 3.5, k: 7.6, l: 3.5, m: 12.7, n: 8.5,
+    o: 8.5, p: 8.5, q: 8.5, r: 5.1, s: 7.6, t: 4.3, u: 8.5, v: 7.6,
+    w: 10.9, x: 7.6, y: 7.6, z: 7.6
+  };
+
+  function characterWidth(character, size) {
+    if (/\p{Mark}/u.test(character)) return 0;
+    const base = character.normalize('NFD')[0];
+    let width = letterWidths[base];
+    if (width == null) {
+      if (/\s/u.test(character)) width = 4.5;
+      else if (/[.,:;'’‘`!|]/u.test(character)) width = 4.5;
+      else if (/[-/()[\]{}]/u.test(character)) width = 6;
+      else if (/[0-9]/u.test(character)) width = 8.5;
+      else width = 15.5;
+    }
+    return width * (size / 15) * 1.04;
+  }
+
+  function wrapWidth(value, width, size) {
+    const words = String(value).trim().split(/\s+/u), lines = [];
+    const measure = line => Array.from(line).reduce((total, character) => total + characterWidth(character, size), 0);
+    let line = '';
+    for (const word of words) {
+      if (line && measure(line + ' ' + word) <= width) { line += ' ' + word; continue; }
+      if (line) { lines.push(line); line = ''; }
+      for (const character of Array.from(word)) {
+        if (line && measure(line + character) > width) { lines.push(line); line = ''; }
+        line += character;
+      }
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  function text(x, y, value, size, attributes) {
+    return `<text x="${x}" y="${y}" font-size="${size || 15}"${attributes ? ' ' + attributes : ''}>${escape(value)}</text>`;
+  }
+
+  function metadata(options, total) {
+    const automatic = options.source === 'auto-id';
+    const unknownNoise = automatic && options.hasAutoId === false;
+    const details = [`${counts.format(total)} contacts représentés${unknownNoise ? '' : ' (hors Noise)'}.`];
+    const counters = [];
+    for (const [key, label] of [['ignoredNoise', 'Noise ignorés'], ['totalContacts', 'contacts dans le fichier'], ['pendingContacts', 'contacts en attente de classification']]) {
+      if (options[key] == null) continue;
+      if (typeof options[key] !== 'number' || !Number.isFinite(options[key]) || options[key] < 0) {
+        throw new RangeError('Les compteurs du graphique doivent être des nombres positifs ou nuls.');
+      }
+      counters.push(`${counts.format(options[key])} ${label}`);
+    }
+    if (options.noiseContacts != null) {
+      if (typeof options.noiseContacts !== 'number' || !Number.isFinite(options.noiseContacts) || options.noiseContacts < 0) {
+        throw new RangeError('Les compteurs du graphique doivent être des nombres positifs ou nuls.');
+      }
+      if (!unknownNoise) counters.push(`${counts.format(options.noiseContacts)} contacts Noise exclus (AUTO-ID)`);
+    }
+    if (counters.length) details.push(counters.join(' · '));
+    if (options.excludedCommonPipistrelle != null) {
+      if (typeof options.excludedCommonPipistrelle !== 'number' || !Number.isFinite(options.excludedCommonPipistrelle) || options.excludedCommonPipistrelle < 0) {
+        throw new RangeError('Le nombre de contacts exclus doit être un nombre positif ou nul.');
+      }
+      details.push(`Pipistrelle commune exclue du graphique : ${counts.format(options.excludedCommonPipistrelle)} contacts.`);
+    }
+    if (automatic) {
+      details.push(unknownNoise
+        ? 'Colonne AUTO-ID absente : identification automatique et nombre de Noise non disponibles.'
+        : 'Répartition selon les suggestions automatiques AUTO-ID, avant vérification manuelle.');
+    } else {
+      details.push(options.provisional || options.pendingContacts > 0
+        ? 'Bilan provisoire : la classification comporte encore des contacts en attente.'
+        : 'Bilan final.');
+    }
+    return details;
+  }
+
+  function labels(row, limit) {
+    const scientific = row.scientificName || row.frenchName || 'Identification non renseignée';
+    return [
+      ...wrap(scientific, limit).map(value => ({ value, scientific: true })),
+      ...(row.scientificName && row.frenchName ? wrap(row.frenchName, limit).map(value => ({ value, scientific: false })) : [])
+    ];
+  }
+
+  function tooltip(row) {
+    return `${row.scientificName || row.frenchName} : ${counts.format(row.contacts)} contacts (${percentages.format(row.percentage)} %)`;
+  }
+
+  function rowLabels(row, lines, x, y, lineHeight) {
+    return lines.map((line, index) => text(x, y + index * (lineHeight || 22), line.value, line.scientific ? 15 : 14,
+      `${line.scientific && row.isSpecies ? 'font-style="italic" ' : ''}fill="${line.scientific ? '#17352e' : '#607269'}"`)).join('');
+  }
+
+  function pie(data, top, options) {
+    const compact = data.rows.length > 8;
+    const parts = [], cx = compact ? WIDTH / 2 : 220, cy = top + (compact ? 176 : 198), radius = 164;
+    if (data.rows.length === 1) {
+      parts.push(`<circle data-series="0" cx="${cx}" cy="${cy}" r="${radius}" fill="${data.rows[0].color}"><title>${escape(tooltip(data.rows[0]))}</title></circle>`);
+    } else {
+      let angle = -Math.PI / 2;
+      data.rows.forEach((row, index) => {
+        const end = index === data.rows.length - 1 ? Math.PI * 1.5 : angle + row.proportion * Math.PI * 2;
+        const path = `M ${cx} ${cy} L ${cx + radius * Math.cos(angle)} ${cy + radius * Math.sin(angle)} A ${radius} ${radius} 0 ${end - angle > Math.PI ? 1 : 0} 1 ${cx + radius * Math.cos(end)} ${cy + radius * Math.sin(end)} Z`;
+        parts.push(`<path data-series="${index}" d="${path}" fill="${row.color}" stroke="#fff" stroke-width="2" stroke-linejoin="round"><title>${escape(tooltip(row))}</title></path>`);
+        angle = end;
+      });
+    }
+    const caption = options.source === 'auto-id' && options.hasAutoId === false ? 'Répartition des contacts importés' : 'Répartition hors Noise';
+    parts.push(text(cx, cy + radius + 34, caption, 14, 'text-anchor="middle" fill="#607269"'));
+    if (compact) {
+      const columns = 3, gap = 26, columnWidth = (1120 - gap * (columns - 1)) / columns;
+      let y = top + 414;
+      parts.push('<g data-legend-layout="grid">');
+      for (let start = 0; start < data.rows.length; start += columns) {
+        const entries = data.rows.slice(start, start + columns).map(row => {
+          const scientific = row.scientificName || row.frenchName || 'Identification non renseignée';
+          return { row, lines: [
+            ...wrapWidth(scientific, columnWidth - 36, 15).map(value => ({ value, scientific: true })),
+            ...(row.scientificName && row.frenchName ? wrapWidth(row.frenchName, columnWidth - 36, 14).map(value => ({ value, scientific: false })) : [])
+          ] };
+        });
+        for (const [column, entry] of entries.entries()) {
+          const { row, lines } = entry, x = 40 + column * (columnWidth + gap);
+          parts.push(`<g data-legend="${escape(row.scientificName || row.frenchName)}" data-legend-row="${start / columns}" data-legend-column="${column}"><rect x="${x}" y="${y - 13}" width="16" height="16" rx="3" fill="${row.color}"/>${rowLabels(row, lines, x + 28, y, 20)}`);
+          parts.push(text(x + 28, y + lines.length * 20 + 2, `${counts.format(row.contacts)} contacts · ${percentages.format(row.percentage)} %`, 14, 'font-weight="700"'));
+          parts.push('</g>');
+        }
+        y += Math.max(...entries.map(entry => entry.lines.length)) * 20 + 30;
+      }
+      parts.push('</g>');
+      return { parts, bottom: y };
+    }
+    let y = top + 25;
+    for (const row of data.rows) {
+      const lines = labels(row, 34);
+      parts.push(`<g data-legend="${escape(row.scientificName || row.frenchName)}"><rect x="442" y="${y - 13}" width="16" height="16" rx="3" fill="${row.color}"/>${rowLabels(row, lines, 476, y)}`);
+      parts.push(text(1160, y, counts.format(row.contacts), 16, 'text-anchor="end" font-weight="700"'));
+      parts.push(text(1160, y + 22, `${percentages.format(row.percentage)} %`, 14, 'text-anchor="end" fill="#607269"'));
+      parts.push('</g>');
+      y += Math.max(2, lines.length) * 22 + 22;
+    }
+    return { parts, bottom: Math.max(top + 425, y) };
+  }
+
+  function bars(data, top) {
+    const parts = [];
+    let y = top + 23;
+    for (const [index, row] of data.rows.entries()) {
+      const lines = labels(row, 53);
+      parts.push(`<g data-legend="${escape(row.scientificName || row.frenchName)}"><rect x="40" y="${y - 13}" width="16" height="16" rx="3" fill="${row.color}"/>${rowLabels(row, lines, 74, y)}`);
+      parts.push(text(1160, y, `${counts.format(row.contacts)} contacts · ${percentages.format(row.percentage)} %`, 15, 'text-anchor="end" font-weight="700"'));
+      y += lines.length * 22;
+      parts.push(`<rect x="40" y="${y}" width="1120" height="17" rx="4" fill="#edf2ef"/>`);
+      parts.push(`<rect data-series="${index}" x="40" y="${y}" width="${1120 * row.proportion}" height="17" rx="4" fill="${row.color}"><title>${escape(tooltip(row))}</title></rect></g>`);
+      y += 45;
+    }
+    return { parts, bottom: y };
+  }
+
+  function svg(rows, mode, options) {
+    options = options || {};
+    const data = Chart.prepare(rows), parts = [];
+    const title = options.title || 'Répartition des contacts par espèce';
+    let y = 54;
+    for (const line of wrap(title, 38)) { parts.push(text(40, y, line, 28, 'font-weight="700"')); y += 34; }
+    parts.push(text(40, y, mode === 'bar' ? 'Graphique en barres' : 'Camembert', 15, 'fill="#607269"')); y += 28;
+    const details = metadata(options, data.total);
+    for (const line of details.flatMap(value => wrap(value, 74))) {
+      parts.push(text(40, y, line, 14, 'fill="#607269"')); y += 22;
+    }
+    y += 22;
+    if (data.total) {
+      const chart = mode === 'bar' ? bars(data, y) : pie(data, y, options);
+      parts.push(...chart.parts); y = chart.bottom;
+    } else {
+      parts.push(text(40, y + 24, 'Aucun contact attribué à une espèce à afficher.', 16));
+      y += 72;
+    }
+    const width = WIDTH, height = Math.ceil(y + 32);
+    const description = [...details, ...data.rows.map(tooltip)].join(' ');
+    return { width, height, svg: `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="activity-export-title activity-export-description"><title id="activity-export-title">${escape(title)}</title><desc id="activity-export-description">${escape(description)}</desc><rect width="${width}" height="${height}" fill="#fff"/><g font-family="Arial, Helvetica, sans-serif" fill="#17352e">${parts.join('')}</g></svg>` };
+  }
+
+  function formatInfo(format) {
+    const name = String(format || 'svg').toLowerCase();
+    if (name === 'svg') return { extension: 'svg', mimeType: 'image/svg+xml' };
+    if (name === 'png') return { extension: 'png', mimeType: 'image/png' };
+    if (name === 'jpeg' || name === 'jpg') return { extension: 'jpeg', mimeType: 'image/jpeg' };
+    throw new RangeError('Format image non pris en charge. Choisissez PNG, JPEG ou SVG.');
+  }
+
+  async function rasterize(source, format, options) {
+    const info = formatInfo(format);
+    if (!source || typeof source.svg !== 'string' || !Number.isFinite(source.width) || !Number.isFinite(source.height) || source.width <= 0 || source.height <= 0) {
+      throw new TypeError('Les dimensions du graphique à exporter sont invalides.');
+    }
+    if (info.extension === 'svg') return { ...source, ...info, blob: new Blob([source.svg], { type: info.mimeType }) };
+    if (typeof document === 'undefined' || typeof Image === 'undefined' || !URL.createObjectURL) {
+      throw new Error('L’export PNG ou JPEG nécessite un navigateur. Le format SVG reste disponible.');
+    }
+    const quality = options && options.quality != null ? options.quality : 0.92;
+    if (typeof quality !== 'number' || !Number.isFinite(quality) || quality < 0 || quality > 1) throw new RangeError('La qualité JPEG doit être comprise entre 0 et 1.');
+    const scale = Math.min(1, MAX_SIDE / source.width, MAX_SIDE / source.height, Math.sqrt(MAX_PIXELS / (source.width * source.height)));
+    const width = Math.max(1, Math.floor(source.width * scale)), height = Math.max(1, Math.floor(source.height * scale));
+    const url = URL.createObjectURL(new Blob([source.svg], { type: 'image/svg+xml' }));
+    let picture, canvas;
+    try {
+      picture = new Image();
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('La préparation du graphique a pris trop de temps. Essayez le format SVG.')), 30000);
+        picture.onload = () => { clearTimeout(timer); resolve(); };
+        picture.onerror = () => { clearTimeout(timer); reject(new Error('Le graphique ne peut pas être converti en image. Essayez le format SVG.')); };
+        try { picture.src = url; } catch (error) { clearTimeout(timer); reject(error); }
+      });
+      canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const context = canvas.getContext('2d');
+      if (!context || !canvas.toBlob) throw new Error('L’export image n’est pas disponible dans ce navigateur. Essayez le format SVG.');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, width, height);
+      context.drawImage(picture, 0, 0, width, height);
+      const blob = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('L’export image a pris trop de temps. Essayez le format SVG.')), 30000);
+        try {
+          canvas.toBlob(value => {
+            clearTimeout(timer);
+            if (!value) reject(new Error('L’export image a échoué. Essayez le format SVG.'));
+            else resolve(value);
+          }, info.mimeType, quality);
+        } catch (error) { clearTimeout(timer); reject(error); }
+      });
+      if (blob.type !== info.mimeType) throw new Error('Ce navigateur ne prend pas en charge ce format image. Essayez PNG ou SVG.');
+      return { blob, ...info, width, height };
+    } finally {
+      URL.revokeObjectURL(url);
+      if (picture) { picture.onload = null; picture.onerror = null; picture.src = ''; }
+      if (canvas) { canvas.width = 1; canvas.height = 1; }
+    }
+  }
+
+  async function exportBlob(rows, mode, format, options) {
+    return rasterize(svg(rows, mode, options), format, options);
+  }
+
+  return Object.freeze({ svg, rasterize, exportBlob });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./species.js'));
+  else root.PlecotusImportChart = factory(root.BatReviewCore, root.BatSpeciesNames);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Names) {
+  'use strict';
+
+  function identity(auto) {
+    if (auto.kind === 'unclassified') {
+      return { key: 'source:unclassified', scientificName: 'Sans identification automatique', frenchName: '', isSpecies: false, known: false };
+    }
+    const name = Names.resolve(auto.autoId);
+    if (!name.known || name.category === 'noise') {
+      // Only source AUTO-ID Noise is excluded. In particular, the literal
+      // source label Bruit must survive the chart renderer’s extra noise guard.
+      return { key: 'source:' + auto.autoId, scientificName: /^(noise|bruit)$/i.test(auto.autoId) ? auto.autoId + ' (libellé source)' : auto.autoId,
+        frenchName: 'Nom non renseigné', isSpecies: false, known: false };
+    }
+    return { key: 'known:' + name.key, scientificName: name.scientificName || auto.autoId,
+      frenchName: name.frenchName, isSpecies: name.isSpecies, known: true };
+  }
+
+  function build(imported) {
+    if (!imported || !Array.isArray(imported.headers) || !Array.isArray(imported.records)) {
+      throw new TypeError('Le graphique exige les en-têtes et les contacts du fichier importé.');
+    }
+    const columns = Core.canonicalColumns(imported.headers);
+    const groups = new Map();
+    let noiseCount = columns.autoId < 0 ? null : 0;
+    let total = 0;
+    for (const record of imported.records) {
+      if (!Array.isArray(record)) throw new TypeError('Chaque contact du graphique doit être une ligne du fichier.');
+      const auto = Core.normalizeAutoId(columns.autoId < 0 ? '' : record[columns.autoId]);
+      if (auto.kind === 'noise') { noiseCount++; continue; }
+      const name = identity(auto);
+      if (!groups.has(name.key)) groups.set(name.key, { scientificName: name.scientificName, frenchName: name.frenchName,
+        isSpecies: name.isSpecies, known: name.known, contacts: 0 });
+      groups.get(name.key).contacts++;
+      total++;
+    }
+    const rows = [...groups.values()].sort((a, b) => b.contacts - a.contacts || a.scientificName.localeCompare(b.scientificName, 'fr'));
+    return { rows, total, noiseCount };
+  }
+
+  return Object.freeze({ build });
+});
+
+</script>
+<script>
 (() => {
   'use strict';
 
@@ -795,6 +1508,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const startReview = document.getElementById('start-review');
   const speciesOverview = document.getElementById('species-overview');
   const backToSummary = document.getElementById('back-to-summary');
+  const chartHost = document.getElementById('distribution-chart');
+  const chartStatus = document.getElementById('chart-export-status');
+  const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
+  const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const numbers = new Intl.NumberFormat('fr-FR');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'loading';
@@ -802,6 +1519,51 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   let currentFile = null;
   let currentImport = null;
   let importVersion = 0;
+  let chartMode = 'pie';
+  let chartData = null;
+  let chartExporting = false;
+
+  function renderDistribution() {
+    if (!chartData) return;
+    chartHost.innerHTML = chartData.total
+      ? BatActivityChart.render(chartData.rows, chartMode, { hasAutoId: currentImport.summary.hasAutoIdColumn })
+      : '<p class="activity-chart-empty">Aucun contact hors bruit à représenter.</p>';
+    for (const scrollable of chartHost.querySelectorAll('.activity-legend, .activity-bar-list')) scrollable.tabIndex = 0;
+    for (const button of chartModes) button.setAttribute('aria-pressed', String(button.dataset.chartMode === chartMode));
+    for (const button of chartExports) button.disabled = !chartData.total || chartExporting;
+  }
+
+  async function exportDistribution(format) {
+    if (!currentImport || !chartData || !chartData.total || chartExporting) return;
+    const imported = currentImport;
+    const data = chartData;
+    const mode = chartMode;
+    const version = importVersion;
+    chartExporting = true;
+    renderDistribution();
+    chartStatus.textContent = 'Préparation de l’image…';
+    try {
+      const result = await BatActivityExport.exportBlob(data.rows, mode, format, {
+        title: 'Répartition des contacts', source: 'auto-id',
+        noiseContacts: data.noiseCount, totalContacts: imported.summary.totalContacts,
+        hasAutoId: imported.summary.hasAutoIdColumn
+      });
+      const stem = imported.fileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'contacts';
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(result.blob);
+      link.href = url;
+      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + '.' + result.extension;
+      document.body.append(link);
+      try { link.click(); }
+      finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      if (version === importVersion) chartStatus.textContent = 'Image ' + result.extension.toUpperCase() + ' exportée.';
+    } catch (error) {
+      if (version === importVersion) chartStatus.textContent = error.message || 'Impossible d’exporter le graphique.';
+    } finally {
+      chartExporting = false;
+      renderDistribution();
+    }
+  }
 
   function renderImport(result) {
     const summary = result.summary;
@@ -831,6 +1593,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     startReview.hidden = !summary.vanilla;
     startReview.disabled = summary.totalContacts === 0;
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
+    chartData = PlecotusImportChart.build(result);
+    document.getElementById('distribution-caption').textContent = summary.hasAutoIdColumn
+      ? 'Identifications automatiques (AUTO-ID), hors Noise · ' + numbers.format(chartData.total) + ' contacts représentés'
+      : 'Colonne AUTO-ID absente · contacts sans identification automatique';
+    chartStatus.textContent = '';
+    renderDistribution();
     overview.hidden = false;
   }
 
@@ -838,6 +1606,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const version = ++importVersion;
     currentFile = file;
     currentImport = null;
+    chartData = null;
     overview.hidden = true;
     speciesOverview.hidden = true;
     sheetPicker.hidden = true;
@@ -975,6 +1744,12 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     if (currentFile && contactSheet.value) readFile(currentFile, contactSheet.value);
   });
   startReview.addEventListener('click', showSpecies);
+  for (const button of chartModes) button.addEventListener('click', () => {
+    chartMode = button.dataset.chartMode;
+    chartStatus.textContent = '';
+    renderDistribution();
+  });
+  for (const button of chartExports) button.addEventListener('click', () => exportDistribution(button.dataset.chartExport));
   backToSummary.addEventListener('click', () => {
     speciesOverview.hidden = true;
     overview.hidden = false;

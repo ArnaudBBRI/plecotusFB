@@ -1,0 +1,85 @@
+.import-distribution {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #e8e9e6;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+.import-distribution .distribution-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.import-distribution .distribution-heading { min-width: 0; }
+.import-distribution .distribution-heading h3 { margin: 0; font-size: 1rem; font-weight: 550; }
+.import-distribution .distribution-heading p { margin: .4rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.5; }
+.import-distribution .chart-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .8rem; }
+.import-distribution .chart-toggle { display: inline-flex; gap: .15rem; padding: .15rem; border: 1px solid #e2e5dd; border-radius: .45rem; background: #f6f7f4; }
+.import-distribution .chart-toggle button,
+.import-distribution .chart-exports button {
+  min-height: 2rem;
+  padding: .4rem .65rem;
+  border: 1px solid transparent;
+  border-radius: .3rem;
+  background: transparent;
+  color: #535a4c;
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.import-distribution .chart-toggle button[aria-pressed="true"] { background: #33452b; color: #fff; }
+.import-distribution .chart-toggle button:not([aria-pressed="true"]):hover { background: #e9ece4; }
+.import-distribution .chart-exports { display: inline-flex; flex-wrap: wrap; gap: .35rem; }
+.import-distribution .chart-exports button { border-color: #d6d8d2; background: #fff; }
+.import-distribution .chart-exports button:hover { background: #f5f6f3; border-color: #aeb3a7; }
+.import-distribution button:focus-visible,
+.import-distribution .activity-legend:focus-visible,
+.import-distribution .activity-bar-list:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.import-distribution button:disabled { color: #92978c; background: #f6f7f4; border-color: #e8e9e6; cursor: default; }
+.import-distribution .chart-export-status { margin: .75rem 0 0; color: #646960; font-size: .75rem; line-height: 1.5; }
+.import-distribution .chart-export-status:empty { margin: 0; }
+
+.import-distribution .distribution-chart { min-width: 0; }
+.import-distribution .activity-chart-layout { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); align-items: center; gap: 2rem; }
+.import-distribution .activity-chart-svg { display: block; width: 100%; max-width: 220px; height: auto; margin: 0 auto; }
+.import-distribution .activity-legend-panel { min-width: 0; }
+.import-distribution .activity-legend { list-style: none; margin: 0; padding: 0 .35rem 0 0; max-height: 260px; overflow: auto; scrollbar-width: thin; }
+.import-distribution .activity-legend-item { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .45rem 0; border-bottom: 1px solid #edf0e9; }
+.import-distribution .activity-legend-item:last-child { border-bottom: 0; }
+.import-distribution .activity-legend-swatch { display: block; width: 9px; height: 9px; border-radius: 2px; }
+.import-distribution .activity-legend-names { min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
+.import-distribution .activity-legend-name { display: block; font-size: .75rem; font-weight: 500; }
+.import-distribution .activity-legend-french { display: block; margin-top: .1rem; color: #777e72; font-size: .65rem; }
+.import-distribution .activity-legend-value { display: flex; align-items: baseline; justify-content: flex-end; gap: .5rem; font-size: .75rem; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.import-distribution .activity-legend-value strong { font-weight: 600; }
+.import-distribution .activity-legend-value > span { color: #777e72; font-size: .65rem; }
+.import-distribution .activity-legend-caption { margin: 0 0 .45rem; color: #777e72; font-size: .65rem; line-height: 1.4; }
+.import-distribution .activity-legend-caption > span { display: block; margin-top: .1rem; }
+.import-distribution .activity-chart-many .activity-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.2rem; align-content: start; }
+.import-distribution .activity-chart-many .activity-legend-item { grid-template-columns: 9px minmax(0, 1fr); align-items: start; align-content: start; gap: .15rem .5rem; padding: .4rem 0; }
+.import-distribution .activity-chart-many .activity-legend-swatch { margin-top: .25rem; }
+.import-distribution .activity-chart-many .activity-legend-value { grid-column: 2; justify-content: flex-start; }
+
+.import-distribution .activity-bar-list { list-style: none; margin: 0; padding: 0 .4rem 0 0; max-height: 300px; overflow: auto; scrollbar-width: thin; }
+.import-distribution .activity-bar-item { padding: .5rem 0 .7rem; border-bottom: 1px solid #edf0e9; }
+.import-distribution .activity-bar-item:last-child { border-bottom: 0; }
+.import-distribution .activity-bar-heading { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: .6rem; margin-bottom: .45rem; }
+.import-distribution .activity-bar-track { width: 100%; height: 7px; overflow: hidden; border-radius: 3px; background: #edf0e9; }
+.import-distribution .activity-bar-fill { display: block; height: 100%; border-radius: 3px; }
+.import-distribution .activity-chart-empty { margin: 0; padding: 2rem 1rem; border-radius: .5rem; background: #f6f7f4; color: #777e72; font-size: .85rem; line-height: 1.6; text-align: center; }
+
+@media (max-width: 640px) {
+  .import-distribution { padding: 1rem; }
+  .import-distribution .distribution-toolbar { gap: .9rem; }
+  .import-distribution .chart-actions { width: 100%; justify-content: space-between; }
+  .import-distribution .activity-chart-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .import-distribution .activity-chart-svg { max-width: 200px; }
+  .import-distribution .activity-chart-many .activity-legend { grid-template-columns: minmax(0, 1fr); }
+  .import-distribution .chart-toggle button,
+  .import-distribution .chart-exports button { min-height: 2.25rem; }
+}
