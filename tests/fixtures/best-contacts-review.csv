@@ -1,0 +1,12 @@
+# Données fictives pour vérifier la sélection du meilleur contact.
+IN FILE,AUTO-ID,MATCH RATIO,Qual,PULSES,DATE,TIME,MATCHING,MANUAL ID
+pip-ratio.wav,PIPPIP,0.8,100,100,2026-09-01,20:00:00,100,
+pip-qual.wav,PIPPIP,0.9,70,99,2026-09-01,20:00:00,90,
+pip-pulses.wav,PIPPIP,0.9,80,20,2026-09-01,20:00:00,20,
+pip-late.wav,PIPPIP,0.9,80,30,2026-09-03,19:00:00,20,
+pip-evening.wav,PIPPIP,0.9,80,30,2026-09-02,22:00:00,10,
+pip-best.wav,PIPPIP,0.9,80,30,2026-09-02,21:00:00,5,
+myo-low.wav,MYODAS,0.7,50,10,2026-09-01,22:00:00,10,
+myo-best.wav,MYODAS,0.8,40,8,2026-09-02,22:00:00,8,
+noise.wav,Noise,1,100,100,2026-09-01,20:00:00,100,
+unknown.wav,NoID,,,10,2026-09-01,20:00:00,,

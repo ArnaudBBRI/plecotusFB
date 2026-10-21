@@ -145,7 +145,7 @@
     const headerIndex = chosen.recognized ? parsed.findIndex(item => !isBlank(item.values) && !isComment(item.values) && recognizedKeys(item.values).has("autoId")) : parsed.findIndex(item => !isBlank(item.values) && !isComment(item.values));
     const headers = parsed[headerIndex].values.slice();
     canonicalColumns(headers);
-    const records = [], warnings = [];
+    const records = [], sourceRows = [], warnings = [];
     const preambleCount = parsed.slice(0, headerIndex).filter(item => !isBlank(item.values)).length;
     if (preambleCount) warnings.push(preambleCount + " ligne(s) de préambule ou de commentaire ignorée(s) avant l’en-tête CSV.");
     if (!chosen.recognized) warnings.push("Aucune colonne AUTO-ID reconnue ; tous les contacts doivent être identifiés.");
@@ -158,9 +158,10 @@
         while (values.length < headers.length) values.push("");
       }
       records.push(values);
+      sourceRows.push(item.line);
     });
     if (!records.length) warnings.push("Le fichier CSV contient un en-tête, mais aucun contact.");
-    return { headers, records, delimiter: chosen.delimiter, warnings };
+    return { headers, records, sourceRows, delimiter: chosen.delimiter, warnings };
   }
 
   function parseNumber(value, options) {

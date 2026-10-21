@@ -14,6 +14,7 @@ test('detects semicolon CSV with BOM, preamble, decimal commas, quoted and multi
   assert.equal(parsed.delimiter, ';');
   assert.deepEqual(parsed.headers, ['IN FILE', 'AUTO-ID', 'PULSES', 'MATCHING', 'MATCH RATIO', 'MARGIN', 'MANUAL ID']);
   assert.equal(parsed.records.length, 1);
+  assert.deepEqual(parsed.sourceRows, [5]);
   assert.equal(parsed.records[0][0], 'call;one.wav');
   assert.equal(parsed.records[0][6], 'checked "by"\r\nAda');
   assert.match(parsed.warnings[0], /préambule/);
@@ -21,6 +22,12 @@ test('detects semicolon CSV with BOM, preamble, decimal commas, quoted and multi
   assert.equal(analysis.rows[0].ratio, 0.75);
   assert.equal(analysis.rows[0].margin, 0.22);
   assert.equal(analysis.rows[0].manualId, 'checked "by"\r\nAda');
+});
+
+test('records retain their original physical start lines after blank rows and multiline cells', () => {
+  const parsed = Core.parseCSV('\n# Export de contacts\n\nIN FILE,AUTO-ID,NOTES\nfirst.wav,PIPPIP,"two\nlines"\n\nsecond.wav,PIPNAT,ok');
+  assert.deepEqual(parsed.sourceRows, [5, 8]);
+  assert.deepEqual(parsed.records, [['first.wav', 'PIPPIP', 'two\nlines'], ['second.wav', 'PIPNAT', 'ok']]);
 });
 
 test('detects comma and tab imports and accepts a final record without newline', () => {

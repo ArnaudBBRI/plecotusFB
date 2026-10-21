@@ -1,0 +1,197 @@
+.species-review-summary {
+  margin: 0 0 1.5rem;
+  color: #646960;
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.species-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.species-review-layout > #species-groups {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.species-group {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #e8e9e6;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+.species-group-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.species-group-heading h3 {
+  margin: 0;
+  color: #33452b;
+  font-size: 1rem;
+  font-weight: 550;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.species-group-count {
+  color: #777e72;
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.best-contact-file {
+  margin: 0 0 .8rem;
+  color: #535a4c;
+  font-size: .8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.best-contact-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #edf0e9;
+  border-radius: .4rem;
+  scrollbar-width: thin;
+}
+
+.best-contact-table-wrap:focus-visible {
+  outline: 2px solid #996535;
+  outline-offset: 3px;
+}
+
+.best-contact-table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  color: #252722;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.best-contact-table th,
+.best-contact-table td {
+  padding: .75rem .7rem;
+  white-space: nowrap;
+}
+
+.best-contact-table th {
+  border-bottom: 1px solid #edf0e9;
+  background: #f6f7f4;
+  color: #646960;
+  font-size: .7rem;
+  font-weight: 500;
+}
+
+.best-contact-table tbody tr {
+  background: #fcfdfb;
+}
+
+.best-contact-table td:first-child {
+  color: #33452b;
+  font-weight: 600;
+}
+
+.best-contact-empty {
+  margin: 0;
+  color: #777e72;
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.best-contact-note {
+  margin: .8rem 0 0;
+  color: #777e72;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+
+.best-method {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 1.25rem;
+  border: 1px solid #e1e7dc;
+  border-radius: .75rem;
+  background: #f7f9f4;
+  color: #535a4c;
+  font-size: .8rem;
+  line-height: 1.65;
+}
+
+.best-method:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+
+.best-method h3 {
+  margin: 0 0 .8rem;
+  color: #33452b;
+  font-size: .95rem;
+  font-weight: 550;
+}
+
+.best-method p {
+  margin: .75rem 0 0;
+}
+
+.best-method ol {
+  margin: .9rem 0;
+  padding-left: 1.25rem;
+}
+
+.best-method li {
+  padding-left: .15rem;
+  margin: .5rem 0;
+}
+
+.best-method strong {
+  color: #33452b;
+  font-weight: 600;
+}
+
+.best-method code {
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .species-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .species-review-layout > .best-method {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .species-review-layout > #species-groups {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .species-group,
+  .best-method {
+    padding: 1rem;
+  }
+
+  .species-group-heading {
+    margin-bottom: .75rem;
+  }
+}

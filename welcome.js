@@ -22,6 +22,7 @@
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const numbers = new Intl.NumberFormat('fr-FR');
+  const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'loading';
   let cancelAnimation = () => {};
@@ -169,23 +170,91 @@
 
   function showSpecies() {
     if (!currentImport || !currentImport.summary.vanilla || !currentImport.summary.totalContacts) return;
-    const groups = new Map();
-    for (const record of currentImport.records) {
-      const auto = BatReviewCore.normalizeAutoId(record[currentImport.columns.autoId]);
-      const label = auto.kind === 'noise' ? 'Bruit (Noise)' : auto.kind === 'noid' ? 'Non identifié (NoID)' : auto.kind === 'unclassified' ? 'Sans identification automatique' : auto.autoId;
-      if (!groups.has(auto.key)) groups.set(auto.key, { label, count: 0 });
-      groups.get(auto.key).count++;
+    let review;
+    try { review = PlecotusBestContacts.build(currentImport); }
+    catch (error) {
+      importError.textContent = error.message || 'Impossible de sélectionner les meilleurs contacts.';
+      importError.hidden = false;
+      return;
     }
-    const body = document.getElementById('species-groups');
-    body.replaceChildren();
-    for (const group of [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, 'fr'))) {
-      const row = document.createElement('tr');
-      const name = document.createElement('td');
-      const count = document.createElement('td');
-      name.textContent = group.label;
-      count.textContent = numbers.format(group.count);
-      row.append(name, count);
-      body.append(row);
+    const list = document.getElementById('species-groups');
+    list.replaceChildren();
+    document.getElementById('species-review-summary').textContent = numbers.format(review.groups.length)
+      + (review.groups.length === 1 ? ' groupe AUTO-ID' : ' groupes AUTO-ID')
+      + ' · ' + numbers.format(review.excludedNoiseCount) + (review.excludedNoiseCount === 1 ? ' contact Noise exclu' : ' contacts Noise exclus');
+    const missingColumns = document.getElementById('best-missing-columns');
+    missingColumns.textContent = review.missingColumns.length
+      ? 'Colonnes absentes : ' + review.missingColumns.join(', ') + '. Les autres critères conservent le même ordre de priorité.' : '';
+    missingColumns.hidden = !review.missingColumns.length;
+
+    for (const group of review.groups) {
+      const card = document.createElement('article');
+      card.className = 'species-group';
+      const heading = document.createElement('div');
+      heading.className = 'species-group-heading';
+      const title = document.createElement('h3');
+      const taxon = BatSpeciesNames.resolve(group.label);
+      title.textContent = group.kind === 'unclassified' ? 'Sans identification automatique'
+        : group.kind === 'noid' ? 'Non identifié (NoID)'
+          : group.label + (taxon.known && taxon.category !== 'noise' && taxon.frenchName ? ' · ' + taxon.frenchName : '');
+      const count = document.createElement('p');
+      count.className = 'species-group-count';
+      count.textContent = numbers.format(group.count) + (group.count === 1 ? ' contact' : ' contacts');
+      heading.append(title, count);
+      card.append(heading);
+
+      if (group.best) {
+        const best = group.best;
+        const filename = document.createElement('p');
+        filename.className = 'best-contact-file';
+        filename.textContent = 'Meilleur contact : ' + (best.fileName || 'Fichier non renseigné');
+        card.append(filename);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'best-contact-table-wrap';
+        wrapper.tabIndex = 0;
+        wrapper.setAttribute('role', 'region');
+        wrapper.setAttribute('aria-label', 'Valeurs du meilleur contact : ' + title.textContent);
+        const table = document.createElement('table');
+        table.className = 'best-contact-table';
+        const header = document.createElement('thead');
+        const labels = document.createElement('tr');
+        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure']) {
+          const cell = document.createElement('th');
+          cell.scope = 'col';
+          cell.textContent = label;
+          labels.append(cell);
+        }
+        header.append(labels);
+        const body = document.createElement('tbody');
+        const row = document.createElement('tr');
+        const values = [numbers.format(best.lineNumber),
+          best.ratio == null ? '—' : rankingNumbers.format(best.ratio),
+          best.qual == null ? '—' : rankingNumbers.format(best.qual),
+          best.pulses == null ? '—' : rankingNumbers.format(best.pulses),
+          best.dateValue == null ? '—' : best.date,
+          best.timeValue == null ? '—' : best.time];
+        for (const value of values) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        }
+        body.append(row);
+        table.append(header, body);
+        wrapper.append(table);
+        card.append(wrapper);
+      } else {
+        const empty = document.createElement('p');
+        empty.className = 'best-contact-empty';
+        empty.textContent = 'Aucun contact ne dispose d’une valeur exploitable dans MATCHING, MATCH RATIO ou Qual. Aucun meilleur contact ne peut être retenu.';
+        card.append(empty);
+      }
+      list.append(card);
+    }
+    if (!review.groups.length) {
+      const empty = document.createElement('p');
+      empty.className = 'best-contact-empty';
+      empty.textContent = 'Aucun groupe hors Noise à vérifier dans ce fichier.';
+      list.append(empty);
     }
     overview.hidden = true;
     speciesOverview.hidden = false;

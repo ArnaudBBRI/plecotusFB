@@ -49,7 +49,7 @@
     const summary = summarize(parsed);
     const warnings = [...(extraWarnings || []), ...parsed.warnings];
     if (!summary.hasManualIdColumn) warnings.push('Colonne MANUAL ID absente : aucune identification manuelle importée.');
-    return { fileName, sheetName, headers: parsed.headers, records: parsed.records,
+    return { fileName, sheetName, headers: parsed.headers, records: parsed.records, sourceRows: parsed.sourceRows,
       columns: Core.canonicalColumns(parsed.headers), summary, warnings };
   }
 
@@ -65,11 +65,24 @@
       hasErrors = true;
     }
     // Stored values matter: a display format such as ;;; can hide an entered ID.
-    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '', blankrows: false });
+    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '', blankrows: true });
     if (!rows.length) throw new Error('La feuille est vide.');
-    // Reuse the CSV header, quoting, blank-row and ambiguous-column rules.
-    const parsed = Core.parseCSV(Core.stringifyCSV(rows[0], rows.slice(1)), ',');
-    return result(parsed, fileName, name, hasErrors ? ['Des cellules Excel contiennent des erreurs ; leur texte est conservé dans les données importées.'] : []);
+    // Reuse CSV validation while retaining the worksheet row behind each record.
+    // A multiline Excel cell adds CSV physical lines, but not worksheet rows.
+    const firstRow = xlsx.utils.decode_range(sheet['!ref']).s.r + 1;
+    const worksheetRowByLine = new Map();
+    let physicalLine = 1;
+    const csvRows = rows.map((row, index) => {
+      worksheetRowByLine.set(physicalLine, firstRow + index);
+      const text = Core.stringifyCSV(row, []);
+      physicalLine += (text.match(/\r\n|\r|\n/g) || []).length;
+      return text;
+    });
+    const parsed = Core.parseCSV(csvRows.join(''), ',');
+    parsed.sourceRows = parsed.sourceRows.map(line => worksheetRowByLine.get(line));
+    const imported = result(parsed, fileName, name, hasErrors ? ['Des cellules Excel contiennent des erreurs ; leur texte est conservé dans les données importées.'] : []);
+    imported.excelDate1904 = Boolean(workbook.Workbook && workbook.Workbook.WBProps && workbook.Workbook.WBProps.date1904);
+    return imported;
   }
 
   async function read(file, options) {

@@ -65,6 +65,36 @@ test('header-only exports remain explicit zero-contact summaries', async () => {
   assert.equal(imported.summary.vanilla, true);
 });
 
+test('CSV import exposes physical source lines including preambles, blank rows and multiline fields', async () => {
+  const source = '\n# Export\n\nIN FILE,AUTO-ID,MANUAL ID,NOTES\nfirst.wav,PIPPIP,,"two\nlines"\n\nsecond.wav,PIPNAT,,ok';
+  const imported = await Import.read(file('source-lines.csv', source));
+  assert.deepEqual(imported.sourceRows, [5, 8]);
+  assert.equal(imported.summary.totalContacts, 2);
+  assert.equal(imported.records[0][3], 'two\nlines');
+});
+
+test('Excel import retains worksheet rows across offset ranges, preambles, blanks and multiline cells', async () => {
+  const workbook = XLSX.utils.book_new();
+  const sheet = {};
+  XLSX.utils.sheet_add_aoa(sheet, [
+    ['Préambule'],
+    [],
+    ['IN FILE', 'AUTO-ID', 'MANUAL ID', 'NOTES'],
+    ['first.wav', 'PIPPIP', '', 'two\nlines'],
+    [],
+    ['second.wav', 'PIPNAT', '', 'ok']
+  ], { origin: 'C4' });
+  sheet['!ref'] = 'C4:F9';
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Contacts');
+  workbook.Workbook = { WBProps: { date1904: true } };
+  const imported = await Import.read(file('offset-rows.xlsx', XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })), { xlsx: XLSX });
+  assert.deepEqual(imported.sourceRows, [7, 9]);
+  assert.equal(imported.excelDate1904, true);
+  assert.equal(imported.summary.totalContacts, 2);
+  assert.equal(imported.records[0][3], 'two\nlines');
+  assert.equal(sheet.F7.v, 'two\nlines');
+});
+
 test('decodes UTF-16 and falls back to Windows-1252 with a warning', async () => {
   const source = 'IN FILE,AUTO-ID,MANUAL ID\na.wav,PIPPIP,À revoir';
   const utf16 = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(source, 'utf16le')]);

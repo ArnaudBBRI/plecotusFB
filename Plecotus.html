@@ -331,6 +331,207 @@ body { margin: 0; min-height: 100svh; }
 }
 
 </style>
+  <style>
+.species-review-summary {
+  margin: 0 0 1.5rem;
+  color: #646960;
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.species-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.species-review-layout > #species-groups {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.species-group {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid #e8e9e6;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+.species-group-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.species-group-heading h3 {
+  margin: 0;
+  color: #33452b;
+  font-size: 1rem;
+  font-weight: 550;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.species-group-count {
+  color: #777e72;
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.best-contact-file {
+  margin: 0 0 .8rem;
+  color: #535a4c;
+  font-size: .8rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.best-contact-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #edf0e9;
+  border-radius: .4rem;
+  scrollbar-width: thin;
+}
+
+.best-contact-table-wrap:focus-visible {
+  outline: 2px solid #996535;
+  outline-offset: 3px;
+}
+
+.best-contact-table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  color: #252722;
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.best-contact-table th,
+.best-contact-table td {
+  padding: .75rem .7rem;
+  white-space: nowrap;
+}
+
+.best-contact-table th {
+  border-bottom: 1px solid #edf0e9;
+  background: #f6f7f4;
+  color: #646960;
+  font-size: .7rem;
+  font-weight: 500;
+}
+
+.best-contact-table tbody tr {
+  background: #fcfdfb;
+}
+
+.best-contact-table td:first-child {
+  color: #33452b;
+  font-weight: 600;
+}
+
+.best-contact-empty {
+  margin: 0;
+  color: #777e72;
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.best-contact-note {
+  margin: .8rem 0 0;
+  color: #777e72;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+
+.best-method {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 1.25rem;
+  border: 1px solid #e1e7dc;
+  border-radius: .75rem;
+  background: #f7f9f4;
+  color: #535a4c;
+  font-size: .8rem;
+  line-height: 1.65;
+}
+
+.best-method:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+
+.best-method h3 {
+  margin: 0 0 .8rem;
+  color: #33452b;
+  font-size: .95rem;
+  font-weight: 550;
+}
+
+.best-method p {
+  margin: .75rem 0 0;
+}
+
+.best-method ol {
+  margin: .9rem 0;
+  padding-left: 1.25rem;
+}
+
+.best-method li {
+  padding-left: .15rem;
+  margin: .5rem 0;
+}
+
+.best-method strong {
+  color: #33452b;
+  font-weight: 600;
+}
+
+.best-method code {
+  font: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .species-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .species-review-layout > .best-method {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .species-review-layout > #species-groups {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .species-group,
+  .best-method {
+    padding: 1rem;
+  }
+
+  .species-group-heading {
+    margin-bottom: .75rem;
+  }
+}
+
+</style>
+
 
 
 
@@ -408,8 +609,26 @@ body { margin: 0; min-height: 100svh; }
       <section class="species-overview" id="species-overview" aria-labelledby="species-heading" hidden>
         <button class="back-to-summary" id="back-to-summary" type="button">← Retour au résumé</button>
         <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
-        <p>Contacts regroupés selon leur identification automatique (AUTO-ID).</p>
-        <table class="species-table"><thead><tr><th scope="col">Espèce ou groupe proposé</th><th scope="col">Contacts</th></tr></thead><tbody id="species-groups"></tbody></table>
+        <p class="species-review-summary" id="species-review-summary"></p>
+        <div class="species-review-layout">
+          <div id="species-groups"></div>
+          <aside class="best-method" aria-labelledby="best-method-heading" tabindex="0">
+            <h3 id="best-method-heading">Comment le meilleur contact est-il choisi ?</h3>
+            <p>Un meilleur contact par <strong>AUTO-ID</strong>, sur tout le fichier. Ordre de tri :</p>
+            <ol>
+              <li><strong>MATCH RATIO</strong> le plus élevé.</li>
+              <li>En cas d’égalité, <strong>Qual</strong> le plus élevé.</li>
+              <li>Puis <strong>PULSES</strong> le plus élevé.</li>
+              <li>Puis la <strong>date</strong> la plus ancienne.</li>
+              <li>Enfin, l’<strong>heure</strong> la plus tôt dans la journée.</li>
+            </ol>
+            <p>Égalité complète : le premier contact dans l’ordre du fichier est retenu.</p>
+            <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. MATCHING n’est pas un critère de tri.</p>
+            <p><strong>Noise</strong> est exclu de la liste. Les compteurs du fichier ne changent pas.</p>
+            <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. Le contact proposé reste à vérifier manuellement.</p>
+            <p class="best-contact-note" id="best-missing-columns" hidden></p>
+          </aside>
+        </div>
       </section>
     </div>
   </main>
@@ -589,7 +808,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const headerIndex = chosen.recognized ? parsed.findIndex(item => !isBlank(item.values) && !isComment(item.values) && recognizedKeys(item.values).has("autoId")) : parsed.findIndex(item => !isBlank(item.values) && !isComment(item.values));
     const headers = parsed[headerIndex].values.slice();
     canonicalColumns(headers);
-    const records = [], warnings = [];
+    const records = [], sourceRows = [], warnings = [];
     const preambleCount = parsed.slice(0, headerIndex).filter(item => !isBlank(item.values)).length;
     if (preambleCount) warnings.push(preambleCount + " ligne(s) de préambule ou de commentaire ignorée(s) avant l’en-tête CSV.");
     if (!chosen.recognized) warnings.push("Aucune colonne AUTO-ID reconnue ; tous les contacts doivent être identifiés.");
@@ -602,9 +821,10 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
         while (values.length < headers.length) values.push("");
       }
       records.push(values);
+      sourceRows.push(item.line);
     });
     if (!records.length) warnings.push("Le fichier CSV contient un en-tête, mais aucun contact.");
-    return { headers, records, delimiter: chosen.delimiter, warnings };
+    return { headers, records, sourceRows, delimiter: chosen.delimiter, warnings };
   }
 
   function parseNumber(value, options) {
@@ -845,7 +1065,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const summary = summarize(parsed);
     const warnings = [...(extraWarnings || []), ...parsed.warnings];
     if (!summary.hasManualIdColumn) warnings.push('Colonne MANUAL ID absente : aucune identification manuelle importée.');
-    return { fileName, sheetName, headers: parsed.headers, records: parsed.records,
+    return { fileName, sheetName, headers: parsed.headers, records: parsed.records, sourceRows: parsed.sourceRows,
       columns: Core.canonicalColumns(parsed.headers), summary, warnings };
   }
 
@@ -861,11 +1081,24 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       hasErrors = true;
     }
     // Stored values matter: a display format such as ;;; can hide an entered ID.
-    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '', blankrows: false });
+    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '', blankrows: true });
     if (!rows.length) throw new Error('La feuille est vide.');
-    // Reuse the CSV header, quoting, blank-row and ambiguous-column rules.
-    const parsed = Core.parseCSV(Core.stringifyCSV(rows[0], rows.slice(1)), ',');
-    return result(parsed, fileName, name, hasErrors ? ['Des cellules Excel contiennent des erreurs ; leur texte est conservé dans les données importées.'] : []);
+    // Reuse CSV validation while retaining the worksheet row behind each record.
+    // A multiline Excel cell adds CSV physical lines, but not worksheet rows.
+    const firstRow = xlsx.utils.decode_range(sheet['!ref']).s.r + 1;
+    const worksheetRowByLine = new Map();
+    let physicalLine = 1;
+    const csvRows = rows.map((row, index) => {
+      worksheetRowByLine.set(physicalLine, firstRow + index);
+      const text = Core.stringifyCSV(row, []);
+      physicalLine += (text.match(/\r\n|\r|\n/g) || []).length;
+      return text;
+    });
+    const parsed = Core.parseCSV(csvRows.join(''), ',');
+    parsed.sourceRows = parsed.sourceRows.map(line => worksheetRowByLine.get(line));
+    const imported = result(parsed, fileName, name, hasErrors ? ['Des cellules Excel contiennent des erreurs ; leur texte est conservé dans les données importées.'] : []);
+    imported.excelDate1904 = Boolean(workbook.Workbook && workbook.Workbook.WBProps && workbook.Workbook.WBProps.date1904);
+    return imported;
   }
 
   async function read(file, options) {
@@ -1594,6 +1827,135 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
 </script>
 <script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'));
+  else root.PlecotusBestContacts = factory(root.BatReviewCore);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core) {
+  'use strict';
+
+  const day = 86400000;
+  const text = value => String(value == null ? '' : value).trim();
+
+  function numeric(value) {
+    let source = text(value);
+    if (source.includes(',') && !source.includes('.')) source = source.replace(',', '.');
+    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(source)) return null;
+    const number = Number(source);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function utcDate(year, month, date) {
+    const result = new Date(0);
+    result.setUTCFullYear(year, month - 1, date);
+    result.setUTCHours(0, 0, 0, 0);
+    if (result.getUTCFullYear() !== year || result.getUTCMonth() !== month - 1 || result.getUTCDate() !== date) return null;
+    return result.getTime();
+  }
+
+  function dateValue(value, excel, date1904) {
+    const source = text(value);
+    const iso = source.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (iso) return utcDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+    const serial = excel ? numeric(source) : null;
+    if (serial == null || serial < 0 || serial > 2958465) return null;
+    const whole = Math.floor(serial);
+    // Excel's fictitious 29 February 1900 has no valid calendar equivalent.
+    if (!date1904 && whole === 60) return null;
+    return date1904
+      ? Date.UTC(1904, 0, 1) + whole * day
+      : Date.UTC(1899, 11, 31) + (whole > 60 ? whole - 1 : whole) * day;
+  }
+
+  function timeValue(value, excel) {
+    const source = text(value);
+    const clock = source.match(/^(\d{1,2}):(\d{2}):(\d{2}(?:[.,]\d+)?)$/);
+    if (clock) {
+      const hours = Number(clock[1]), minutes = Number(clock[2]), seconds = Number(clock[3].replace(',', '.'));
+      if (hours > 23 || minutes > 59 || seconds >= 60) return null;
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+    const serial = excel ? numeric(source) : null;
+    if (serial == null || serial < 0) return null;
+    return Math.round((serial - Math.floor(serial)) * 86400000) / 1000;
+  }
+
+  function displayDate(value, parsed) {
+    return parsed == null ? text(value) : new Date(parsed).toISOString().slice(0, 10);
+  }
+
+  function displayTime(value, parsed) {
+    if (parsed == null) return text(value);
+    const milliseconds = Math.round(parsed * 1000);
+    return new Date(milliseconds).toISOString().slice(11, milliseconds % 1000 ? 23 : 19);
+  }
+
+  function descending(left, right) {
+    if (left == null) return right == null ? 0 : 1;
+    if (right == null) return -1;
+    return right - left;
+  }
+
+  function ascending(left, right) {
+    if (left == null) return right == null ? 0 : 1;
+    if (right == null) return -1;
+    return left - right;
+  }
+
+  function compare(left, right) {
+    return descending(left.ratio, right.ratio) || descending(left.qual, right.qual)
+      || descending(left.pulses, right.pulses) || ascending(left.dateValue, right.dateValue)
+      || ascending(left.timeValue, right.timeValue) || left.recordIndex - right.recordIndex;
+  }
+
+  function build(imported) {
+    if (!imported || !Array.isArray(imported.headers) || !Array.isArray(imported.records)) {
+      throw new TypeError('La sélection des meilleurs contacts exige les en-têtes et les lignes importées.');
+    }
+    const columns = Core.canonicalColumns(imported.headers);
+    const quality = imported.headers.map((header, index) => ({ index, name: text(header).toUpperCase().replace(/[^A-Z0-9]/g, '') })).filter(item => item.name === 'QUAL');
+    if (quality.length > 1) throw new Error('Plusieurs en-têtes désignent Qual. Gardez une seule colonne sans ambiguïté.');
+    columns.qual = quality.length ? quality[0].index : -1;
+    const missingColumns = [['ratio', 'MATCH RATIO'], ['qual', 'Qual'], ['pulses', 'PULSES'], ['date', 'DATE'], ['time', 'TIME']]
+      .filter(([key]) => columns[key] < 0).map(([, label]) => label);
+    const excel = imported.sheetName != null || /\.xlsx?$/i.test(imported.fileName || '');
+    const groups = new Map();
+    let excludedNoiseCount = 0, excludedCandidateCount = 0;
+
+    imported.records.forEach((record, recordIndex) => {
+      if (!Array.isArray(record)) throw new TypeError('Chaque contact doit être une ligne du fichier importé.');
+      const at = key => columns[key] < 0 ? '' : record[columns[key]];
+      const rawAuto = String(at('autoId') == null ? '' : at('autoId'));
+      const auto = Core.normalizeAutoId(rawAuto);
+      if (auto.kind === 'noise') { excludedNoiseCount++; return; }
+      // Keep the source AUTO-ID groups separate, as in the R script.
+      const key = 'source:' + rawAuto;
+      if (!groups.has(key)) groups.set(key, { key, label: text(rawAuto) || 'Sans identification automatique', kind: auto.kind, count: 0, eligibleCount: 0, best: null });
+      const group = groups.get(key);
+      group.count++;
+      const raw = Object.fromEntries(['ratio', 'qual', 'pulses', 'matching', 'date', 'time'].map(name => [name, text(at(name))]));
+      const ratio = numeric(raw.ratio), qual = numeric(raw.qual), matching = numeric(raw.matching);
+      // MATCHING affects eligibility only; it never breaks a ranking tie.
+      if (ratio == null && qual == null && matching == null) { excludedCandidateCount++; return; }
+      const sourceRow = imported.sourceRows && imported.sourceRows[recordIndex];
+      const parsedDate = dateValue(raw.date, excel, imported.excelDate1904 === true);
+      const parsedTime = timeValue(raw.time, excel);
+      const candidate = { recordIndex, lineNumber: Number.isInteger(sourceRow) && sourceRow > 0 ? sourceRow : recordIndex + 2,
+        fileName: text(at('file')), ratio, qual, pulses: numeric(raw.pulses), matching,
+        date: displayDate(raw.date, parsedDate), time: displayTime(raw.time, parsedTime),
+        dateValue: parsedDate, timeValue: parsedTime, raw, record };
+      group.eligibleCount++;
+      if (!group.best || compare(candidate, group.best) < 0) group.best = candidate;
+    });
+
+    return { groups: [...groups.values()].sort((left, right) => left.label.localeCompare(right.label, 'fr') || left.key.localeCompare(right.key, 'fr')),
+      excludedNoiseCount, excludedCandidateCount, missingColumns };
+  }
+
+  return Object.freeze({ build });
+});
+
+</script>
+<script>
 (() => {
   'use strict';
 
@@ -1618,6 +1980,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
   const chartModes = [...document.querySelectorAll('[data-chart-mode]')];
   const chartExports = [...document.querySelectorAll('[data-chart-export]')];
   const numbers = new Intl.NumberFormat('fr-FR');
+  const rankingNumbers = new Intl.NumberFormat('fr-FR', { maximumSignificantDigits: 15 });
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let state = 'loading';
   let cancelAnimation = () => {};
@@ -1765,23 +2128,91 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   function showSpecies() {
     if (!currentImport || !currentImport.summary.vanilla || !currentImport.summary.totalContacts) return;
-    const groups = new Map();
-    for (const record of currentImport.records) {
-      const auto = BatReviewCore.normalizeAutoId(record[currentImport.columns.autoId]);
-      const label = auto.kind === 'noise' ? 'Bruit (Noise)' : auto.kind === 'noid' ? 'Non identifié (NoID)' : auto.kind === 'unclassified' ? 'Sans identification automatique' : auto.autoId;
-      if (!groups.has(auto.key)) groups.set(auto.key, { label, count: 0 });
-      groups.get(auto.key).count++;
+    let review;
+    try { review = PlecotusBestContacts.build(currentImport); }
+    catch (error) {
+      importError.textContent = error.message || 'Impossible de sélectionner les meilleurs contacts.';
+      importError.hidden = false;
+      return;
     }
-    const body = document.getElementById('species-groups');
-    body.replaceChildren();
-    for (const group of [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, 'fr'))) {
-      const row = document.createElement('tr');
-      const name = document.createElement('td');
-      const count = document.createElement('td');
-      name.textContent = group.label;
-      count.textContent = numbers.format(group.count);
-      row.append(name, count);
-      body.append(row);
+    const list = document.getElementById('species-groups');
+    list.replaceChildren();
+    document.getElementById('species-review-summary').textContent = numbers.format(review.groups.length)
+      + (review.groups.length === 1 ? ' groupe AUTO-ID' : ' groupes AUTO-ID')
+      + ' · ' + numbers.format(review.excludedNoiseCount) + (review.excludedNoiseCount === 1 ? ' contact Noise exclu' : ' contacts Noise exclus');
+    const missingColumns = document.getElementById('best-missing-columns');
+    missingColumns.textContent = review.missingColumns.length
+      ? 'Colonnes absentes : ' + review.missingColumns.join(', ') + '. Les autres critères conservent le même ordre de priorité.' : '';
+    missingColumns.hidden = !review.missingColumns.length;
+
+    for (const group of review.groups) {
+      const card = document.createElement('article');
+      card.className = 'species-group';
+      const heading = document.createElement('div');
+      heading.className = 'species-group-heading';
+      const title = document.createElement('h3');
+      const taxon = BatSpeciesNames.resolve(group.label);
+      title.textContent = group.kind === 'unclassified' ? 'Sans identification automatique'
+        : group.kind === 'noid' ? 'Non identifié (NoID)'
+          : group.label + (taxon.known && taxon.category !== 'noise' && taxon.frenchName ? ' · ' + taxon.frenchName : '');
+      const count = document.createElement('p');
+      count.className = 'species-group-count';
+      count.textContent = numbers.format(group.count) + (group.count === 1 ? ' contact' : ' contacts');
+      heading.append(title, count);
+      card.append(heading);
+
+      if (group.best) {
+        const best = group.best;
+        const filename = document.createElement('p');
+        filename.className = 'best-contact-file';
+        filename.textContent = 'Meilleur contact : ' + (best.fileName || 'Fichier non renseigné');
+        card.append(filename);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'best-contact-table-wrap';
+        wrapper.tabIndex = 0;
+        wrapper.setAttribute('role', 'region');
+        wrapper.setAttribute('aria-label', 'Valeurs du meilleur contact : ' + title.textContent);
+        const table = document.createElement('table');
+        table.className = 'best-contact-table';
+        const header = document.createElement('thead');
+        const labels = document.createElement('tr');
+        for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure']) {
+          const cell = document.createElement('th');
+          cell.scope = 'col';
+          cell.textContent = label;
+          labels.append(cell);
+        }
+        header.append(labels);
+        const body = document.createElement('tbody');
+        const row = document.createElement('tr');
+        const values = [numbers.format(best.lineNumber),
+          best.ratio == null ? '—' : rankingNumbers.format(best.ratio),
+          best.qual == null ? '—' : rankingNumbers.format(best.qual),
+          best.pulses == null ? '—' : rankingNumbers.format(best.pulses),
+          best.dateValue == null ? '—' : best.date,
+          best.timeValue == null ? '—' : best.time];
+        for (const value of values) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        }
+        body.append(row);
+        table.append(header, body);
+        wrapper.append(table);
+        card.append(wrapper);
+      } else {
+        const empty = document.createElement('p');
+        empty.className = 'best-contact-empty';
+        empty.textContent = 'Aucun contact ne dispose d’une valeur exploitable dans MATCHING, MATCH RATIO ou Qual. Aucun meilleur contact ne peut être retenu.';
+        card.append(empty);
+      }
+      list.append(card);
+    }
+    if (!review.groups.length) {
+      const empty = document.createElement('p');
+      empty.className = 'best-contact-empty';
+      empty.textContent = 'Aucun groupe hors Noise à vérifier dans ce fichier.';
+      list.append(empty);
     }
     overview.hidden = true;
     speciesOverview.hidden = false;
