@@ -5,8 +5,13 @@ const root = __dirname;
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 let html = read('index.html');
 
-for (const name of ['assets/branding/plecotus-bat.css', 'welcome.css', 'import-chart.css', 'best-contacts.css', 'review-actions.css', 'manual-review.css', 'final-summary.css']) {
-  html = html.replace('<link rel="stylesheet" href="' + name + '">', () => '<style>\n' + read(name) + '\n</style>');
+for (const name of ['assets/branding/plecotus-bat.css', 'welcome.css', 'assets/branding/header-bat.css', 'import-chart.css', 'best-contacts.css', 'review-actions.css', 'manual-review.css', 'final-summary.css']) {
+  let css = read(name);
+  if (name === 'assets/branding/header-bat.css') {
+    const sprite = fs.readFileSync(path.join(root, 'assets/branding/header-bat.png')).toString('base64');
+    css = css.replace('url("header-bat.png")', 'url("data:image/png;base64,' + sprite + '")');
+  }
+  html = html.replace('<link rel="stylesheet" href="' + name + '">', () => '<style>\n' + css + '\n</style>');
 }
 
 const logoPath = 'assets/branding/plecotus-faune-biotopes-v3-black.png';
