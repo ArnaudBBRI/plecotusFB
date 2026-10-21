@@ -27,7 +27,6 @@
 
   function renderImport(result) {
     const summary = result.summary;
-    document.getElementById('file-heading').textContent = result.fileName;
     const sheetName = document.getElementById('sheet-name');
     sheetName.textContent = result.sheetName ? 'Feuille : ' + result.sheetName : '';
     sheetName.hidden = !result.sheetName;

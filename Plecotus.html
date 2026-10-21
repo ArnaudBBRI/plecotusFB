@@ -241,7 +241,7 @@ body { margin: 0; min-height: 100svh; }
       </section>
       <section class="file-overview" id="file-overview" aria-labelledby="file-heading" hidden>
         <div class="overview-heading">
-          <div><p class="eyebrow">Fichier importé</p><h2 id="file-heading"></h2><p class="sheet-name" id="sheet-name" hidden></p></div>
+          <div><h2 id="file-heading">Résumé du fichier</h2><p class="sheet-name" id="sheet-name" hidden></p></div>
           <span class="file-kind" id="file-kind"></span>
         </div>
         <p class="manual-summary" id="manual-summary"></p>
@@ -805,7 +805,6 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
 
   function renderImport(result) {
     const summary = result.summary;
-    document.getElementById('file-heading').textContent = result.fileName;
     const sheetName = document.getElementById('sheet-name');
     sheetName.textContent = result.sheetName ? 'Feuille : ' + result.sheetName : '';
     sheetName.hidden = !result.sheetName;
