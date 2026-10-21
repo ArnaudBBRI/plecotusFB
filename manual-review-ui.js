@@ -22,6 +22,9 @@
     const rows = node('manual-species-rows');
     const debug = node('manual-plan-debug');
     const debugButton = node('manual-plan-debug-all');
+    const debugRandomButton = node('manual-plan-debug-random');
+    const debugResult = node('manual-plan-debug-result');
+    const random = options.random || Math.random;
     const list = node('manual-contact-list');
     let screen = 'hidden';
     let selectedKey = null;
@@ -94,6 +97,7 @@
         : 'Aucune espèce hors Noise à vérifier.';
       debug.hidden = !options.getPreferences().debugMode;
       debugButton.disabled = !plan.requiredIndices.length;
+      debugRandomButton.disabled = !plan.requiredIndices.length;
     }
 
     function renderDetail(plan) {
@@ -168,6 +172,12 @@
       // after navigation could let a later import refresh stale row indices.
       list.replaceChildren();
       rows.replaceChildren();
+      clearDebugResult();
+    }
+
+    function clearDebugResult() {
+      debugResult.textContent = '';
+      debugResult.hidden = true;
     }
 
     node('manual-plan-back').addEventListener('click', () => {
@@ -179,9 +189,32 @@
       if (screen !== 'plan' || !options.getPreferences().debugMode) return;
       const plan = options.getPlan();
       if (!plan || !plan.ready || !plan.requiredIndices.length) return;
+      clearDebugResult();
       options.setMany(plan.requiredIndices, 'validated');
       options.onDecisionsChanged();
       refresh();
+    });
+    debugRandomButton.addEventListener('click', () => {
+      if (screen !== 'plan' || !options.getPreferences().debugMode) return;
+      const plan = options.getPlan();
+      if (!plan || !plan.ready || !plan.requiredIndices.length) return;
+      const indices = [...new Set(plan.requiredIndices)];
+      const validated = [], invalidated = [];
+      for (const index of indices) (random() < 0.5 ? validated : invalidated).push(index);
+      // With multiple contacts this debug action must exercise both outcomes,
+      // including when the random draws happen to produce a single outcome.
+      if (indices.length > 1 && (!validated.length || !invalidated.length)) {
+        const from = validated.length ? validated : invalidated;
+        const to = validated.length ? invalidated : validated;
+        to.push(from.pop());
+      }
+      if (validated.length) options.setMany(validated, 'validated');
+      if (invalidated.length) options.setMany(invalidated, 'invalidated');
+      options.onDecisionsChanged();
+      refresh();
+      debugResult.textContent = 'Tirage aléatoire : ' + count(validated.length, 'contact validé', 'contacts validés')
+        + ' et ' + count(invalidated.length, 'contact invalidé', 'contacts invalidés') + '.';
+      debugResult.hidden = false;
     });
 
     return Object.freeze({ showPlan, refresh, hide });

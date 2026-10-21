@@ -15,7 +15,7 @@ function element(tag = 'div') {
   };
 }
 
-function fixture() {
+function fixture(options = {}) {
   const nodes = new Map();
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, element());
@@ -35,19 +35,22 @@ function fixture() {
   const plan = { ready: true, groups, requiredIndices: [1, 3, 4], remaining: 3 };
   const preferences = { debugMode: false };
   const rendered = [], changes = [], callbacks = { sync: 0, back: 0 };
+  const decisions = new Map();
   const ui = UI.init({
+    random: options.random,
     document: { getElementById: node, createElement: tag => element(tag) },
     getPlan: () => plan,
     getPreferences: () => preferences,
     renderContactCard: (contact, label) => { rendered.push({ contact, label }); return element('article'); },
     setMany(indices, status) {
       changes.push({ indices, status });
-      for (const group of groups) {
-        group.completed = group.requiredIndices.length;
-        group.remaining = 0;
-        group.progress = 1;
+      for (const index of indices) decisions.set(index, status);
+      for (const group of plan.groups) {
+        group.completed = group.requiredIndices.filter(index => decisions.has(index)).length;
+        group.remaining = group.requiredIndices.length - group.completed;
+        group.progress = group.requiredIndices.length ? group.completed / group.requiredIndices.length : 1;
       }
-      plan.remaining = 0;
+      plan.remaining = plan.groups.reduce((sum, group) => sum + group.remaining, 0);
     },
     onDecisionsChanged: () => callbacks.sync++,
     onBackToBest: () => callbacks.back++
@@ -55,7 +58,7 @@ function fixture() {
   const row = index => node('manual-species-rows').children[index];
   const progressLine = index => row(index).children[1].children[0];
   const open = index => progressLine(index).children[2].fire('click');
-  return { ui, node, groups, plan, preferences, rendered, changes, callbacks, row, progressLine, open };
+  return { ui, node, groups, plan, preferences, rendered, changes, decisions, callbacks, row, progressLine, open };
 }
 
 test('the next view refuses an unfinished reference gate and shows compact progress rows once ready', () => {
@@ -168,4 +171,77 @@ test('hiding clears stale imported contact nodes while retaining model choices a
   assert.equal(app.node('manual-contact-list').children.length, 1);
   assert.equal(app.rendered.at(-1).contact.recordIndex, 0);
   assert.match(app.node('manual-species-method').textContent, /Nouveau fichier/);
+});
+
+test('random debug decisions cover only required contacts, exercise both statuses, and refresh once', () => {
+  const draws = [0.1, 0.9, 0.2];
+  const app = fixture({ random: () => draws.shift() });
+  app.preferences.debugMode = true;
+  app.ui.showPlan();
+  app.node('manual-plan-debug-random').fire('click');
+  assert.deepEqual(app.changes, [
+    { indices: [1, 4], status: 'validated' },
+    { indices: [3], status: 'invalidated' }
+  ]);
+  assert.deepEqual([...app.decisions.keys()].sort(), [1, 3, 4]);
+  assert.equal(app.callbacks.sync, 1);
+  assert.equal(app.plan.remaining, 0);
+  assert.equal(app.progressLine(0).children[0].value, 1);
+  assert.equal(app.progressLine(2).children[0].value, 1);
+  assert.equal(app.node('manual-plan-debug-result').hidden, false);
+  assert.match(app.node('manual-plan-debug-result').textContent, /2 contacts validés et 1 contact invalidé/);
+  app.node('manual-plan-debug-all').fire('click');
+  assert.equal(app.node('manual-plan-debug-result').hidden, true);
+  assert.equal(app.node('manual-plan-debug-result').textContent, '');
+});
+
+test('random debug action cannot mutate contacts while disabled, hidden, unfinished, or in a species detail', () => {
+  const app = fixture({ random: () => 0.1 });
+  const randomButton = app.node('manual-plan-debug-random');
+  randomButton.fire('click');
+  app.ui.showPlan();
+  randomButton.fire('click');
+  app.preferences.debugMode = true;
+  app.plan.ready = false;
+  randomButton.fire('click');
+  app.plan.ready = true;
+  app.open(0);
+  randomButton.fire('click');
+  app.ui.hide();
+  randomButton.fire('click');
+  assert.equal(app.changes.length, 0);
+  assert.equal(app.callbacks.sync, 0);
+});
+
+test('identical random draws still produce at least one validated and one invalidated contact', () => {
+  for (const draw of [0, 1]) {
+    const app = fixture({ random: () => draw });
+    app.preferences.debugMode = true;
+    app.ui.showPlan();
+    app.node('manual-plan-debug-random').fire('click');
+    assert.deepEqual(new Set(app.decisions.values()), new Set(['validated', 'invalidated']));
+    assert.equal(app.decisions.get(4), draw === 0 ? 'invalidated' : 'validated', 'the last contact breaks an all-equal draw');
+    app.ui.hide();
+    assert.equal(app.node('manual-plan-debug-result').hidden, true);
+    assert.equal(app.node('manual-plan-debug-result').textContent, '');
+  }
+});
+
+test('random validation supports a single contact and disables both macro buttons with no required contacts', () => {
+  const app = fixture({ random: () => 0.75 });
+  app.preferences.debugMode = true;
+  app.plan.groups = [app.groups[0]];
+  app.plan.requiredIndices = [1];
+  app.ui.showPlan();
+  app.node('manual-plan-debug-random').fire('click');
+  assert.deepEqual(app.changes, [{ indices: [1], status: 'invalidated' }]);
+  assert.match(app.node('manual-plan-debug-result').textContent, /0 contacts validés et 1 contact invalidé/);
+  app.plan.groups = [app.groups[1]];
+  app.plan.requiredIndices = [];
+  app.plan.remaining = 0;
+  app.ui.refresh();
+  assert.equal(app.node('manual-plan-debug-all').disabled, true);
+  assert.equal(app.node('manual-plan-debug-random').disabled, true);
+  app.node('manual-plan-debug-random').fire('click');
+  assert.equal(app.changes.length, 1);
 });

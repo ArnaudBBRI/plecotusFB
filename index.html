@@ -133,7 +133,11 @@
         <button class="manual-back-button" id="manual-plan-back" type="button">← Retour aux meilleurs contacts</button>
         <h2 id="manual-plan-heading" tabindex="-1">Contrôles manuels par espèce</h2>
         <div class="debug-review-actions manual-debug-actions" id="manual-plan-debug" hidden>
-          <button id="manual-plan-debug-all" type="button">Valider tous les contrôles de toutes les espèces</button>
+          <div class="manual-debug-buttons">
+            <button id="manual-plan-debug-all" type="button">Valider tous les contrôles de toutes les espèces</button>
+            <button id="manual-plan-debug-random" type="button">Valider / invalider au hasard</button>
+          </div>
+          <p id="manual-plan-debug-result" role="status" hidden></p>
         </div>
         <p id="manual-plan-summary" role="status"></p>
         <div class="manual-plan-layout">

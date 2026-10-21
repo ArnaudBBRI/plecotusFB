@@ -217,6 +217,7 @@
 .manual-empty-message { margin: 0; color: #646960; font-size: .85rem; line-height: 1.65; }
 
 .manual-debug-actions { margin: 0 0 1.5rem; }
+.manual-debug-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; }
 .manual-debug-actions button {
   padding: .7rem 1rem;
   border: 1px dashed #996535;
