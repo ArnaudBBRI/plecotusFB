@@ -25,11 +25,35 @@
     const debugButton = node('manual-plan-debug-all');
     const debugRandomButton = node('manual-plan-debug-random');
     const debugResult = node('manual-plan-debug-result');
+    const finalizeButton = node('manual-finalize-button');
+    const finalizeStatus = node('manual-finalize-status');
     const random = options.random || Math.random;
     const list = node('manual-contact-list');
     let screen = 'hidden';
     let selectedKey = null;
     let detailSignature = null;
+
+    function canFinalize(plan) {
+      return Boolean(plan && plan.ready && plan.assignmentReady === true && plan.remaining === 0
+        && !(plan.pendingIdentificationIndices || []).length);
+    }
+
+    function updateFinalization(plan) {
+      finalizeButton.disabled = !canFinalize(plan);
+      if (canFinalize(plan)) {
+        finalizeStatus.textContent = 'Tous les contrôles sont terminés. Vous pouvez finaliser et consulter le récapitulatif.';
+      } else if (!plan || !plan.ready) {
+        finalizeStatus.textContent = 'Terminez l’identification de chaque meilleur contact avant de finaliser.';
+      } else if (plan.remaining > 0) {
+        finalizeStatus.textContent = count(plan.remaining, 'contrôle supplémentaire reste à terminer', 'contrôles supplémentaires restent à terminer')
+          + '. Après une invalidation, renseignez l’identification réelle.';
+      } else if ((plan.pendingIdentificationIndices || []).length) {
+        finalizeStatus.textContent = count(plan.pendingIdentificationIndices.length, 'identification réelle reste à renseigner', 'identifications réelles restent à renseigner')
+          + ' avant de finaliser.';
+      } else {
+        finalizeStatus.textContent = 'Les identifications doivent être entièrement calculées avant de finaliser.';
+      }
+    }
 
     function assignmentStatus(group, compact = false) {
       if (typeof group.assignmentReady !== 'boolean') return '';
@@ -137,6 +161,7 @@
       debug.hidden = !options.getPreferences().debugMode;
       debugButton.disabled = !plan.requiredIndices.length;
       debugRandomButton.disabled = !plan.requiredIndices.length;
+      updateFinalization(plan);
     }
 
     function renderDetail(plan) {
@@ -216,6 +241,8 @@
       list.replaceChildren();
       rows.replaceChildren();
       clearDebugResult();
+      finalizeButton.disabled = true;
+      finalizeStatus.textContent = '';
     }
 
     function clearDebugResult() {
@@ -228,6 +255,15 @@
       options.onBackToBest();
     });
     node('manual-species-back').addEventListener('click', showPlan);
+    finalizeButton.addEventListener('click', () => {
+      if (screen !== 'plan') return;
+      // Check the fresh plan as decisions may have changed since the button
+      // became available. A filled progress bar alone is not enough.
+      const plan = options.getPlan();
+      updateFinalization(plan);
+      if (!canFinalize(plan)) return;
+      if (typeof options.onFinalize === 'function') options.onFinalize(plan);
+    });
     debugButton.addEventListener('click', () => {
       if (screen !== 'plan' || !options.getPreferences().debugMode) return;
       const plan = options.getPlan();

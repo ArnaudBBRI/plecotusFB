@@ -34,7 +34,7 @@ function fixture(options = {}) {
   ];
   const plan = { ready: true, groups, requiredIndices: [1, 3, 4], remaining: 3 };
   const preferences = { debugMode: false };
-  const rendered = [], changes = [], callbacks = { sync: 0, back: 0 };
+  const rendered = [], changes = [], callbacks = { sync: 0, back: 0, finalized: [] };
   const decisions = new Map();
   const ui = UI.init({
     random: options.random,
@@ -53,7 +53,8 @@ function fixture(options = {}) {
       plan.remaining = plan.groups.reduce((sum, group) => sum + group.remaining, 0);
     },
     onDecisionsChanged: () => callbacks.sync++,
-    onBackToBest: () => callbacks.back++
+    onBackToBest: () => callbacks.back++,
+    onFinalize: finalPlan => callbacks.finalized.push(finalPlan)
   });
   const row = index => node('manual-species-rows').children[index];
   const progressLine = index => row(index).children[1].children[0];
@@ -318,4 +319,74 @@ test('random debug output requests real identities for invalidations without inv
   app.node('manual-plan-debug-random').fire('click');
   assert.match(app.node('manual-plan-debug-result').textContent, /Renseignez l’identification réelle des contacts invalidés/);
   assert.deepEqual(new Set(app.decisions.values()), new Set(['validated', 'invalidated']));
+});
+
+test('finalization waits for completed controls and actual identification assignments', () => {
+  const app = fixture();
+  app.plan.assignmentReady = false;
+  app.plan.pendingIdentificationIndices = [1, 3, 4];
+  app.ui.showPlan();
+  const button = app.node('manual-finalize-button');
+  assert.equal(button.disabled, true);
+  assert.match(app.node('manual-finalize-status').textContent, /3 contrôles supplémentaires restent à terminer/);
+  button.fire('click');
+  assert.deepEqual(app.callbacks.finalized, []);
+
+  app.plan.remaining = 0;
+  app.plan.pendingIdentificationIndices = [3];
+  app.ui.refresh();
+  assert.equal(button.disabled, true, 'binary validation cannot bypass a missing actual species');
+  assert.match(app.node('manual-finalize-status').textContent, /1 identification réelle reste à renseigner/);
+  button.fire('click');
+  assert.deepEqual(app.callbacks.finalized, []);
+
+  app.plan.pendingIdentificationIndices = [];
+  app.plan.assignmentReady = true;
+  app.ui.refresh();
+  assert.equal(button.disabled, false);
+  assert.match(app.node('manual-finalize-status').textContent, /Tous les contrôles sont terminés/);
+  button.fire('click');
+  assert.deepEqual(app.callbacks.finalized, [app.plan]);
+});
+
+test('finalization rechecks the current gate and cannot run from hidden or detail screens', () => {
+  const app = fixture();
+  Object.assign(app.plan, { assignmentReady: true, remaining: 0, pendingIdentificationIndices: [] });
+  app.ui.showPlan();
+  const button = app.node('manual-finalize-button');
+  assert.equal(button.disabled, false);
+
+  app.plan.ready = false;
+  button.fire('click');
+  assert.equal(button.disabled, true);
+  assert.match(app.node('manual-finalize-status').textContent, /chaque meilleur contact/);
+  app.plan.ready = true;
+  app.ui.refresh();
+  app.open(0);
+  button.fire('click');
+  app.ui.hide();
+  button.fire('click');
+  assert.deepEqual(app.callbacks.finalized, []);
+  assert.equal(button.disabled, true);
+
+  app.ui.showPlan();
+  button.fire('click');
+  assert.deepEqual(app.callbacks.finalized, [app.plan]);
+  assert.equal(app.node('manual-plan-overview').hidden, false);
+});
+
+test('groups requiring no additional checks may finalize when the reviewed references and assignments are complete', () => {
+  const app = fixture();
+  app.plan.groups = [app.groups[1]];
+  Object.assign(app.plan, { requiredIndices: [], assignmentReady: true, remaining: 0, pendingIdentificationIndices: [] });
+  app.ui.showPlan();
+  assert.equal(app.node('manual-finalize-button').disabled, false);
+  app.node('manual-finalize-button').fire('click');
+  assert.deepEqual(app.callbacks.finalized, [app.plan]);
+
+  app.plan.assignmentReady = false;
+  app.ui.refresh();
+  assert.equal(app.node('manual-finalize-button').disabled, true);
+  app.node('manual-finalize-button').fire('click');
+  assert.equal(app.callbacks.finalized.length, 1);
 });

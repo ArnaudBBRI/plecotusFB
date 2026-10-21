@@ -1040,6 +1040,66 @@ body { margin: 0; min-height: 100svh; }
 }
 
 </style>
+  <style>
+.manual-method-column { position: sticky; top: 1rem; display: grid; align-content: start; gap: 1rem; min-width: 0; }
+.manual-method-column .manual-method { position: static; max-height: max(12rem, calc(100svh - 12rem)); }
+.manual-finalize { padding: 1.1rem 1.25rem; border: 1px solid #e2e7dc; border-radius: .65rem; background: #fff; }
+.manual-finalize button { width: 100%; padding: .85rem 1rem; border: 1px solid #33452b; border-radius: .4rem; background: #33452b; color: #fff; font: inherit; font-size: .85rem; cursor: pointer; }
+.manual-finalize button:hover { background: #26351f; }
+.manual-finalize button:disabled { background: #eff1ec; color: #808676; border-color: #e2e7dc; cursor: default; }
+.manual-finalize p { margin: .65rem 0 0; color: #646960; font-size: .75rem; line-height: 1.6; }
+
+.final-summary h2 { margin: 1.8rem 0 .75rem; font-size: 1.55rem; font-weight: 550; }
+.final-summary h3 { margin: 0; color: #33452b; font-size: 1rem; font-weight: 550; }
+.final-summary-totals { color: #535a4c; font-size: .85rem; line-height: 1.7; }
+.final-summary-origin, .final-summary-note, .final-filter-note { color: #777e72; font-size: .75rem; line-height: 1.7; }
+.final-summary-note { max-width: 72rem; }
+.final-summary-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0 .6rem; }
+.final-summary-toolbar > span { color: #535a4c; font-size: .8rem; }
+.final-summary-mode, .final-export-buttons { display: flex; flex-wrap: wrap; gap: .35rem; }
+.final-summary :is(.final-summary-mode, .final-export-buttons) button { min-height: 2rem; padding: .4rem .65rem; border: 1px solid #d6d8d2; border-radius: .3rem; background: #fff; color: #535a4c; font: inherit; font-size: .75rem; cursor: pointer; }
+.final-summary .final-summary-mode button[aria-pressed="true"] { border-color: #33452b; background: #33452b; color: #fff; }
+.final-summary .final-export-buttons button:hover { background: #f5f6f3; border-color: #aeb3a7; }
+.final-summary .final-export-buttons button:disabled { background: #f6f7f4; color: #92978c; cursor: default; }
+.final-summary :is(button, [tabindex="0"]):focus-visible, .manual-finalize button:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.final-chart-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.final-chart-card.import-distribution { min-width: 0; margin: 0; padding: 1.25rem; }
+.final-chart-card .final-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+.final-chart-card .final-chart-heading p { margin: .4rem 0 0; color: #777e72; font-size: .7rem; line-height: 1.5; }
+.final-chart-card .activity-chart-layout { grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 1rem; }
+.final-chart-card .activity-chart-svg { max-width: 180px; }
+.final-chart-card .activity-chart-many { grid-template-columns: minmax(0, 1fr); }
+.final-comparison, .final-contacts { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e8e9e6; border-radius: .75rem; background: #fff; }
+.final-section-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: .8rem; }
+.final-section-heading p { margin: .45rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.6; }
+.final-comparison-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+.final-comparison-scroll svg { display: block; max-width: none; height: auto; }
+.final-table-scroll { max-width: 100%; overflow-x: auto; }
+.final-contacts table { width: 100%; border-collapse: collapse; color: #343c2e; font-size: .8rem; }
+.final-contacts :is(th, td) { padding: .85rem .8rem; border-bottom: 1px solid #e8ece3; text-align: left; overflow-wrap: anywhere; }
+.final-contacts th { background: #f6f7f3; font-size: .72rem; color: #646960; font-weight: 550; }
+.final-contacts :is(th, td):last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.final-contacts tfoot th, .final-contacts tfoot td { background: #fafbf8; color: #33452b; font-weight: 600; }
+.final-export-status { margin: 1rem 0; color: #535a4c; font-size: .8rem; line-height: 1.6; }
+.final-table-empty { color: #777e72; font-size: .8rem; }
+
+@media (max-width: 900px) {
+  .manual-method-column { position: static; }
+  .manual-method-column .manual-method { max-height: none; overflow-y: visible; }
+  .final-chart-pair { grid-template-columns: minmax(0, 1fr); }
+  .final-chart-card .activity-chart-layout { grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); }
+  .final-chart-card .activity-chart-many { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .final-chart-card .activity-chart-layout { grid-template-columns: minmax(0, 1fr); }
+  .final-contacts :is(th, td) { padding: .65rem .5rem; }
+  .final-contacts { padding: 1rem .75rem; }
+}
+
+</style>
+
+
+
 
 
 
@@ -1176,6 +1236,7 @@ body { margin: 0; min-height: 100svh; }
               <tbody id="manual-species-rows"></tbody>
             </table>
           </div>
+          <div class="manual-method-column">
           <aside class="manual-method" aria-labelledby="manual-method-heading" tabindex="0">
             <h3 id="manual-method-heading">Quels contacts faut-il vérifier ?</h3>
             <p>Les AUTO-ID d’une espèce sont repris dans <strong>SEMIMANUAL ID</strong> lorsque ces trois conditions sont remplies :</p>
@@ -1191,6 +1252,11 @@ body { margin: 0; min-height: 100svh; }
             <p>Une fois l’échantillon entièrement identifié, les contacts restants reçoivent une identification dans <strong>SEMIMANUAL ID au prorata des identifications manuelles</strong> du groupe. Les arrondis par les plus forts restes conservent le nombre total de contacts. Les contacts déjà identifiés à la main gardent leur identification.</p>
             <p>Les barres suivent les <strong>contrôles supplémentaires terminés</strong>. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu. L’attribution au prorata est une estimation des effectifs sur les contacts non écoutés.</p>
           </aside>
+          <div class="manual-finalize">
+            <button id="manual-finalize-button" type="button" aria-describedby="manual-finalize-status" disabled>Finaliser la vérification →</button>
+            <p id="manual-finalize-status" role="status"></p>
+          </div>
+          </div>
         </div>
       </section>
       <section id="manual-species-detail" aria-labelledby="manual-species-heading" hidden>
@@ -1199,6 +1265,76 @@ body { margin: 0; min-height: 100svh; }
         <p id="manual-species-summary" role="status"></p>
         <p id="manual-species-method"></p>
         <div class="manual-contact-list" id="manual-contact-list"></div>
+      </section>
+      <section class="final-summary" id="final-summary" aria-labelledby="final-summary-heading" hidden>
+        <button class="manual-back-button" id="final-summary-back" type="button">← Retour aux contrôles</button>
+        <h2 id="final-summary-heading" tabindex="-1">Récapitulatif de la vérification</h2>
+        <p class="final-summary-totals" id="final-summary-totals"></p>
+        <p class="final-summary-origin" id="final-summary-origin"></p>
+        <p class="final-summary-note">Les contacts identifiés à la main gardent leur identification. Les autres proviennent de la validation des AUTO-ID ou d’une attribution au prorata : cette estimation des effectifs n’est pas une identification acoustique de chaque WAV non écouté.</p>
+        <div class="final-summary-toolbar">
+          <span>Répartition avant / après</span>
+          <div class="final-summary-mode" role="group" aria-label="Présentation des répartitions">
+            <button type="button" data-summary-mode="pie" aria-pressed="true">Camemberts</button>
+            <button type="button" data-summary-mode="bar" aria-pressed="false">Barres</button>
+          </div>
+        </div>
+        <p class="final-filter-note" id="final-filter-note"></p>
+        <div class="final-chart-pair">
+          <section class="final-chart-card import-distribution" aria-labelledby="final-before-heading">
+            <div class="final-chart-heading">
+              <div><h3 id="final-before-heading">Avant · AUTO-ID</h3><p id="final-before-caption"></p></div>
+              <div class="final-export-buttons" role="group" aria-label="Exporter le graphique avant">
+                <button type="button" data-summary-chart="before" data-summary-format="png">PNG</button>
+                <button type="button" data-summary-chart="before" data-summary-format="jpeg">JPEG</button>
+                <button type="button" data-summary-chart="before" data-summary-format="svg">SVG</button>
+              </div>
+            </div>
+            <div id="final-before-chart"></div>
+          </section>
+          <section class="final-chart-card import-distribution" aria-labelledby="final-after-heading">
+            <div class="final-chart-heading">
+              <div><h3 id="final-after-heading">Après · vérification manuelle</h3><p id="final-after-caption"></p></div>
+              <div class="final-export-buttons" role="group" aria-label="Exporter le graphique après">
+                <button type="button" data-summary-chart="after" data-summary-format="png">PNG</button>
+                <button type="button" data-summary-chart="after" data-summary-format="jpeg">JPEG</button>
+                <button type="button" data-summary-chart="after" data-summary-format="svg">SVG</button>
+              </div>
+            </div>
+            <div id="final-after-chart"></div>
+          </section>
+        </div>
+        <section class="final-comparison" aria-labelledby="final-comparison-heading">
+          <div class="final-section-heading">
+            <div><h3 id="final-comparison-heading">Effectifs par espèce · avant / après</h3><p>Deux barres par espèce, une même échelle en nombre de contacts. Faites défiler horizontalement si nécessaire.</p></div>
+            <div class="final-export-buttons" role="group" aria-label="Exporter la comparaison avant après">
+              <button type="button" data-summary-chart="comparison" data-summary-format="png">PNG</button>
+              <button type="button" data-summary-chart="comparison" data-summary-format="jpeg">JPEG</button>
+              <button type="button" data-summary-chart="comparison" data-summary-format="svg">SVG</button>
+            </div>
+          </div>
+          <div class="final-comparison-scroll" id="final-comparison-chart" tabindex="0" role="region" aria-label="Graphique comparatif avant après par espèce"></div>
+        </section>
+        <section class="final-contacts" aria-labelledby="final-contacts-heading">
+          <div class="final-section-heading">
+            <div><h3 id="final-contacts-heading">Tableau des contacts après vérification</h3><p>Tous les contacts hors bruit, y compris les attributions calculées et les catégories NoID. Les filtres des graphiques ne modifient pas ce tableau.</p></div>
+            <div class="final-export-buttons" role="group" aria-label="Exporter le tableau des contacts">
+              <button type="button" data-summary-table="csv">CSV</button>
+              <button type="button" data-summary-table="png">PNG</button>
+              <button type="button" data-summary-table="jpeg">JPEG</button>
+              <button type="button" data-summary-table="svg">SVG</button>
+            </div>
+          </div>
+          <div class="final-table-scroll" tabindex="0" role="region" aria-label="Contacts par nom scientifique et nom commun">
+            <table>
+              <thead><tr><th scope="col">Nom scientifique</th><th scope="col">Nom vernaculaire</th><th scope="col">Nombre de contacts</th></tr></thead>
+              <tbody id="final-contacts-body"></tbody>
+              <tfoot><tr><th scope="row" colspan="2">Total hors bruit</th><td id="final-table-total"></td></tr></tfoot>
+            </table>
+          </div>
+          <p class="final-table-empty" id="final-table-empty" hidden>Aucun contact hors bruit après vérification.</p>
+        </section>
+        <p class="final-export-status" id="final-export-status" role="status"></p>
       </section>
     </div>
   </main>
@@ -3287,11 +3423,35 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     const debugButton = node('manual-plan-debug-all');
     const debugRandomButton = node('manual-plan-debug-random');
     const debugResult = node('manual-plan-debug-result');
+    const finalizeButton = node('manual-finalize-button');
+    const finalizeStatus = node('manual-finalize-status');
     const random = options.random || Math.random;
     const list = node('manual-contact-list');
     let screen = 'hidden';
     let selectedKey = null;
     let detailSignature = null;
+
+    function canFinalize(plan) {
+      return Boolean(plan && plan.ready && plan.assignmentReady === true && plan.remaining === 0
+        && !(plan.pendingIdentificationIndices || []).length);
+    }
+
+    function updateFinalization(plan) {
+      finalizeButton.disabled = !canFinalize(plan);
+      if (canFinalize(plan)) {
+        finalizeStatus.textContent = 'Tous les contrôles sont terminés. Vous pouvez finaliser et consulter le récapitulatif.';
+      } else if (!plan || !plan.ready) {
+        finalizeStatus.textContent = 'Terminez l’identification de chaque meilleur contact avant de finaliser.';
+      } else if (plan.remaining > 0) {
+        finalizeStatus.textContent = count(plan.remaining, 'contrôle supplémentaire reste à terminer', 'contrôles supplémentaires restent à terminer')
+          + '. Après une invalidation, renseignez l’identification réelle.';
+      } else if ((plan.pendingIdentificationIndices || []).length) {
+        finalizeStatus.textContent = count(plan.pendingIdentificationIndices.length, 'identification réelle reste à renseigner', 'identifications réelles restent à renseigner')
+          + ' avant de finaliser.';
+      } else {
+        finalizeStatus.textContent = 'Les identifications doivent être entièrement calculées avant de finaliser.';
+      }
+    }
 
     function assignmentStatus(group, compact = false) {
       if (typeof group.assignmentReady !== 'boolean') return '';
@@ -3399,6 +3559,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       debug.hidden = !options.getPreferences().debugMode;
       debugButton.disabled = !plan.requiredIndices.length;
       debugRandomButton.disabled = !plan.requiredIndices.length;
+      updateFinalization(plan);
     }
 
     function renderDetail(plan) {
@@ -3478,6 +3639,8 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       list.replaceChildren();
       rows.replaceChildren();
       clearDebugResult();
+      finalizeButton.disabled = true;
+      finalizeStatus.textContent = '';
     }
 
     function clearDebugResult() {
@@ -3490,6 +3653,15 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       options.onBackToBest();
     });
     node('manual-species-back').addEventListener('click', showPlan);
+    finalizeButton.addEventListener('click', () => {
+      if (screen !== 'plan') return;
+      // Check the fresh plan as decisions may have changed since the button
+      // became available. A filled progress bar alone is not enough.
+      const plan = options.getPlan();
+      updateFinalization(plan);
+      if (!canFinalize(plan)) return;
+      if (typeof options.onFinalize === 'function') options.onFinalize(plan);
+    });
     debugButton.addEventListener('click', () => {
       if (screen !== 'plan' || !options.getPreferences().debugMode) return;
       const plan = options.getPlan();
@@ -3524,6 +3696,510 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     });
 
     return Object.freeze({ showPlan, refresh, hide });
+  }
+
+  return Object.freeze({ init });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./species.js'), require('./activity-chart.js'));
+  else root.PlecotusFinalSummaryData = factory(root.BatReviewCore, root.BatSpeciesNames, root.BatActivityChart);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Names, Chart) {
+  'use strict';
+
+  const text = value => String(value == null ? '' : value).trim();
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const byName = (left, right) => left.scientificName.localeCompare(right.scientificName, 'fr')
+    || left.frenchName.localeCompare(right.frenchName, 'fr') || (left.key || '').localeCompare(right.key || '', 'fr');
+
+  function dense(value) {
+    if (!Array.isArray(value)) return false;
+    for (let index = 0; index < value.length; index++) if (!own(value, index)) return false;
+    return true;
+  }
+
+  function columnsFor(source) {
+    if (!source || !dense(source.headers) || !dense(source.records)
+      || !source.headers.length || source.headers.some(header => typeof header !== 'string')) {
+      throw new TypeError('Le récapitulatif exige les en-têtes et les contacts complets du fichier.');
+    }
+    const columns = Core.canonicalColumns(source.headers);
+    const semi = source.headers.map((header, index) => ({ index, name: text(header).toUpperCase().replace(/[^A-Z0-9]/g, '') }))
+      .filter(header => header.name === 'SEMIMANUALID');
+    if (semi.length > 1) throw new TypeError('Plusieurs colonnes désignent SEMIMANUAL ID dans le récapitulatif.');
+    for (const record of source.records) {
+      if (!dense(record) || record.length !== source.headers.length || record.some(cell =>
+        cell !== null && !['string', 'number', 'boolean'].includes(typeof cell)
+        || typeof cell === 'number' && !Number.isFinite(cell))) {
+        throw new TypeError('Une ligne de contacts du récapitulatif est incomplète ou invalide.');
+      }
+    }
+    return { ...columns, semi: semi.length ? semi[0].index : -1 };
+  }
+
+  function sourceIdentity(value) {
+    const auto = Core.normalizeAutoId(value);
+    if (auto.kind === 'unclassified') return { key: 'source:unclassified', code: '',
+      scientificName: 'Sans identification automatique', frenchName: '', isSpecies: false, known: false, category: 'unclassified' };
+    const label = text(auto.autoId);
+    const resolved = Names.resolve(label);
+    // Source noise follows the import's exact AUTO-ID rule. The French source
+    // label "Bruit" is not an AUTO-ID Noise row and stays in the before count.
+    if (resolved.category === 'noise') return { key: 'source:' + label, code: '',
+      scientificName: label + ' (libellé source)', frenchName: 'Nom non renseigné', isSpecies: false, known: false, category: 'unknown' };
+    return identification(label);
+  }
+
+  function identification(label) {
+    const resolved = Names.resolve(label);
+    return { key: resolved.key, code: resolved.code || '',
+      scientificName: resolved.scientificName || text(label), frenchName: resolved.frenchName || '',
+      isSpecies: resolved.isSpecies, known: resolved.known, category: resolved.category };
+  }
+
+  function add(map, row) {
+    if (!map.has(row.key)) map.set(row.key, { ...row, contacts: 0 });
+    map.get(row.key).contacts++;
+  }
+
+  function build(imported, plan) {
+    if (!plan || plan.ready !== true || plan.assignmentReady !== true || plan.remaining !== 0
+      || !dense(plan.pendingIdentificationIndices) || plan.pendingIdentificationIndices.length
+      || !dense(plan.pendingBestIndices) || plan.pendingBestIndices.length) {
+      throw new Error('Terminez tous les contrôles et renseignez les identifications réelles avant de finaliser.');
+    }
+    const sourceColumns = columnsFor(imported);
+    const processed = plan.processed;
+    const finalColumns = columnsFor(processed);
+    if (processed.records.length !== imported.records.length) {
+      throw new Error('Le récapitulatif doit conserver exactement les mêmes contacts avant et après vérification.');
+    }
+    const before = new Map(), after = new Map();
+    let beforeNoise = 0, afterNoise = 0, manualContacts = 0, calculatedContacts = 0;
+    imported.records.forEach((source, index) => {
+      const auto = sourceColumns.autoId < 0 ? '' : source[sourceColumns.autoId];
+      if (Core.normalizeAutoId(auto).kind === 'noise') {
+        beforeNoise++; afterNoise++;
+        return;
+      }
+      add(before, sourceIdentity(auto));
+      const record = processed.records[index];
+      const manual = finalColumns.manualId < 0 ? '' : text(record[finalColumns.manualId]);
+      const semi = finalColumns.semi < 0 ? '' : text(record[finalColumns.semi]);
+      const actual = manual || semi;
+      if (!actual) throw new Error('Une identification finale manque pour le contact de la ligne '
+        + (imported.sourceRows && imported.sourceRows[index] || index + 2) + '.');
+      if (manual) manualContacts++;
+      else calculatedContacts++;
+      const identified = identification(actual);
+      if (identified.category === 'noise') afterNoise++;
+      else add(after, identified);
+    });
+
+    const union = new Map();
+    for (const row of [...before.values(), ...after.values()]) {
+      if (!union.has(row.key)) union.set(row.key, { ...row, contacts: 0 });
+      union.get(row.key).contacts += row.contacts;
+    }
+    // One palette is assigned across both populations, before separate sorting
+    // or filtering, so each species keeps the same color in both diagrams.
+    const colors = new Map(Chart.prepare([...union.values()]).rows.map(row => [Chart.rowKey(row), row.color]));
+    const colorize = row => ({ ...row, color: colors.get(Chart.rowKey(row)) });
+    const ordered = map => [...map.values()].map(colorize).sort((a, b) => b.contacts - a.contacts || byName(a, b));
+    const beforeRows = ordered(before), afterRows = ordered(after);
+    const comparisonRows = [...union.values()].map(row => ({ ...colorize(row),
+      before: before.get(row.key)?.contacts || 0, after: after.get(row.key)?.contacts || 0 }))
+      .sort((a, b) => Math.max(b.before, b.after) - Math.max(a.before, a.after) || byName(a, b));
+    const tableRows = afterRows.map(({ scientificName, frenchName, contacts }) => ({ scientificName, frenchName, contacts }))
+      .sort(byName);
+    const sourceContacts = imported.records.length;
+    return { fileName: text(imported.fileName), beforeRows, afterRows, comparisonRows, tableRows,
+      beforeHasAutoId: sourceColumns.autoId >= 0,
+      totals: { sourceContacts, beforeContacts: sourceContacts - beforeNoise, afterContacts: sourceContacts - afterNoise,
+        beforeNoise, afterNoise, manualContacts, calculatedContacts } };
+  }
+
+  return Object.freeze({ build });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./activity-export.js'));
+  else root.PlecotusFinalSummaryVisuals = factory(root.BatReviewCore, root.BatActivityExport);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, ImageExport) {
+  'use strict';
+
+  const numbers = new Intl.NumberFormat('fr-FR');
+  const headers = Object.freeze(['Nom scientifique', 'Nom vernaculaire', 'Nombre de contacts']);
+  const colors = Object.freeze({ before: '#bf8a4a', after: '#1b7663' });
+  const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const label = value => String(value == null ? '' : value);
+  const escape = value => label(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
+    .replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+  const text = (x, y, value, attributes = '') => `<text x="${x}" y="${y}" ${attributes}>${escape(value)}</text>`;
+
+  function checkedRows(rows, keys) {
+    if (!Array.isArray(rows)) throw new TypeError('Les résultats à représenter doivent être une liste.');
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index];
+      if (!own(rows, index) || !row || typeof row !== 'object' || Array.isArray(row)
+        || keys.some(key => !Number.isSafeInteger(row[key]) || row[key] < 0)) {
+        throw new TypeError('Chaque effectif du récapitulatif doit être un entier positif ou nul.');
+      }
+    }
+    return rows;
+  }
+
+  // Estimate Arial glyph widths conservatively so table cells wrap in a plain
+  // exported SVG, without a browser measurement or any external font request.
+  function widthOf(value, size = 15) {
+    let width = 0;
+    for (const character of Array.from(value)) {
+      if (/\p{Mark}/u.test(character)) continue;
+      const base = character.normalize('NFD')[0];
+      width += /[ilI.,:;'’!|]/.test(base) ? .3 : /[mwMW@]/.test(base) ? .95
+        : /[A-Z0-9]/.test(base) ? .72 : /[a-z]/.test(base) ? .6 : /\s/.test(base) ? .35 : 1;
+    }
+    return width * size;
+  }
+
+  function wrap(value, maxWidth, size = 15) {
+    const words = label(value).trim().split(/\s+/u), lines = [];
+    let line = '';
+    for (const word of words) {
+      if (line && widthOf(line + ' ' + word, size) <= maxWidth) { line += ' ' + word; continue; }
+      if (line) { lines.push(line); line = ''; }
+      for (const character of Array.from(word)) {
+        if (line && widthOf(line + character, size) > maxWidth) { lines.push(line); line = ''; }
+        line += character;
+      }
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  function sourceSvg(width, height, title, description, content, id) {
+    return { width, height, svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-title ${id}-description"><title id="${id}-title">${escape(title)}</title><desc id="${id}-description">${escape(description)}</desc><rect width="${width}" height="${height}" fill="#fff"/><g font-family="Arial, Helvetica, sans-serif" font-size="15" fill="#263b31">${content.join('')}</g></svg>` };
+  }
+
+  function comparisonSvg(input, options = {}) {
+    const rows = checkedRows(input, ['before', 'after']);
+    const title = options.title || 'Nombre de contacts par espèce · avant / après';
+    const maximum = Math.max(0, ...rows.flatMap(row => [row.before, row.after]));
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, maximum / 4))));
+    const step = Math.max(1, [1, 2, 5, 10].map(value => value * magnitude).find(value => value >= maximum / 4));
+    const upper = Math.max(step, Math.ceil(maximum / step) * step);
+    const left = Math.max(68, widthOf(numbers.format(upper), 12) + 28), right = 30;
+    const groupWidth = Math.max(100, widthOf(numbers.format(maximum), 12) * 2 + 34);
+    const width = Math.ceil(Math.max(900, left + right + Math.max(1, rows.length) * groupWidth));
+    const titleLines = wrap(title, width - 64, 24);
+    const top = 76 + titleLines.length * 28, plotHeight = 300, baseline = top + plotHeight;
+    const availableWidth = width - left - right, slot = availableWidth / Math.max(1, rows.length);
+    const barWidth = Math.min(30, slot * .27), gap = 8;
+    const labels = rows.map(row => wrap(row.code || row.scientificName || row.frenchName || 'Sans identification', slot - 12, 12));
+    const labelHeight = Math.max(1, ...labels.map(lines => lines.length)) * 17;
+    const height = Math.ceil(baseline + 30 + labelHeight + 30);
+    const parts = titleLines.map((line, index) => text(32, 38 + index * 28, line, 'font-size="24" font-weight="600"'));
+    const legendY = top - 33;
+    parts.push(`<rect x="${left}" y="${legendY - 12}" width="13" height="13" rx="2" fill="${colors.before}"/>`,
+      text(left + 21, legendY, 'Avant · AUTO-ID', 'font-size="13"'),
+      `<rect x="${left + 180}" y="${legendY - 12}" width="13" height="13" rx="2" fill="${colors.after}"/>`,
+      text(left + 201, legendY, 'Après · vérification manuelle', 'font-size="13"'));
+    parts.push(text(left, top - 9, 'Contacts', 'font-size="12" fill="#677066"'));
+    for (let tick = 0; tick <= Math.round(upper / step); tick++) {
+      const value = tick * step, y = baseline - value / upper * plotHeight;
+      parts.push(`<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="${value ? '#e8ece5' : '#788174'}" stroke-width="1"/>`,
+        text(left - 12, y + 4, numbers.format(value), 'text-anchor="end" font-size="12" fill="#677066"'));
+    }
+    parts.push(`<line x1="${left}" y1="${top}" x2="${left}" y2="${baseline}" stroke="#788174" stroke-width="1"/>`);
+    rows.forEach((row, index) => {
+      const centre = left + slot * (index + .5);
+      const names = [row.scientificName, row.frenchName].filter(Boolean).join(' · ');
+      const tooltip = (names || row.code || 'Sans identification') + ' : avant ' + numbers.format(row.before)
+        + ' ; après ' + numbers.format(row.after) + ' contacts';
+      for (const [series, x] of [['before', centre - gap / 2 - barWidth], ['after', centre + gap / 2]]) {
+        const value = row[series], barHeight = value / upper * plotHeight, y = baseline - barHeight;
+        parts.push(`<g data-comparison-key="${escape(row.key || row.code || row.scientificName || index)}" data-series="${series}"><title>${escape(tooltip)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${colors[series]}"/>`,
+          text(x + barWidth / 2, y - 7, numbers.format(value), 'text-anchor="middle" font-size="12" font-weight="600"'), '</g>');
+      }
+      parts.push(`<g><title>${escape(names || row.code)}</title>`);
+      labels[index].forEach((line, lineIndex) => parts.push(text(centre, baseline + 25 + lineIndex * 17, line, 'text-anchor="middle" font-size="12"')));
+      parts.push('</g>');
+    });
+    if (!rows.length) parts.push(text(left + availableWidth / 2, top + plotHeight / 2, 'Aucun contact hors bruit à représenter.', 'text-anchor="middle" font-size="16"'));
+    const description = 'Barres groupées, axe des effectifs à partir de zéro. '
+      + rows.map(row => `${row.scientificName || row.frenchName || row.code} : avant ${row.before}, après ${row.after} contacts`).join(' ; ');
+    return sourceSvg(width, height, title, description, parts, 'final-comparison');
+  }
+
+  function csv(input) {
+    const rows = checkedRows(input, ['contacts']);
+    return '\ufeff' + Core.stringifyCSV(headers, rows.map(row => [Core.spreadsheetSafe(row.scientificName),
+      Core.spreadsheetSafe(row.frenchName), row.contacts]), ';');
+  }
+
+  function tableSvg(input, options = {}) {
+    const rows = checkedRows(input, ['contacts']);
+    const width = 1200, left = 32, right = width - 32, first = 32, second = 494, numeric = 1168;
+    const title = options.title || 'Contacts après vérification manuelle';
+    let y = 45;
+    const parts = [];
+    for (const line of wrap(title, width - 64, 25)) { parts.push(text(left, y, line, 'font-size="25" font-weight="600"')); y += 32; }
+    const total = rows.reduce((sum, row) => sum + row.contacts, 0);
+    if (!Number.isSafeInteger(total)) throw new RangeError('Le total du tableau est trop élevé.');
+    for (const line of wrap((options.fileName ? options.fileName + ' · ' : '') + numbers.format(total) + ' contacts hors bruit · identifications finales, y compris les attributions calculées', width - 64, 14)) {
+      parts.push(text(left, y + 3, line, 'font-size="14" fill="#677066"')); y += 23;
+    }
+    y += 15;
+    parts.push(`<rect x="${left}" y="${y}" width="${right - left}" height="45" fill="#f1f4ed"/>`,
+      text(first + 12, y + 28, headers[0], 'font-weight="600"'),
+      text(second + 12, y + 28, headers[1], 'font-weight="600"'),
+      text(numeric - 12, y + 28, headers[2], 'text-anchor="end" font-weight="600"'));
+    y += 45;
+    rows.forEach((row, index) => {
+      const scientific = wrap(row.scientificName || 'Identification non renseignée', 438, 15);
+      const french = wrap(row.frenchName || 'Nom non renseigné', 438, 15);
+      const rowHeight = Math.max(scientific.length, french.length) * 22 + 24;
+      parts.push(`<g data-table-row="${index}"><rect x="${left}" y="${y}" width="${right - left}" height="${rowHeight}" fill="${index % 2 ? '#f9faf7' : '#fff'}"/>`);
+      scientific.forEach((line, lineIndex) => parts.push(text(first + 12, y + 28 + lineIndex * 22, line, row.isSpecies ? 'font-style="italic"' : '')));
+      french.forEach((line, lineIndex) => parts.push(text(second + 12, y + 28 + lineIndex * 22, line)));
+      parts.push(text(numeric - 12, y + 28, numbers.format(row.contacts), 'text-anchor="end" font-weight="600"'),
+        `<line x1="${left}" y1="${y + rowHeight}" x2="${right}" y2="${y + rowHeight}" stroke="#e5e9df" stroke-width="1"/></g>`);
+      y += rowHeight;
+    });
+    if (!rows.length) { parts.push(text(left + 12, y + 30, 'Aucun contact hors bruit.')); y += 56; }
+    y += 32;
+    return sourceSvg(width, Math.ceil(y), title,
+      `${rows.length} espèces ou catégories, ${total} contacts hors bruit. ` + rows.map(row => `${row.scientificName} · ${row.frenchName} : ${row.contacts}`).join(' ; '), parts, 'final-table');
+  }
+
+  function exportTable(rows, format, options) { return ImageExport.rasterize(tableSvg(rows, options), format, options); }
+  function exportComparison(rows, format, options) { return ImageExport.rasterize(comparisonSvg(rows, options), format, options); }
+  return Object.freeze({ comparisonSvg, tableSvg, csv, exportTable, exportComparison, COLORS: colors });
+});
+
+</script>
+<script>
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./activity-chart.js'), require('./activity-export.js'), require('./final-summary-visuals.js'));
+  else root.PlecotusFinalSummaryUI = factory(root.BatActivityChart, root.BatActivityExport, root.PlecotusFinalSummaryVisuals);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Chart, Images, Visuals) {
+  'use strict';
+
+  const numbers = new Intl.NumberFormat('fr-FR');
+  const count = (value, singular, plural) => numbers.format(value) + ' ' + (value === 1 ? singular : plural);
+
+  function init(options) {
+    const doc = options.document;
+    const node = id => doc.getElementById(id);
+    const screen = node('final-summary');
+    const status = node('final-export-status');
+    const hiddenKeys = new Set();
+    const chartButtons = [...screen.querySelectorAll('[data-summary-chart]')];
+    const tableButtons = [...screen.querySelectorAll('[data-summary-table]')];
+    const modeButtons = [...screen.querySelectorAll('[data-summary-mode]')];
+    let data = null, mode = 'pie', exporting = false, generation = 0;
+    let includePipistrelle = true;
+
+    function applyPreference(reset) {
+      const next = options.getPreferences().includeCommonPipistrelle;
+      if (reset) hiddenKeys.clear();
+      if (reset || next !== includePipistrelle) {
+        for (const row of [...data.beforeRows, ...data.afterRows]) {
+          if (row.key !== 'PIPPIP') continue;
+          if (next) hiddenKeys.delete(Chart.rowKey(row));
+          else hiddenKeys.add(Chart.rowKey(row));
+        }
+      }
+      includePipistrelle = next;
+    }
+
+    function selection(which) {
+      return Chart.select(which === 'before' ? data.beforeRows : data.afterRows, hiddenKeys);
+    }
+
+    function comparisonRows() {
+      return data.comparisonRows.filter(row => !hiddenKeys.has(Chart.rowKey(row)));
+    }
+
+    function updateButtons() {
+      for (const button of chartButtons) {
+        const available = data && (button.dataset.summaryChart === 'comparison'
+          ? comparisonRows().length > 0 : selection(button.dataset.summaryChart).total > 0);
+        button.disabled = exporting || !available;
+      }
+      for (const button of tableButtons) button.disabled = exporting || !data;
+    }
+
+    function renderCharts() {
+      for (const which of ['before', 'after']) {
+        const rows = which === 'before' ? data.beforeRows : data.afterRows;
+        const selected = selection(which);
+        const title = which === 'before' ? 'Avant · AUTO-ID' : 'Après · vérification manuelle';
+        node('final-' + which + '-chart').innerHTML = Chart.render(rows, mode, {
+          interactive: true, hiddenKeys, title, hasAutoId: data.beforeHasAutoId
+        });
+        node('final-' + which + '-caption').textContent = count(selected.total, 'contact représenté', 'contacts représentés')
+          + ' · hors bruit' + (selected.hiddenCount ? ' · ' + count(selected.hiddenCount, 'catégorie masquée', 'catégories masquées') : '');
+      }
+      const visible = comparisonRows();
+      node('final-comparison-chart').innerHTML = visible.length
+        ? Visuals.comparisonSvg(visible).svg
+        : '<p class="activity-chart-empty">Aucune catégorie affichée. Réactivez un élément de la légende.</p>';
+      node('final-filter-note').textContent = 'Cliquez sur une légende pour masquer ou réafficher une espèce dans les trois graphiques. '
+        + 'Les exports des graphiques suivent ces filtres. Le tableau et ses exports conservent tous les contacts hors bruit.';
+      for (const button of modeButtons) button.setAttribute('aria-pressed', String(button.dataset.summaryMode === mode));
+      for (const scrollable of screen.querySelectorAll('.activity-legend, .activity-bar-list')) scrollable.tabIndex = 0;
+      updateButtons();
+    }
+
+    function renderTable() {
+      const body = node('final-contacts-body');
+      body.replaceChildren();
+      for (const row of tableRowsFor(data)) {
+        const line = doc.createElement('tr');
+        for (const [index, value] of [row.scientificName, row.frenchName, numbers.format(row.contacts)].entries()) {
+          const cell = doc.createElement('td');
+          if (!index && row.isSpecies) {
+            const scientific = doc.createElement('i');
+            scientific.textContent = value;
+            cell.append(scientific);
+          } else cell.textContent = value;
+          line.append(cell);
+        }
+        body.append(line);
+      }
+      node('final-table-empty').hidden = Boolean(data.tableRows.length);
+      node('final-table-total').textContent = numbers.format(data.totals.afterContacts);
+    }
+
+    function tableRowsFor(summary) {
+      const species = new Set(summary.afterRows.filter(row => row.isSpecies).map(Chart.rowKey));
+      return summary.tableRows.map(row => ({ ...row, isSpecies: species.has(Chart.rowKey(row)) }));
+    }
+
+    function show() {
+      const next = options.getData(); // Rebuild and verify the full completion gate.
+      if (!next) return false;
+      data = next;
+      generation++;
+      exporting = false;
+      applyPreference(true);
+      status.textContent = '';
+      const totals = data.totals;
+      node('final-summary-totals').textContent = count(totals.sourceContacts, 'contact dans le fichier', 'contacts dans le fichier')
+        + ' · ' + count(totals.beforeContacts, 'contact hors bruit avant', 'contacts hors bruit avant')
+        + ' · ' + count(totals.afterContacts, 'contact hors bruit après', 'contacts hors bruit après');
+      node('final-summary-origin').textContent = count(totals.manualContacts, 'contact contrôlé manuellement', 'contacts contrôlés manuellement')
+        + ' · ' + count(totals.calculatedContacts, 'attribution calculée', 'attributions calculées')
+        + ' · bruit : ' + numbers.format(totals.beforeNoise) + ' avant / ' + numbers.format(totals.afterNoise) + ' après.';
+      renderCharts();
+      renderTable();
+      screen.hidden = false;
+      node('final-summary-heading').focus();
+      return true;
+    }
+
+    function hide() {
+      screen.hidden = true;
+      data = null;
+      generation++;
+      exporting = false;
+      status.textContent = '';
+    }
+
+    function refresh() {
+      if (screen.hidden || !data) return;
+      applyPreference(false);
+      renderCharts();
+    }
+
+    function download(result, name) {
+      const url = URL.createObjectURL(result.blob);
+      const link = doc.createElement('a');
+      link.href = url;
+      link.download = name + '.' + result.extension;
+      doc.body.append(link);
+      try { link.click(); }
+      finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    }
+
+    async function exportResult(kind, format) {
+      if (!data || screen.hidden || exporting) return;
+      const version = generation;
+      const current = data;
+      const stem = current.fileName.replace(/\.[^.]+$/, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 100) || 'contacts';
+      exporting = true;
+      updateButtons();
+      status.textContent = 'Préparation de l’export…';
+      try {
+        let result;
+        if (kind === 'table') {
+          const rows = tableRowsFor(current);
+          result = format === 'csv'
+            ? { blob: new Blob([Visuals.csv(rows)], { type: 'text/csv;charset=utf-8' }), extension: 'csv' }
+            : await Visuals.exportTable(rows, format, { title: 'Contacts après vérification manuelle', fileName: current.fileName });
+        } else if (kind === 'comparison') {
+          result = await Visuals.exportComparison(comparisonRows(), format, { title: 'Comparaison avant / après vérification manuelle' });
+        } else {
+          const before = kind === 'before';
+          const selected = selection(kind);
+          if (!selected.total) return;
+          result = await Images.exportBlob(selected.rows, mode, format, {
+            title: before ? 'Avant · AUTO-ID' : 'Après · vérification manuelle',
+            source: before ? 'auto-id' : 'manual',
+            totalContacts: current.totals.sourceContacts,
+            hasAutoId: current.beforeHasAutoId,
+            ...(before ? { noiseContacts: current.totals.beforeNoise } : { ignoredNoise: current.totals.afterNoise }),
+            hiddenContacts: selected.hiddenContacts, hiddenCategories: selected.hiddenCount
+          });
+        }
+        if (version !== generation) return;
+        const suffix = kind === 'table' ? 'contacts_verifies' : kind === 'comparison' ? 'comparaison_avant_apres'
+          : kind === 'before' ? 'avant_autoid' : 'apres_verification';
+        download(result, stem + '_' + suffix);
+        status.textContent = 'Export ' + result.extension.toUpperCase() + ' téléchargé.';
+      } catch (error) {
+        if (version === generation) status.textContent = error.message || 'Impossible de préparer l’export.';
+      } finally {
+        if (version === generation) { exporting = false; updateButtons(); }
+      }
+    }
+
+    node('final-summary-back').addEventListener('click', () => {
+      hide();
+      options.onBack();
+    });
+    for (const button of modeButtons) button.addEventListener('click', () => {
+      if (!data) return;
+      mode = button.dataset.summaryMode;
+      renderCharts();
+    });
+    for (const button of chartButtons) button.addEventListener('click', () => exportResult(button.dataset.summaryChart, button.dataset.summaryFormat));
+    for (const button of tableButtons) button.addEventListener('click', () => exportResult('table', button.dataset.summaryTable));
+    screen.addEventListener('click', event => {
+      const button = event.target.closest('button[data-chart-key]');
+      if (!button || !screen.contains(button) || !data) return;
+      const key = button.dataset.chartKey;
+      const host = button.closest('[id="final-before-chart"], [id="final-after-chart"]');
+      const scrollable = button.closest('.activity-legend, .activity-bar-list');
+      const scrollTop = scrollable ? scrollable.scrollTop : 0;
+      if (hiddenKeys.has(key)) hiddenKeys.delete(key);
+      else hiddenKeys.add(key);
+      renderCharts();
+      if (host) {
+        const restored = [...host.querySelectorAll('button[data-chart-key]')].find(item => item.dataset.chartKey === key);
+        if (restored) {
+          restored.focus({ preventScroll: true });
+          const list = restored.closest('.activity-legend, .activity-bar-list');
+          if (list) list.scrollTop = scrollTop;
+        }
+      }
+    });
+    return Object.freeze({ show, hide, refresh });
   }
 
   return Object.freeze({ init });
@@ -3757,6 +4433,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       uiPreferences = next;
       updateDebugControls();
       if (currentManualPlan) manualScreens.refresh();
+      finalScreens.refresh();
       if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
         applyPipistrelleDefault();
         chartStatus.textContent = '';
@@ -3788,7 +4465,20 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     renderContactCard: createManualContactCard,
     setMany: (indices, status) => currentDecisions.setMany(indices, status),
     onDecisionsChanged: () => syncDecisions(false),
-    onBackToBest: showSpecies
+    onBackToBest: showSpecies,
+    onFinalize() {
+      try {
+        if (finalScreens.show()) manualScreens.hide();
+      } catch (error) {
+        document.getElementById('manual-finalize-status').textContent = error.message || 'Impossible de préparer le récapitulatif.';
+      }
+    }
+  });
+  const finalScreens = PlecotusFinalSummaryUI.init({
+    document,
+    getData: () => PlecotusFinalSummaryData.build(currentImport, buildManualPlan()),
+    getPreferences: () => uiPreferences,
+    onBack: () => manualScreens.showPlan()
   });
 
   function buildManualPlan() {
@@ -4034,6 +4724,7 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
     currentDecisions = null;
     currentBestContacts = [];
     currentManualPlan = null;
+    finalScreens.hide();
     manualScreens.hide();
     updateDebugControls();
     chartData = null;

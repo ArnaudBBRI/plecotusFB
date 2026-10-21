@@ -1,0 +1,54 @@
+.manual-method-column { position: sticky; top: 1rem; display: grid; align-content: start; gap: 1rem; min-width: 0; }
+.manual-method-column .manual-method { position: static; max-height: max(12rem, calc(100svh - 12rem)); }
+.manual-finalize { padding: 1.1rem 1.25rem; border: 1px solid #e2e7dc; border-radius: .65rem; background: #fff; }
+.manual-finalize button { width: 100%; padding: .85rem 1rem; border: 1px solid #33452b; border-radius: .4rem; background: #33452b; color: #fff; font: inherit; font-size: .85rem; cursor: pointer; }
+.manual-finalize button:hover { background: #26351f; }
+.manual-finalize button:disabled { background: #eff1ec; color: #808676; border-color: #e2e7dc; cursor: default; }
+.manual-finalize p { margin: .65rem 0 0; color: #646960; font-size: .75rem; line-height: 1.6; }
+
+.final-summary h2 { margin: 1.8rem 0 .75rem; font-size: 1.55rem; font-weight: 550; }
+.final-summary h3 { margin: 0; color: #33452b; font-size: 1rem; font-weight: 550; }
+.final-summary-totals { color: #535a4c; font-size: .85rem; line-height: 1.7; }
+.final-summary-origin, .final-summary-note, .final-filter-note { color: #777e72; font-size: .75rem; line-height: 1.7; }
+.final-summary-note { max-width: 72rem; }
+.final-summary-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin: 1.4rem 0 .6rem; }
+.final-summary-toolbar > span { color: #535a4c; font-size: .8rem; }
+.final-summary-mode, .final-export-buttons { display: flex; flex-wrap: wrap; gap: .35rem; }
+.final-summary :is(.final-summary-mode, .final-export-buttons) button { min-height: 2rem; padding: .4rem .65rem; border: 1px solid #d6d8d2; border-radius: .3rem; background: #fff; color: #535a4c; font: inherit; font-size: .75rem; cursor: pointer; }
+.final-summary .final-summary-mode button[aria-pressed="true"] { border-color: #33452b; background: #33452b; color: #fff; }
+.final-summary .final-export-buttons button:hover { background: #f5f6f3; border-color: #aeb3a7; }
+.final-summary .final-export-buttons button:disabled { background: #f6f7f4; color: #92978c; cursor: default; }
+.final-summary :is(button, [tabindex="0"]):focus-visible, .manual-finalize button:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+.final-chart-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.final-chart-card.import-distribution { min-width: 0; margin: 0; padding: 1.25rem; }
+.final-chart-card .final-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+.final-chart-card .final-chart-heading p { margin: .4rem 0 0; color: #777e72; font-size: .7rem; line-height: 1.5; }
+.final-chart-card .activity-chart-layout { grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 1rem; }
+.final-chart-card .activity-chart-svg { max-width: 180px; }
+.final-chart-card .activity-chart-many { grid-template-columns: minmax(0, 1fr); }
+.final-comparison, .final-contacts { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e8e9e6; border-radius: .75rem; background: #fff; }
+.final-section-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: .8rem; }
+.final-section-heading p { margin: .45rem 0 0; color: #777e72; font-size: .75rem; line-height: 1.6; }
+.final-comparison-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: thin; }
+.final-comparison-scroll svg { display: block; max-width: none; height: auto; }
+.final-table-scroll { max-width: 100%; overflow-x: auto; }
+.final-contacts table { width: 100%; border-collapse: collapse; color: #343c2e; font-size: .8rem; }
+.final-contacts :is(th, td) { padding: .85rem .8rem; border-bottom: 1px solid #e8ece3; text-align: left; overflow-wrap: anywhere; }
+.final-contacts th { background: #f6f7f3; font-size: .72rem; color: #646960; font-weight: 550; }
+.final-contacts :is(th, td):last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.final-contacts tfoot th, .final-contacts tfoot td { background: #fafbf8; color: #33452b; font-weight: 600; }
+.final-export-status { margin: 1rem 0; color: #535a4c; font-size: .8rem; line-height: 1.6; }
+.final-table-empty { color: #777e72; font-size: .8rem; }
+
+@media (max-width: 900px) {
+  .manual-method-column { position: static; }
+  .manual-method-column .manual-method { max-height: none; overflow-y: visible; }
+  .final-chart-pair { grid-template-columns: minmax(0, 1fr); }
+  .final-chart-card .activity-chart-layout { grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); }
+  .final-chart-card .activity-chart-many { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .final-chart-card .activity-chart-layout { grid-template-columns: minmax(0, 1fr); }
+  .final-contacts :is(th, td) { padding: .65rem .5rem; }
+  .final-contacts { padding: 1rem .75rem; }
+}

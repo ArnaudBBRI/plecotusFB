@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="best-contacts.css">
   <link rel="stylesheet" href="review-actions.css">
   <link rel="stylesheet" href="manual-review.css">
+  <link rel="stylesheet" href="final-summary.css">
   <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
   <script defer src="core.js"></script>
   <script defer src="kaleidoscope.js"></script>
@@ -25,6 +26,9 @@
   <script defer src="proportional-allocation.js"></script>
   <script defer src="manual-workflow.js"></script>
   <script defer src="manual-review-ui.js"></script>
+  <script defer src="final-summary-data.js"></script>
+  <script defer src="final-summary-visuals.js"></script>
+  <script defer src="final-summary-ui.js"></script>
   <script defer src="wav-opening.js"></script>
   <script defer src="welcome.js"></script>
 </head>
@@ -148,6 +152,7 @@
               <tbody id="manual-species-rows"></tbody>
             </table>
           </div>
+          <div class="manual-method-column">
           <aside class="manual-method" aria-labelledby="manual-method-heading" tabindex="0">
             <h3 id="manual-method-heading">Quels contacts faut-il vérifier ?</h3>
             <p>Les AUTO-ID d’une espèce sont repris dans <strong>SEMIMANUAL ID</strong> lorsque ces trois conditions sont remplies :</p>
@@ -163,6 +168,11 @@
             <p>Une fois l’échantillon entièrement identifié, les contacts restants reçoivent une identification dans <strong>SEMIMANUAL ID au prorata des identifications manuelles</strong> du groupe. Les arrondis par les plus forts restes conservent le nombre total de contacts. Les contacts déjà identifiés à la main gardent leur identification.</p>
             <p>Les barres suivent les <strong>contrôles supplémentaires terminés</strong>. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu. L’attribution au prorata est une estimation des effectifs sur les contacts non écoutés.</p>
           </aside>
+          <div class="manual-finalize">
+            <button id="manual-finalize-button" type="button" aria-describedby="manual-finalize-status" disabled>Finaliser la vérification →</button>
+            <p id="manual-finalize-status" role="status"></p>
+          </div>
+          </div>
         </div>
       </section>
       <section id="manual-species-detail" aria-labelledby="manual-species-heading" hidden>
@@ -171,6 +181,76 @@
         <p id="manual-species-summary" role="status"></p>
         <p id="manual-species-method"></p>
         <div class="manual-contact-list" id="manual-contact-list"></div>
+      </section>
+      <section class="final-summary" id="final-summary" aria-labelledby="final-summary-heading" hidden>
+        <button class="manual-back-button" id="final-summary-back" type="button">← Retour aux contrôles</button>
+        <h2 id="final-summary-heading" tabindex="-1">Récapitulatif de la vérification</h2>
+        <p class="final-summary-totals" id="final-summary-totals"></p>
+        <p class="final-summary-origin" id="final-summary-origin"></p>
+        <p class="final-summary-note">Les contacts identifiés à la main gardent leur identification. Les autres proviennent de la validation des AUTO-ID ou d’une attribution au prorata : cette estimation des effectifs n’est pas une identification acoustique de chaque WAV non écouté.</p>
+        <div class="final-summary-toolbar">
+          <span>Répartition avant / après</span>
+          <div class="final-summary-mode" role="group" aria-label="Présentation des répartitions">
+            <button type="button" data-summary-mode="pie" aria-pressed="true">Camemberts</button>
+            <button type="button" data-summary-mode="bar" aria-pressed="false">Barres</button>
+          </div>
+        </div>
+        <p class="final-filter-note" id="final-filter-note"></p>
+        <div class="final-chart-pair">
+          <section class="final-chart-card import-distribution" aria-labelledby="final-before-heading">
+            <div class="final-chart-heading">
+              <div><h3 id="final-before-heading">Avant · AUTO-ID</h3><p id="final-before-caption"></p></div>
+              <div class="final-export-buttons" role="group" aria-label="Exporter le graphique avant">
+                <button type="button" data-summary-chart="before" data-summary-format="png">PNG</button>
+                <button type="button" data-summary-chart="before" data-summary-format="jpeg">JPEG</button>
+                <button type="button" data-summary-chart="before" data-summary-format="svg">SVG</button>
+              </div>
+            </div>
+            <div id="final-before-chart"></div>
+          </section>
+          <section class="final-chart-card import-distribution" aria-labelledby="final-after-heading">
+            <div class="final-chart-heading">
+              <div><h3 id="final-after-heading">Après · vérification manuelle</h3><p id="final-after-caption"></p></div>
+              <div class="final-export-buttons" role="group" aria-label="Exporter le graphique après">
+                <button type="button" data-summary-chart="after" data-summary-format="png">PNG</button>
+                <button type="button" data-summary-chart="after" data-summary-format="jpeg">JPEG</button>
+                <button type="button" data-summary-chart="after" data-summary-format="svg">SVG</button>
+              </div>
+            </div>
+            <div id="final-after-chart"></div>
+          </section>
+        </div>
+        <section class="final-comparison" aria-labelledby="final-comparison-heading">
+          <div class="final-section-heading">
+            <div><h3 id="final-comparison-heading">Effectifs par espèce · avant / après</h3><p>Deux barres par espèce, une même échelle en nombre de contacts. Faites défiler horizontalement si nécessaire.</p></div>
+            <div class="final-export-buttons" role="group" aria-label="Exporter la comparaison avant après">
+              <button type="button" data-summary-chart="comparison" data-summary-format="png">PNG</button>
+              <button type="button" data-summary-chart="comparison" data-summary-format="jpeg">JPEG</button>
+              <button type="button" data-summary-chart="comparison" data-summary-format="svg">SVG</button>
+            </div>
+          </div>
+          <div class="final-comparison-scroll" id="final-comparison-chart" tabindex="0" role="region" aria-label="Graphique comparatif avant après par espèce"></div>
+        </section>
+        <section class="final-contacts" aria-labelledby="final-contacts-heading">
+          <div class="final-section-heading">
+            <div><h3 id="final-contacts-heading">Tableau des contacts après vérification</h3><p>Tous les contacts hors bruit, y compris les attributions calculées et les catégories NoID. Les filtres des graphiques ne modifient pas ce tableau.</p></div>
+            <div class="final-export-buttons" role="group" aria-label="Exporter le tableau des contacts">
+              <button type="button" data-summary-table="csv">CSV</button>
+              <button type="button" data-summary-table="png">PNG</button>
+              <button type="button" data-summary-table="jpeg">JPEG</button>
+              <button type="button" data-summary-table="svg">SVG</button>
+            </div>
+          </div>
+          <div class="final-table-scroll" tabindex="0" role="region" aria-label="Contacts par nom scientifique et nom commun">
+            <table>
+              <thead><tr><th scope="col">Nom scientifique</th><th scope="col">Nom vernaculaire</th><th scope="col">Nombre de contacts</th></tr></thead>
+              <tbody id="final-contacts-body"></tbody>
+              <tfoot><tr><th scope="row" colspan="2">Total hors bruit</th><td id="final-table-total"></td></tr></tfoot>
+            </table>
+          </div>
+          <p class="final-table-empty" id="final-table-empty" hidden>Aucun contact hors bruit après vérification.</p>
+        </section>
+        <p class="final-export-status" id="final-export-status" role="status"></p>
       </section>
     </div>
   </main>

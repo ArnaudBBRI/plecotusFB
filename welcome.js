@@ -38,6 +38,7 @@
       uiPreferences = next;
       updateDebugControls();
       if (currentManualPlan) manualScreens.refresh();
+      finalScreens.refresh();
       if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
         applyPipistrelleDefault();
         chartStatus.textContent = '';
@@ -69,7 +70,20 @@
     renderContactCard: createManualContactCard,
     setMany: (indices, status) => currentDecisions.setMany(indices, status),
     onDecisionsChanged: () => syncDecisions(false),
-    onBackToBest: showSpecies
+    onBackToBest: showSpecies,
+    onFinalize() {
+      try {
+        if (finalScreens.show()) manualScreens.hide();
+      } catch (error) {
+        document.getElementById('manual-finalize-status').textContent = error.message || 'Impossible de préparer le récapitulatif.';
+      }
+    }
+  });
+  const finalScreens = PlecotusFinalSummaryUI.init({
+    document,
+    getData: () => PlecotusFinalSummaryData.build(currentImport, buildManualPlan()),
+    getPreferences: () => uiPreferences,
+    onBack: () => manualScreens.showPlan()
   });
 
   function buildManualPlan() {
@@ -315,6 +329,7 @@
     currentDecisions = null;
     currentBestContacts = [];
     currentManualPlan = null;
+    finalScreens.hide();
     manualScreens.hide();
     updateDebugControls();
     chartData = null;
