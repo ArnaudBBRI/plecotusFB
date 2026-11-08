@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const root = __dirname;
-const read = name => fs.readFileSync(path.join(root, name), 'utf8');
+const read = name => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n?/g, '\n');
 let html = read('index.html');
 
 for (const name of ['assets/branding/plecotus-bat.css', 'welcome.css', 'assets/branding/header-bat.css', 'import-chart.css', 'best-contacts.css', 'review-actions.css', 'manual-review.css', 'final-summary.css', 'species-tooltip.css', 'timeline.css', 'contact-context.css', 'unresolved-review.css']) {

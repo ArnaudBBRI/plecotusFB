@@ -67,6 +67,8 @@ Les catégories NoID, groupes et noms non reconnus gardent leurs données,
 sans photographie attribuée à une espèce supposée.
 
 CHRONOLOGIE DES CONTACTS
+La surface sous la courbe est remplie d’un dégradé vertical :
+#C3C975 en bas et #7bc0e1 en haut, également dans les exports.
 Le résumé du fichier affiche « Les contacts au fil du temps » : une courbe
 avec les dates et heures du fichier et le nombre de contacts par tranche
 de 10 minutes, alignée sur l’horloge (00, 10, 20, 30, 40 et 50 minutes).

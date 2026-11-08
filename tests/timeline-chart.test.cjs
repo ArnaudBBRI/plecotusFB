@@ -33,8 +33,10 @@ test('timeline geometry preserves chronological spacing, zero gaps and proportio
   assert.match(result.svg, /09\/11\/2026 00:00/);
   assert.match(result.svg, /08\/11\/2026 23:00/);
   assert.match(result.svg, /0 contact/);
-  assert.match(result.svg, /fill-opacity="0\.[\d]+"/);
-  assert.doesNotMatch(result.svg, /NaN|Infinity|<image|<script|[CSQ]\s*[\d.-]/);
+  const paths = [...result.svg.matchAll(/<path\b[^>]*d="([^"]*)"[^>]*>/g)];
+  assert.ok(paths.some(match => / Z$/.test(match[1])), 'the area closes below the line');
+  for (const path of paths) assert.doesNotMatch(path[1], /[CSQ]\s*[\d.-]/);
+  assert.doesNotMatch(result.svg, /NaN|Infinity|<image|<script/);
   assert.deepEqual(source, before);
 });
 

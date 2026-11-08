@@ -9,6 +9,7 @@
     character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   const count = value => counts.format(value) + (value === 1 ? ' contact' : ' contacts');
   const pad = value => String(value).padStart(2, '0');
+  let nextGradientId = 0;
 
   // These are synthetic UTC milliseconds carrying the source wall clock. UTC
   // accessors preserve it, independently of browser timezone or summer time.
@@ -133,7 +134,12 @@
         y: baseline - bin.contacts / scale.upper * (baseline - top) }));
       const line = points.map(({ x, y }, index) => (index ? 'L ' : 'M ') + x + ' ' + y).join(' ');
       const area = line + ' L ' + points.at(-1).x + ' ' + baseline + ' L ' + points[0].x + ' ' + baseline + ' Z';
-      parts.push('<path d="' + area + '" fill="#4f7651" fill-opacity="0.12"/>',
+      const gradientId = 'timeline-area-gradient-' + (++nextGradientId);
+      const areaTop = points.reduce((minimum, point) => Math.min(minimum, point.y), baseline);
+      parts.push('<defs><linearGradient id="' + gradientId + '" gradientUnits="userSpaceOnUse" x1="0" y1="' + baseline
+        + '" x2="0" y2="' + (areaTop < baseline ? areaTop : top) + '"><stop offset="0%" stop-color="#C3C975"/>'
+        + '<stop offset="100%" stop-color="#7bc0e1"/></linearGradient></defs>',
+        '<path d="' + area + '" fill="url(#' + gradientId + ')"/>',
         '<path d="' + line + '" fill="none" stroke="#3c6844" stroke-width="2.3" stroke-linejoin="round"/>',
         '<path d="M ' + left + ' ' + top + ' V ' + baseline + ' H ' + right + '" fill="none" stroke="#68765f"/>');
       const span = Math.round((last - first) / data.intervalMs);

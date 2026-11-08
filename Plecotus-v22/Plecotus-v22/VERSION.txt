@@ -86,3 +86,7 @@ identifications à reprendre. Une fiche à la fois, historique Précédent/Suiva
 passage après identification ou nouveau report, bilan et reprise des contacts
 restants. Commentaires, WAV et Contexte conservés ; tentatives incomplètes
 gardées à reprendre et réinitialisation sûre lors d’un nouvel import.
+
+Ajustement v22 (2026-11-08) : aire sous la courbe temporelle remplie
+d’un dégradé vertical, #C3C975 en bas et #7bc0e1 en haut, à l’écran
+et dans les exports PNG/JPEG/SVG.
