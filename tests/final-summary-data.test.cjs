@@ -39,7 +39,8 @@ test('completed workflow reconciles AUTO IDs with genuine 60/40 manual proportio
   assert.deepEqual(result.beforeRows.map(row => [row.code, row.contacts]), [['NYCNOC', 50], ['PIPPIP', 10], ['NoID', 2]]);
   assert.deepEqual(result.afterRows.map(row => [row.code, row.contacts]), [['NYCNOC', 30], ['MYODAU', 20], ['PIPPIP', 10], ['NoID', 2]]);
   assert.deepEqual(result.totals, { sourceContacts: 63, beforeContacts: 62, afterContacts: 62,
-    beforeNoise: 1, afterNoise: 1, manualContacts: 13, calculatedContacts: 49 });
+    beforeNoise: 1, afterNoise: 1, manualContacts: 12, calculatedContacts: 50 });
+  assert.equal(completed.groups.find(group => group.label === 'NoID').sampleTarget, 1);
   assert.equal(result.tableRows.find(row => row.scientificName === 'Myotis daubentonii').frenchName, 'Murin de Daubenton');
   assert.equal(result.tableRows.reduce((sum, row) => sum + row.contacts, 0), 62);
   assert.ok(result.tableRows.every(row => Object.keys(row).join(',') === 'scientificName,frenchName,contacts'));
@@ -132,10 +133,14 @@ test('incomplete controls, unresolved final IDs and ambiguous or malformed data 
   const imported = source(['NYCNOC']);
   const plan = ready(imported, [{ manual: 'NYCNOC' }]);
   for (const change of [{ ready: false }, { assignmentReady: false }, { remaining: 1 },
-    { pendingIdentificationIndices: [0] }, { pendingBestIndices: [0] }]) {
+    { pendingIdentificationIndices: [0] }, { pendingBestIndices: [0] }, { unresolvedIndices: [0] }]) {
     assert.throws(() => Summary.build(imported, { ...plan, ...change }), /Terminez tous les contrôles/);
   }
   assert.throws(() => Summary.build(imported, ready(imported, [{}])), /identification finale manque/);
+  for (const label of ['Identification incertaine/non résolue', 'Uncertain / unresolved']) {
+    assert.throws(() => Summary.build(imported, ready(imported, [{ manual: label }])), /reste à reprendre/);
+    assert.throws(() => Summary.build(imported, ready(imported, [{ semi: label }])), /reste à reprendre/);
+  }
   const shorter = structuredClone(plan); shorter.processed.records = [];
   assert.throws(() => Summary.build(imported, shorter), /mêmes contacts/);
   const bad = structuredClone(plan); bad.processed.headers.push('semimanual_id');

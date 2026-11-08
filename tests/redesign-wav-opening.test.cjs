@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Wav = require('../wav-opening.js');
+const Settings = require('../review-settings.js');
+const legacy = ({ reviewSettings, reviewer, ...preferences }) => preferences;
 
 const key = 'plecotus.preferences.v1';
 const kaleidoscope = 'C:\\Logiciels\\kaleidoscope.exe';
@@ -28,7 +30,14 @@ function ui(preferences = {}, options = {}) {
   const values = options.values || new Map([[key, JSON.stringify(preferences)]]);
   const calls = [], statuses = [], preferenceChanges = [];
   const storage = options.storage || { getItem: k => values.get(k) ?? null, setItem: (k, value) => values.set(k, value) };
+  const reviewEditor = {
+    draft: Settings.normalize(),
+    set(value) { this.draft = Settings.normalize(value); },
+    get() { return Settings.normalize(this.draft); },
+    focusInvalid() { this.focused = true; }
+  };
   const h = Wav.init({
+    reviewSettingsUI: reviewEditor,
     document: { getElementById: node, querySelector: () => options.token === false ? null : { content: 'local-test-token' } },
     location: { origin: options.origin || 'http://127.0.0.1:4174' }, storage,
     onStatus: (message, isError) => statuses.push({ message, isError }),
@@ -39,7 +48,7 @@ function ui(preferences = {}, options = {}) {
       return options.response || { ok: true, status: 200, json: async () => ({ ok: true }) };
     }
   });
-  return { h, node, calls, statuses, values, preferenceChanges,
+  return { h, node, calls, statuses, values, preferenceChanges, reviewEditor,
     open: () => node('open-settings').fire('click'),
     choose: id => { node('wav-settings-viewer').value = id; node('wav-settings-viewer').fire('change'); },
     save: () => node('wav-settings-form').fire('submit'),
@@ -54,7 +63,7 @@ test('configured WAV opening resolves source INDIR and FOLDER and sends only the
   assert.equal(app.calls[0].url, '/api/open-recording');
   assert.equal(app.calls[0].method, 'POST');
   assert.deepEqual(app.calls[0].headers, { 'Content-Type': 'application/json', 'X-Plecotus-Token': 'local-test-token' });
-  assert.deepEqual(app.calls[0].body, { viewer: 'kaleidoscope', executable: kaleidoscope, file: 'C:\\Sons de terrain\\Nuit 1\\contact.wav' });
+  assert.deepEqual(app.calls[0].body, { viewer: 'kaleidoscope', executable: kaleidoscope, file: 'C:\\Sons de terrain\\Nuit 1\\contact.wav', searchFolders: [] });
   assert.ok(app.calls[0].signal instanceof AbortSignal);
   assert.equal(JSON.stringify(imported), before);
   assert.match(app.statuses.at(-1).message, /Ouverture demandée dans Kaleidoscope/);
@@ -63,7 +72,7 @@ test('configured WAV opening resolves source INDIR and FOLDER and sends only the
 test('the selected ChiroSurf path is used and absolute WAV paths take precedence', async () => {
   const app = ui({ wavViewer: 'chirosurf', kaleidoscopeExecutable: kaleidoscope, chirosurfExecutable: chirosurf });
   await app.h.openContact(imported, { recordIndex: 1 });
-  assert.deepEqual(app.calls[0].body, { viewer: 'chirosurf', executable: chirosurf, file: '\\\\serveur\\sons\\autre.wav' });
+  assert.deepEqual(app.calls[0].body, { viewer: 'chirosurf', executable: chirosurf, file: '\\\\serveur\\sons\\autre.wav', searchFolders: [] });
 });
 
 test('missing selected executable opens settings without falling back to another configured software', async () => {
@@ -89,7 +98,7 @@ test('settings preserve separate software paths, accept Explorer quotes and keep
   assert.equal(app.node('wav-settings').open, false);
   assert.deepEqual(app.saved(), { reviewer: 'AB', wavViewer: 'chirosurf',
     kaleidoscopeExecutable: 'E:\\Applications\\kaleidoscope.exe', chirosurfExecutable: chirosurf,
-    debugMode: false, includeCommonPipistrelle: true });
+    debugMode: false, includeCommonPipistrelle: true, wavSearchFolders: [], reviewSettings: Settings.normalize() });
   assert.equal(app.calls.length, 0, 'saving does not launch a WAV');
   const reloaded = ui({}, { values: app.values });
   await reloaded.h.openContact(imported, { recordIndex: 0 });
@@ -197,7 +206,7 @@ test('new settings use strict boolean defaults and do not notify during initiali
   for (const preferences of [{}, { debugMode: 'true', includeCommonPipistrelle: 'false' },
     { debugMode: 1, includeCommonPipistrelle: 0 }, { debugMode: null, includeCommonPipistrelle: null }]) {
     const app = ui(preferences);
-    assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+    assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: false, includeCommonPipistrelle: true });
     assert.equal(app.preferenceChanges.length, 0);
     app.open();
     assert.equal(app.node('settings-debug-mode').checked, false);
@@ -210,19 +219,19 @@ test('new settings use strict boolean defaults and do not notify during initiali
 
 test('debug and common pipistrelle preferences persist and hydrate false values without coercion', () => {
   const app = ui({ reviewer: 'AB', debugMode: false, includeCommonPipistrelle: false });
-  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: false });
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: false, includeCommonPipistrelle: false });
   app.open();
   assert.equal(app.node('settings-debug-mode').checked, false);
   assert.equal(app.node('settings-common-pipistrelle').value, 'no');
   app.node('settings-debug-mode').checked = true;
   app.node('settings-common-pipistrelle').value = 'yes';
   app.save();
-  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: true });
-  assert.deepEqual(app.preferenceChanges, [{ next: { debugMode: true, includeCommonPipistrelle: true },
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: true, includeCommonPipistrelle: true });
+  assert.deepEqual(app.preferenceChanges.map(({next, previous}) => ({next: legacy(next), previous: legacy(previous)})), [{ next: { debugMode: true, includeCommonPipistrelle: true },
     previous: { debugMode: false, includeCommonPipistrelle: false } }]);
   assert.equal(app.saved().reviewer, 'AB');
   const reloaded = ui({}, { values: app.values });
-  assert.deepEqual(reloaded.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: true });
+  assert.deepEqual(legacy(reloaded.h.getPreferences()), { debugMode: true, includeCommonPipistrelle: true });
   assert.equal(reloaded.preferenceChanges.length, 0);
   reloaded.open();
   reloaded.node('settings-debug-mode').checked = false;
@@ -230,7 +239,7 @@ test('debug and common pipistrelle preferences persist and hydrate false values 
   reloaded.save();
   assert.equal(reloaded.saved().debugMode, false);
   assert.equal(reloaded.saved().includeCommonPipistrelle, false);
-  assert.deepEqual(ui({}, { values: app.values }).h.getPreferences(), { debugMode: false, includeCommonPipistrelle: false });
+  assert.deepEqual(legacy(ui({}, { values: app.values }).h.getPreferences()), { debugMode: false, includeCommonPipistrelle: false });
 });
 
 test('viewer changes keep pending preference edits and cancelling discards them', () => {
@@ -242,7 +251,7 @@ test('viewer changes keep pending preference edits and cancelling discards them'
   app.choose('kaleidoscope');
   assert.equal(app.node('settings-debug-mode').checked, true);
   assert.equal(app.node('settings-common-pipistrelle').value, 'no');
-  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: false, includeCommonPipistrelle: true });
   app.node('wav-settings-cancel').fire('click');
   app.open();
   assert.equal(app.node('settings-debug-mode').checked, false);
@@ -258,7 +267,7 @@ test('an invalid executable prevents partial preference saves and notifications'
   app.node('wav-settings-executable').value = 'C:\\Windows\\System32\\cmd.exe';
   app.save();
   assert.equal(app.node('wav-settings').open, true);
-  assert.deepEqual(app.h.getPreferences(), { debugMode: false, includeCommonPipistrelle: true });
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: false, includeCommonPipistrelle: true });
   assert.equal(app.saved().debugMode, false);
   assert.equal(app.saved().includeCommonPipistrelle, true);
   assert.equal(app.preferenceChanges.length, 0);
@@ -266,7 +275,7 @@ test('an invalid executable prevents partial preference saves and notifications'
   assert.equal(app.node('settings-common-pipistrelle').value, 'no');
   app.node('wav-settings-executable').value = kaleidoscope;
   app.save();
-  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: false });
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: true, includeCommonPipistrelle: false });
   assert.equal(app.preferenceChanges.length, 1);
 });
 
@@ -276,8 +285,53 @@ test('a valid save notifies preference changes even when persistent storage is u
   app.node('settings-debug-mode').checked = true;
   app.node('settings-common-pipistrelle').value = 'no';
   app.save();
-  assert.deepEqual(app.h.getPreferences(), { debugMode: true, includeCommonPipistrelle: false });
-  assert.deepEqual(app.preferenceChanges, [{ next: { debugMode: true, includeCommonPipistrelle: false },
+  assert.deepEqual(legacy(app.h.getPreferences()), { debugMode: true, includeCommonPipistrelle: false });
+  assert.deepEqual(app.preferenceChanges.map(({next, previous}) => ({next: legacy(next), previous: legacy(previous)})), [{ next: { debugMode: true, includeCommonPipistrelle: false },
     previous: { debugMode: false, includeCommonPipistrelle: true } }]);
   assert.match(app.statuses.at(-1).message, /cette session/);
+});
+
+test('review rules save and hydrate with WAV search folders and independent preference snapshots', () => {
+  const app = ui({ wavSearchFolders: ['D:\\Archives'], reviewer: 'AB' });
+  app.open();
+  app.reviewEditor.draft = Settings.normalize({ excludedSpecies: ['PIPPIP'], ratioThreshold: .8,
+    majorityThreshold: .75, ranking: [{ key: 'qual', direction: 'asc' }] });
+  app.save();
+  assert.equal(app.saved().reviewSettings.ratioThreshold, .8);
+  assert.deepEqual(app.saved().wavSearchFolders, ['D:\\Archives']);
+  assert.equal(app.saved().reviewer, 'AB');
+  const reloaded = ui({}, { values: app.values });
+  assert.deepEqual(reloaded.h.getPreferences().reviewSettings, app.saved().reviewSettings);
+  const snapshot = app.h.getPreferences();
+  snapshot.reviewSettings.excludedSpecies.push('NYCNOC');
+  snapshot.reviewSettings.ranking[0].direction = 'desc';
+  assert.deepEqual(app.h.getPreferences().reviewSettings.excludedSpecies, ['PIPPIP', 'NoID']);
+  assert.equal(app.h.getPreferences().reviewSettings.ranking[0].direction, 'asc');
+  app.preferenceChanges[0].next.reviewSettings.ranking.length = 0;
+  assert.equal(app.h.getPreferences().reviewSettings.ranking.length, 1);
+});
+
+test('invalid review rules cannot partially save software, thresholds or other preferences', () => {
+  const app = ui({ kaleidoscopeExecutable: kaleidoscope });
+  app.open();
+  app.reviewEditor.draft.ratioThreshold = 1.01;
+  app.node('settings-debug-mode').checked = true;
+  app.node('wav-settings-executable').value = 'D:\\Applications\\kaleidoscope.exe';
+  app.save();
+  assert.equal(app.node('wav-settings').open, true);
+  assert.equal(app.reviewEditor.focused, true);
+  assert.match(app.node('wav-settings-error').textContent, /seuil MATCH RATIO/);
+  assert.equal(app.h.getPreferences().debugMode, false);
+  assert.equal(app.h.getPreferences().reviewSettings.ratioThreshold, .6);
+  assert.equal(app.saved().kaleidoscopeExecutable, kaleidoscope);
+  assert.equal(app.preferenceChanges.length, 0);
+  app.node('wav-settings-cancel').fire('click');
+  app.open();
+  assert.deepEqual(app.reviewEditor.draft, Settings.normalize());
+});
+
+test('malformed saved review rules fall back to defaults while keeping valid unrelated preferences', () => {
+  const app = ui({ reviewSettings: { excludedSpecies: ['not-a-species'], ratioThreshold: 99 }, debugMode: true });
+  assert.deepEqual(app.h.getPreferences().reviewSettings, Settings.normalize());
+  assert.equal(app.h.getPreferences().debugMode, true);
 });

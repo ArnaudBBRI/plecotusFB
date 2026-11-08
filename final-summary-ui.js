@@ -50,6 +50,7 @@
     }
 
     function renderCharts() {
+      options.onChartsChanged?.();
       for (const which of ['before', 'after']) {
         const rows = which === 'before' ? data.beforeRows : data.afterRows;
         const selected = selection(which);
@@ -119,6 +120,7 @@
     }
 
     function hide() {
+      options.onChartsChanged?.();
       screen.hidden = true;
       data = null;
       generation++;

@@ -5,13 +5,24 @@
   'use strict';
 
   const prefix = 'plecotus.review-decisions.v1.';
-  const statuses = new Set(['validated', 'invalidated']);
+  const statuses = new Set(['validated', 'invalidated', 'unresolved']);
+  const UNRESOLVED_LABEL = 'Identification incertaine/non résolue';
+  const COMMENT_HEADER = 'COMMENTAIRE PLECOTUS';
   const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+  const isUnresolvedLabel = value => Names.resolve(value).category === 'uncertain';
+  const isComplete = decision => Boolean(decision && ['validated', 'invalidated'].includes(decision.status)
+    && typeof decision.manualId === 'string' && decision.manualId.trim() && !isUnresolvedLabel(decision.manualId));
   function manualLabel(value) {
     if (typeof value !== 'string' || !value.trim() || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(value)) {
       throw new TypeError('Renseignez une identification manuelle sur une seule ligne.');
     }
     return value.trim();
+  }
+  function commentText(value) {
+    if (typeof value !== 'string' || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(value)) {
+      throw new TypeError('Le commentaire doit être du texte sans caractère de contrôle, avec tabulations et sauts de ligne autorisés.');
+    }
+    return value;
   }
   const normalizedIdentity = value => value.replace(/\s+/g, ' ').trim();
   function defaultManualId(sourceAutoId) {
@@ -43,6 +54,10 @@
     }
     const headers = imported.headers.slice();
     const columns = Core.canonicalColumns(headers);
+    const commentColumns = headers.map((header, index) => ({ index,
+      key: header.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') }))
+      .filter(item => item.key === 'COMMENTAIREPLECOTUS');
+    if (commentColumns.length > 1) throw new Error('Plusieurs colonnes désignent ' + COMMENT_HEADER + '. Gardez une seule colonne sans ambiguïté.');
     const records = imported.records.map(record => {
       if (!denseArray(record) || record.length !== headers.length || record.some(cell =>
         cell !== null && !['string', 'boolean', 'number'].includes(typeof cell)
@@ -57,7 +72,8 @@
       throw new TypeError('Les numéros de ligne source des contacts sont invalides.');
     }
     const sourceRows = imported.sourceRows ? imported.sourceRows.slice() : records.map((_, index) => index + 2);
-    return { headers, records, sourceRows, columns,
+    return { headers, records, sourceRows, columns, commentColumn: commentColumns.length ? commentColumns[0].index : -1,
+      resumeIdentity: typeof imported.resumeIdentity === 'string' ? imported.resumeIdentity : null,
       fileName: String(imported.fileName == null ? '' : imported.fileName),
       sheetName: imported.sheetName == null ? null : String(imported.sheetName) };
   }
@@ -65,7 +81,9 @@
   async function fingerprint(data, crypto) {
     try {
       if (!crypto || !crypto.subtle || typeof crypto.subtle.digest !== 'function') return null;
-      const identity = JSON.stringify([data.fileName, data.sheetName, data.headers, data.records, data.sourceRows]);
+      const parts = [data.fileName, data.sheetName, data.headers, data.records, data.sourceRows];
+      if (data.resumeIdentity != null) parts.push(data.resumeIdentity);
+      const identity = JSON.stringify(parts);
       const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity));
       if (!hash || hash.byteLength !== 32) return null;
       return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -75,6 +93,11 @@
   async function create(imported, options = {}) {
     if (!options || typeof options !== 'object' || Array.isArray(options)) throw new TypeError('Les options des décisions sont invalides.');
     const data = sourceData(imported);
+    let comments = new Map();
+    if (data.commentColumn >= 0) data.records.forEach((record, recordIndex) => {
+      const value = commentText(String(record[data.commentColumn] == null ? '' : record[data.commentColumn]));
+      if (value !== '') comments.set(recordIndex, value);
+    });
     let storage = null;
     try { storage = own(options, 'storage') ? options.storage : root.localStorage; } catch {}
     const crypto = own(options, 'crypto') ? options.crypto : root.crypto;
@@ -103,6 +126,24 @@
         updatedAt });
     }
 
+    function restoreComments(saved) {
+      if (!own(saved, 'comments') || !denseArray(saved.comments)) return;
+      try {
+        const restored = new Map(), seen = new Set();
+        for (const item of saved.comments) {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) return;
+          checkIndex(item.recordIndex);
+          if (seen.has(item.recordIndex)) return;
+          seen.add(item.recordIndex);
+          const value = commentText(item.text);
+          if (value !== '') restored.set(item.recordIndex, value);
+        }
+        // A complete saved map is authoritative, including omissions for
+        // comments explicitly cleared since importing the source file.
+        comments = restored;
+      } catch { /* Invalid comment data cannot discard valid saved decisions. */ }
+    }
+
     function restore(source) {
       try {
         const saved = JSON.parse(source);
@@ -117,15 +158,18 @@
           // Version 1 reviews saved before manual corrections only carried the binary choice.
           const manualId = own(item, 'manualId') ? item.manualId
             : item.status === 'validated' ? defaultManualId(sourceAutoId) : null;
+          if (item.status === 'unresolved' && manualId !== null) return;
           if (manualId !== null && (manualLabel(manualId) !== manualId
             || sameIdentity(sourceAutoId, manualId) !== (item.status === 'validated'))) return;
           if (manualId === null && item.status === 'validated' && defaultManualId(sourceAutoId) !== null) return;
           const expected = decisionFor(item.recordIndex, item.status, item.updatedAt, manualId);
           if (item.sourceRow !== expected.sourceRow || item.sourceAutoId !== expected.sourceAutoId
             || item.validated !== expected.validated || item.suggestedId !== expected.suggestedId) return;
-          restored.set(item.recordIndex, expected);
+          restored.set(item.recordIndex, manualId !== null && isUnresolvedLabel(manualId)
+            ? decisionFor(item.recordIndex, 'unresolved', item.updatedAt) : expected);
         }
         decisions = restored;
+        restoreComments(saved);
       } catch { /* A damaged or unrelated saved review never supplies decisions. */ }
     }
 
@@ -138,7 +182,8 @@
 
     function snapshot() {
       return { version: 1, fileId, decisions: [...decisions.values()]
-        .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })) };
+        .sort((left, right) => left.recordIndex - right.recordIndex).map(item => ({ ...item })),
+        comments: [...comments].sort(([left], [right]) => left - right).map(([recordIndex, text]) => ({ recordIndex, text })) };
     }
 
     function persist() {
@@ -149,16 +194,17 @@
 
     function setMany(recordIndices, status) {
       if (!denseArray(recordIndices)) throw new TypeError('La sélection des contacts doit être une liste complète de numéros.');
-      if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact.');
+      if (!statuses.has(status)) throw new TypeError('Choisissez de valider ou d’invalider le contact, ou de différer son identification.');
       // Check the entire selection before replacing any existing decisions.
       for (const recordIndex of recordIndices) checkIndex(recordIndex);
       const indices = [...new Set(recordIndices)];
       const updatedAt = new Date().toISOString();
       const changes = [];
       const result = indices.map(recordIndex => {
+        const nextStatus = status === 'validated' && isUnresolvedLabel(autoIdFor(recordIndex)) ? 'unresolved' : status;
         const previous = decisions.get(recordIndex);
-        if (previous && previous.status === status) return previous;
-        const decision = decisionFor(recordIndex, status, updatedAt);
+        if (previous && previous.status === nextStatus) return previous;
+        const decision = decisionFor(recordIndex, nextStatus, updatedAt);
         changes.push(decision);
         return decision;
       });
@@ -180,6 +226,7 @@
         if (seen.has(recordIndex)) throw new TypeError('Un contact ne peut recevoir qu’une identification manuelle par lot.');
         seen.add(recordIndex);
         const manualId = manualLabel(entry.manualId);
+        if (isUnresolvedLabel(manualId)) return { recordIndex, manualId: null, status: 'unresolved' };
         return { recordIndex, manualId, status: sameIdentity(autoIdFor(recordIndex), manualId) ? 'validated' : 'invalidated' };
       });
       const updatedAt = new Date().toISOString();
@@ -200,6 +247,16 @@
       return setManualIds([{ recordIndex, manualId: value }])[0];
     }
 
+    function setComment(recordIndex, value) {
+      checkIndex(recordIndex);
+      const text = commentText(value);
+      if ((comments.get(recordIndex) || '') === text) return text;
+      if (text === '') comments.delete(recordIndex);
+      else comments.set(recordIndex, text);
+      persist();
+      return text;
+    }
+
     return Object.freeze({
       get persistenceAvailable() { return persistenceAvailable; },
       get(recordIndex) {
@@ -213,9 +270,14 @@
       setMany,
       setManualId,
       setManualIds,
+      getComment(recordIndex) {
+        checkIndex(recordIndex);
+        return comments.get(recordIndex) || '';
+      },
+      setComment,
       snapshot
     });
   }
 
-  return Object.freeze({ create });
+  return Object.freeze({ create, isComplete, isUnresolvedLabel, UNRESOLVED_LABEL, COMMENT_HEADER });
 });

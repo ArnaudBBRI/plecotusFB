@@ -62,7 +62,8 @@
   function build(imported, plan) {
     if (!plan || plan.ready !== true || plan.assignmentReady !== true || plan.remaining !== 0
       || !dense(plan.pendingIdentificationIndices) || plan.pendingIdentificationIndices.length
-      || !dense(plan.pendingBestIndices) || plan.pendingBestIndices.length) {
+      || !dense(plan.pendingBestIndices) || plan.pendingBestIndices.length
+      || (plan.unresolvedIndices || []).length) {
       throw new Error('Terminez tous les contrôles et renseignez les identifications réelles avant de finaliser.');
     }
     const sourceColumns = columnsFor(imported);
@@ -89,6 +90,9 @@
       if (manual) manualContacts++;
       else calculatedContacts++;
       const identified = identification(actual);
+      if (identified.category === 'uncertain' || identified.category === 'pending') {
+        throw new Error('Une identification incertaine/non résolue reste à reprendre avant de finaliser.');
+      }
       if (identified.category === 'noise') afterNoise++;
       else add(after, identified);
     });

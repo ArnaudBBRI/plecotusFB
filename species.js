@@ -87,9 +87,9 @@
   }
   registerSpecial('noise', 'Bruit', 'noise', ['Noise', 'Bruit']);
   registerSpecial('pending', 'À vérifier', 'pending', ['', 'Pending classification', 'À vérifier', 'En attente de classification']);
-  registerSpecial('uncertain', 'Identification incertaine', 'uncertain', ['Uncertain / unresolved', 'Uncertain', 'Incertain', 'Identification incertaine']);
+  registerSpecial('uncertain', 'Identification incertaine/non résolue', 'uncertain', ['Uncertain / unresolved', 'Uncertain', 'Unresolved', 'Incertain', 'Identification incertaine', 'Identification incertaine/non résolue', 'Identification incertaine / non résolue', 'Non résolue']);
   const identificationAliases = [
-    ['No ID', 'No-ID', 'No_ID', 'Unclassified', 'Unresolved', 'Unknown', 'Unidentified bat', 'Chiroptère non identifié', 'Chiroptère indéterminé', 'Chiroptera sp.', 'Chiroptera indet.'],
+    ['No ID', 'No-ID', 'No_ID', 'NoAutoID', 'No Identification', 'Unclassified', 'Unknown', 'Unidentified bat', 'Chiroptère non identifié', 'Chiroptère indéterminé', 'Chiroptera sp.', 'Chiroptera indet.'],
     ['No ID Pip', 'NoIDPip', 'NoID-Pip', 'NoID_Pip'],
     ['No ID Ser', 'NoIDSer', 'NoID-Ser', 'NoID_Ser'],
     ['No ID Myo', 'NoIDMyo', 'NoID-Myo', 'NoID_Myo'],

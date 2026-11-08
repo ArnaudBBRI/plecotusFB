@@ -50,7 +50,7 @@
     const warnings = [...(extraWarnings || []), ...parsed.warnings];
     if (!summary.hasManualIdColumn) warnings.push('Colonne MANUAL ID absente : aucune identification manuelle importée.');
     return { fileName, sheetName, headers: parsed.headers, records: parsed.records, sourceRows: parsed.sourceRows,
-      columns: Core.canonicalColumns(parsed.headers), summary, warnings };
+      delimiter: parsed.delimiter, columns: Core.canonicalColumns(parsed.headers), summary, warnings };
   }
 
   function parseSheet(workbook, name, xlsx, fileName) {

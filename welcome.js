@@ -10,6 +10,7 @@
   const loadFile = document.getElementById('load-file');
   const fileInput = document.getElementById('data-file');
   const fileStatus = document.getElementById('selected-file');
+  const headerReviewerName = document.getElementById('header-reviewer-name');
   const overview = document.getElementById('file-overview');
   const importError = document.getElementById('import-error');
   const sheetPicker = document.getElementById('sheet-picker');
@@ -27,6 +28,20 @@
   const nextReviewStep = document.getElementById('review-next-button');
   const nextReviewStatus = document.getElementById('review-next-status');
   const wavOpeningStatus = document.getElementById('wav-opening-status');
+  const saveResultsButton = document.getElementById('save-results');
+  const resultsSaveStatus = document.getElementById('results-save-status');
+  const speciesTooltip = globalThis.PlecotusSpeciesTooltip?.init({ document });
+  const timeline = globalThis.PlecotusTimelineUI?.init({ document });
+  const unresolvedPanel = document.getElementById('unresolved-review-panel');
+  const unresolvedList = document.getElementById('unresolved-review-list');
+  const unresolvedHeading = document.getElementById('unresolved-review-heading');
+  const unresolvedChoice = '__PLECOTUS_UNRESOLVED__';
+  const unresolvedLabel = 'Identification incertaine/non résolue';
+  let unresolvedSignature = null;
+  let unresolvedCount = 0;
+  let unresolvedPass = null;
+  let resultsHandle = null;
+  let savingResults = false;
   const wavOpening = PlecotusWavOpening.init({
     document,
     onStatus(message, isError) {
@@ -36,9 +51,15 @@
     },
     onPreferencesChange(next, previous) {
       uiPreferences = next;
+      renderReviewerHeader();
       updateDebugControls();
-      if (currentManualPlan) manualScreens.refresh();
-      finalScreens.refresh();
+      renderReviewMethods();
+      if (JSON.stringify(next.reviewSettings) !== JSON.stringify(previous.reviewSettings)) {
+        applyReviewSettings();
+      } else {
+        if (currentManualPlan) manualScreens.refresh();
+        finalScreens.refresh();
+      }
       if (next.includeCommonPipistrelle !== previous.includeCommonPipistrelle) {
         applyPipistrelleDefault();
         chartStatus.textContent = '';
@@ -63,6 +84,47 @@
   let chartExporting = false;
   const hiddenChartKeys = new Set();
   const chartTitle = 'Répartition des contacts selon les AUTO-ID';
+  unresolvedPass = globalThis.PlecotusUnresolvedReviewUI?.init({
+    document,
+    getItems: () => unresolvedItems(buildManualPlan()),
+    getSource: () => currentImport,
+    isComplete: recordIndex => {
+      const decision = decisionForContact(recordIndex);
+      return PlecotusContactDecisions.isComplete(decision)
+        && !['pending', 'uncertain'].includes(BatSpeciesNames.resolve(decision.manualId).category);
+    },
+    renderContactCard(contact, label) {
+      const card = createManualContactCard(contact, label);
+      const title = card.querySelector('h3');
+      title.textContent = label + ' · ' + title.textContent;
+      return card;
+    },
+    onStateChange: syncUnresolvedPassVisibility,
+    onExit() {
+      if (unresolvedCount) document.getElementById('unresolved-pass-start').focus({ preventScroll: true });
+      else if (currentImport) focusReviewScreen();
+    }
+  });
+  const stepOneExports = globalThis.PlecotusStepOneSpeciesUI?.init({
+    document,
+    getData() {
+      if (!currentImport || !currentDecisions) return null;
+      return {
+        ...PlecotusStepOneSpecies.build(currentImport, currentDecisions, uiPreferences.reviewSettings),
+        fileName: currentImport.fileName,
+        sourceVersion: importVersion
+      };
+    }
+  });
+  const contactContext = globalThis.PlecotusContactContextUI?.init({
+    document,
+    getImported: () => currentImport,
+    getDecision: recordIndex => currentDecisions?.get(recordIndex) || null,
+    onOpenContact(recordIndex, imported = currentImport) {
+      if (!imported || imported !== currentImport) return false;
+      return wavOpening.openContact(imported, { recordIndex });
+    }
+  });
   const manualScreens = PlecotusManualReviewUI.init({
     document,
     getPlan: buildManualPlan,
@@ -84,30 +146,139 @@
     document,
     getData: () => PlecotusFinalSummaryData.build(currentImport, buildManualPlan()),
     getPreferences: () => uiPreferences,
-    onBack: () => manualScreens.showPlan()
+    onBack: () => manualScreens.showPlan(),
+    onChartsChanged: () => speciesTooltip?.hide()
   });
 
   function buildManualPlan() {
     if (!currentImport || !currentDecisions) return null;
-    currentManualPlan = PlecotusManualWorkflow.build(currentImport, currentDecisions);
+    currentManualPlan = PlecotusManualWorkflow.build(currentImport, currentDecisions, { settings: uiPreferences.reviewSettings });
     currentImport.processed = currentManualPlan.processed;
     return currentManualPlan;
   }
 
+  function renderReviewerHeader() {
+    const name = typeof uiPreferences.reviewer === 'string' ? uiPreferences.reviewer.trim() : '';
+    headerReviewerName.textContent = name || 'non spécifié';
+    headerReviewerName.dataset.unspecified = String(!name);
+  }
+
+  function renderReviewMethods() {
+    const settings = PlecotusReviewSettings.normalize(uiPreferences.reviewSettings);
+    const list = document.getElementById('best-ranking-criteria');
+    list.replaceChildren();
+    for (const criterion of settings.ranking) {
+      const item = document.createElement('li');
+      const definition = PlecotusReviewSettings.CRITERIA.find(entry => entry.key === criterion.key);
+      item.textContent = definition.label + ' · ordre ' + (criterion.direction === 'asc' ? 'croissant' : 'décroissant') + '.';
+      list.append(item);
+    }
+    document.getElementById('manual-ratio-condition').textContent = 'Au moins '
+      + rankingNumbers.format(settings.majorityThreshold * 100) + ' % des contacts de l’espèce ont un MATCH RATIO ≥ '
+      + rankingNumbers.format(settings.ratioThreshold) + '. Les ratios absents ou invalides restent dans le total.';
+    document.getElementById('manual-excluded-species').textContent = settings.excludedSpecies.length
+      ? 'Espèces exclues : ' + settings.excludedSpecies.join(', ') + '.' : 'Aucune espèce exclue de la validation globale.';
+  }
+
+  function applyReviewSettings() {
+    if (!currentImport || !currentDecisions) return;
+    const onManualScreen = !document.getElementById('manual-plan-overview').hidden
+      || !document.getElementById('manual-species-detail').hidden;
+    const onFinalScreen = !document.getElementById('final-summary').hidden;
+    renderSpecies();
+    const plan = buildManualPlan();
+    renderUnresolvedContacts(plan, true);
+    if (onManualScreen || onFinalScreen) {
+      if (!plan.ready) {
+        finalScreens.hide();
+        showSpecies();
+      } else if (onFinalScreen) {
+        finalScreens.hide();
+        if (plan.assignmentReady && !plan.remaining && !plan.pendingIdentificationIndices.length) {
+          finalScreens.show();
+        } else manualScreens.showPlan();
+      } else manualScreens.refresh({ resetDetail: true });
+    } else updateNextStep();
+  }
+
   function updateNextStep() {
     const pending = pendingBestContacts();
+    const deferred = currentImport && currentDecisions ? currentImport.records.filter((_, index) => decisionForContact(index)?.status === 'unresolved').length : 0;
     nextReviewStep.setAttribute('aria-disabled', String(!currentImport || Boolean(pending.length)));
     nextReviewStatus.textContent = pending.length
       ? numbers.format(pending.length) + (pending.length === 1 ? ' meilleur contact reste à identifier.' : ' meilleurs contacts restent à identifier.')
-        + ' Validez l’AUTO-ID ou invalidez-le puis renseignez l’identification réelle.'
-      : 'Tous les meilleurs contacts ont été contrôlés. Vous pouvez continuer.';
+        + ' Validez l’AUTO-ID, renseignez l’identification réelle ou choisissez « À revoir » pour continuer et reprendre ce contact plus tard.'
+      : deferred ? 'Vous pouvez continuer. ' + numbers.format(deferred)
+        + (deferred === 1 ? ' identification reste à reprendre' : ' identifications restent à reprendre')
+        + ' dans « Identifications à reprendre », avant de finaliser.'
+        : 'Tous les meilleurs contacts ont été identifiés. Vous pouvez continuer.';
+    stepOneExports?.refresh();
   }
 
   function pendingBestContacts() {
     return currentBestContacts.filter(contact => {
-      const decision = currentDecisions && currentDecisions.get(contact.recordIndex);
-      return !decision || !decision.manualId;
+      const decision = decisionForContact(contact.recordIndex);
+      return !decision || decision.status !== 'unresolved' && !decision.manualId;
     });
+  }
+
+  function decisionForContact(recordIndex) {
+    const decision = currentDecisions && currentDecisions.get(recordIndex);
+    if (decision) return decision;
+    const manualColumn = currentImport?.columns?.manualId;
+    const sourceManual = manualColumn >= 0 ? currentImport.records[recordIndex]?.[manualColumn] : '';
+    return BatSpeciesNames.resolve(sourceManual).category === 'uncertain' ? { status: 'unresolved', manualId: null } : null;
+  }
+
+  function unresolvedItems(plan) {
+    if (!plan) return [];
+    const contacts = new Map();
+    for (const contact of plan.unresolvedContacts || []) {
+      contacts.set(contact.recordIndex, { contact, label: contact.groupLabel });
+    }
+    for (const group of plan.groups) {
+      if (group.best) contacts.set(group.best.recordIndex, { contact: group.best, label: group.label });
+      for (const contact of group.contacts) if (!contacts.has(contact.recordIndex)) contacts.set(contact.recordIndex, { contact, label: group.label });
+    }
+    return (plan.unresolvedIndices || []).flatMap(recordIndex => {
+      const item = contacts.get(recordIndex);
+      return item ? [{ recordIndex, ...item }] : [];
+    });
+  }
+
+  function syncUnresolvedPassVisibility() {
+    const active = unresolvedPass?.isActive() || false;
+    unresolvedPanel.hidden = !unresolvedCount && !active;
+    unresolvedList.hidden = active;
+    if (active) unresolvedPanel.open = true;
+  }
+
+  function focusReviewScreen() {
+    const target = !document.getElementById('final-summary').hidden ? document.getElementById('final-summary-heading')
+      : !speciesOverview.hidden ? document.getElementById('species-heading')
+      : !document.getElementById('manual-species-detail').hidden ? document.getElementById('manual-species-heading')
+        : !document.getElementById('manual-plan-overview').hidden ? document.getElementById('manual-plan-heading')
+          : startReview.hidden ? loadFile : startReview;
+    target.focus({ preventScroll: true });
+  }
+
+  function renderUnresolvedContacts(plan = buildManualPlan(), reset = false) {
+    const indices = plan?.unresolvedIndices || [];
+    unresolvedCount = indices.length;
+    unresolvedHeading.textContent = 'Identifications à reprendre (' + numbers.format(indices.length) + ')';
+    const signature = JSON.stringify([importVersion, indices]);
+    if (reset || signature !== unresolvedSignature) {
+      unresolvedList.replaceChildren();
+      unresolvedSignature = signature;
+      for (const item of unresolvedItems(plan)) {
+        const card = createManualContactCard(item.contact, item.label);
+        const title = card.querySelector('h3');
+        title.textContent = item.label + ' · ' + title.textContent;
+        unresolvedList.append(card);
+      }
+    }
+    syncUnresolvedPassVisibility();
+    unresolvedPass?.refresh();
   }
 
   function syncDecisions(refreshManual = true) {
@@ -122,35 +293,51 @@
       if (refreshManual) manualScreens.refresh();
       else buildManualPlan();
     }
+    renderUnresolvedContacts(buildManualPlan());
+    contactContext?.refresh();
   }
 
   function decideContact(recordIndex, status, card) {
-    currentDecisions.set(recordIndex, status);
+    const inPass = card.dataset.unresolvedPass === 'true' && unresolvedPass?.isActive();
+    const columns = currentImport.columns;
+    const sourceAuto = columns.autoId >= 0 ? String(currentImport.records[recordIndex][columns.autoId] || '').trim() : '';
+    const needsIdentity = inPass && (status === 'invalidated' || status === 'validated'
+      && (!sourceAuto || ['pending', 'uncertain'].includes(BatSpeciesNames.resolve(sourceAuto).category)));
+    const recordedStatus = needsIdentity ? 'unresolved' : status;
+    currentDecisions.set(recordIndex, recordedStatus);
     syncDecisions();
     const sourceLine = currentDecisions.get(recordIndex).sourceRow;
     reviewSaveStatus.textContent = 'Contact de la ligne ' + numbers.format(sourceLine)
-      + (status === 'validated' ? ' validé.' : ' invalidé : renseignez son identification réelle ci-dessous.') + decisionPersistenceMessage();
+      + (needsIdentity ? ' : choisissez l’identification réelle. Il reste « À revoir » tant que cette identification n’est pas terminée.'
+        : recordedStatus === 'validated' ? ' validé.' : recordedStatus === 'unresolved'
+        ? ' marqué « À revoir » : identification incertaine/non résolue. Vous pouvez poursuivre puis le reprendre dans la liste dédiée avant de finaliser.'
+        : ' invalidé : renseignez son identification réelle ci-dessous.') + decisionPersistenceMessage();
     reviewSaveStatus.hidden = false;
-    if (status === 'invalidated') {
+    if (inPass && !needsIdentity) unresolvedPass.afterDecision(recordIndex, { deferred: recordedStatus === 'unresolved' });
+    if (needsIdentity || status === 'invalidated') {
       const editor = card.querySelector('[data-identification-index="' + recordIndex + '"]');
       if (editor && !editor.hidden) editor.querySelector('select').focus({ preventScroll: true });
     }
   }
 
   function refreshIdentification(editor) {
-    const decision = currentDecisions.get(Number(editor.dataset.identificationIndex));
+    const decision = decisionForContact(Number(editor.dataset.identificationIndex));
     editor.hidden = !decision || decision.status !== 'invalidated' && Boolean(decision.manualId);
     const select = editor.querySelector('select');
-    select.value = decision && decision.manualId || '';
+    select.value = decision?.status === 'unresolved' ? unresolvedChoice : decision && decision.manualId || '';
     select.setAttribute('aria-invalid', String(Boolean(decision && !decision.manualId)));
     const message = editor.querySelector('p');
-    message.textContent = decision && decision.manualId
+    message.textContent = decision?.status === 'unresolved'
+      ? 'Identification incertaine/non résolue : ce contact reste à reprendre avant de finaliser. Cette décision ne compte pas comme une identification NoID et ne participe pas au prorata.'
+      : decision && decision.manualId
       ? 'Identification enregistrée : ' + decision.manualId + '. Ce contrôle est terminé.'
       : 'Choisissez l’espèce réelle, ou une catégorie non identifiée si nécessaire. Ce contrôle reste à compléter.';
     editor.dataset.pending = String(Boolean(decision && !decision.manualId));
+    editor.dataset.unresolved = String(decision?.status === 'unresolved');
   }
 
   function appendIdentificationEditor(card, contact) {
+    const imported = currentImport;
     const editor = document.createElement('div');
     editor.className = 'contact-identification';
     editor.dataset.identificationIndex = String(contact.recordIndex);
@@ -160,6 +347,7 @@
     select.setAttribute('aria-label', 'Identification réelle du contact de la ligne ' + contact.lineNumber);
     select.required = true;
     const choices = [['', 'Choisir l’identification réelle…'],
+      [unresolvedChoice, unresolvedLabel + ' — à revoir'],
       ...BatSpeciesNames.SPECIES.map(species => [species.code, species.code + ' · ' + species.frenchName]),
       ...BatSpeciesNames.IDENTIFICATION_LABELS.map(item => [item.label, item.label + ' · ' + item.description]),
       ['Noise', 'Noise · Bruit']];
@@ -175,11 +363,19 @@
       select.append(option);
     }
     select.addEventListener('change', () => {
+      if (imported !== currentImport || card.isConnected === false) return;
       if (!select.value) return;
-      currentDecisions.setManualId(contact.recordIndex, select.value);
+      const inPass = card.dataset.unresolvedPass === 'true';
+      const deferred = select.value === unresolvedChoice;
+      if (deferred) currentDecisions.set(contact.recordIndex, 'unresolved');
+      else currentDecisions.setManualId(contact.recordIndex, select.value);
       syncDecisions();
-      if (editor.hidden) card.querySelector('button[data-decision="validated"]').focus({ preventScroll: true });
-      reviewSaveStatus.textContent = 'Identification réelle enregistrée pour la ligne ' + numbers.format(contact.lineNumber)
+      if (inPass) unresolvedPass?.afterDecision(contact.recordIndex, { deferred });
+      if (card.isConnected === false) {
+        if (inPass && unresolvedPass?.isActive()) unresolvedPass.focus();
+        else focusReviewScreen();
+      } else if (editor.hidden) card.querySelector('button[data-decision="validated"]').focus({ preventScroll: true });
+      reviewSaveStatus.textContent = (deferred ? 'Identification à reprendre pour la ligne ' : 'Identification réelle enregistrée pour la ligne ') + numbers.format(contact.lineNumber)
         + '.' + decisionPersistenceMessage();
       reviewSaveStatus.hidden = false;
     });
@@ -189,6 +385,54 @@
     editor.append(label, message);
     card.append(editor);
     refreshIdentification(editor);
+  }
+
+  function appendCommentEditor(card, contact) {
+    const imported = currentImport;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'contact-comment';
+    const label = document.createElement('label');
+    label.append(document.createTextNode('Commentaire (facultatif)'));
+    const input = document.createElement('textarea');
+    input.rows = 2;
+    input.required = false;
+    input.dataset.commentIndex = String(contact.recordIndex);
+    input.setAttribute('aria-label', 'Commentaire facultatif du contact de la ligne ' + contact.lineNumber);
+    input.placeholder = 'Description du son, remarque sur l’écoute…';
+    input.value = currentDecisions.getComment(contact.recordIndex);
+    const status = document.createElement('p');
+    status.dataset.commentStatusIndex = String(contact.recordIndex);
+    status.setAttribute('role', 'status');
+    status.hidden = true;
+    input.addEventListener('input', () => {
+      if (imported !== currentImport || card.isConnected === false) return;
+      try {
+        const value = currentDecisions.setComment(contact.recordIndex, input.value);
+        currentImport.reviewDecisions = currentDecisions.snapshot();
+        // A contact may be visible in both its review screen and the deferred
+        // list. Keep those copies in sync without rebuilding any card or
+        // assigning the focused textarea again (which would move its caret).
+        for (const other of document.querySelectorAll('textarea[data-comment-index]')) {
+          if (Number(other.dataset.commentIndex) === contact.recordIndex && other.value !== value) other.value = value;
+        }
+        const message = currentDecisions.persistenceAvailable
+          ? 'Commentaire enregistré dans ce navigateur.'
+          : 'Commentaire conservé pour cette session ; la mémorisation dans le navigateur est indisponible. Enregistrez les résultats (CSV) pour le conserver.';
+        for (const note of document.querySelectorAll('[data-comment-status-index]')) {
+          if (Number(note.dataset.commentStatusIndex) !== contact.recordIndex) continue;
+          note.textContent = message;
+          note.dataset.error = String(!currentDecisions.persistenceAvailable);
+          note.hidden = false;
+        }
+      } catch (problem) {
+        status.textContent = 'Le commentaire n’a pas pu être enregistré : ' + (problem.message || 'réessayez.');
+        status.dataset.error = 'true';
+        status.hidden = false;
+      }
+    });
+    label.append(input);
+    wrapper.append(label, status);
+    card.append(wrapper);
   }
 
   function createManualContactCard(contact, groupLabel) {
@@ -219,7 +463,7 @@
   }
 
   function refreshContactDecision(row, recordIndex) {
-    const decision = currentDecisions.get(recordIndex);
+    const decision = decisionForContact(recordIndex);
     row.dataset.reviewStatus = decision ? decision.status : 'pending';
     for (const control of row.querySelectorAll('button[data-decision]')) {
       control.setAttribute('aria-pressed', String(Boolean(decision && decision.status === control.dataset.decision)));
@@ -233,6 +477,7 @@
   }
 
   function renderDistribution() {
+    speciesTooltip?.hide();
     if (!chartData) return;
     const selection = BatActivityChart.select(chartData.rows, hiddenChartKeys);
     chartHost.innerHTML = chartData.total
@@ -274,7 +519,8 @@
       const link = document.createElement('a');
       const url = URL.createObjectURL(result.blob);
       link.href = url;
-      link.download = stem + '_autoid_' + (mode === 'bar' ? 'barres' : 'camembert') + (selection.hiddenCount ? '_filtre' : '') + '.' + result.extension;
+      const modeSuffix = { pie: 'camembert', bar: 'barres', vertical: 'barres_verticales' }[mode] || 'camembert';
+      link.download = stem + '_autoid_' + modeSuffix + (selection.hiddenCount ? '_filtre' : '') + '.' + result.extension;
       document.body.append(link);
       try { link.click(); }
       finally { link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
@@ -312,7 +558,8 @@
       warningList.append(item);
     }
     document.getElementById('import-warnings').hidden = !warningList.childElementCount;
-    startReview.hidden = !summary.vanilla;
+    startReview.hidden = summary.totalContacts === 0;
+    startReview.textContent = summary.vanilla ? 'Commencer la vérification manuelle par espèce' : 'Reprendre la vérification par espèce';
     startReview.disabled = summary.totalContacts === 0;
     startReview.title = summary.totalContacts === 0 ? 'Le fichier ne contient aucun contact.' : '';
     chartData = PlecotusImportChart.build(result);
@@ -320,20 +567,117 @@
     applyPipistrelleDefault();
     chartStatus.textContent = '';
     renderDistribution();
+    timeline?.show(result);
     overview.hidden = false;
+  }
+
+  function showResultsStatus(message, isError) {
+    resultsSaveStatus.textContent = message;
+    resultsSaveStatus.dataset.error = String(Boolean(isError));
+    resultsSaveStatus.hidden = !message;
+  }
+
+  function resultsContentText(counts) {
+    const parts = [['reviewed', 'vérifié(s) dans Plecotus'], ['unresolved', 'identification(s) à reprendre'], ['pendingIdentification', 'invalidé(s) à identifier'],
+      ['validatedWithoutAutoId', 'validé(s) sans AUTO-ID'], ['sourceManual', 'MANUAL ID du fichier source'],
+      ['direct', 'en validation directe'], ['proportional', 'au prorata'], ['noise', 'bruit'], ['unassigned', 'non attribué(s)']]
+      .filter(([name]) => counts[name]).map(([name, label]) => numbers.format(counts[name]) + ' ' + label);
+    return parts.length ? ' Contenu : ' + parts.join(' · ') + '.' : '';
+  }
+
+  async function saveResultsFile() {
+    if (!currentImport || !currentDecisions || savingResults) return;
+    const version = importVersion;
+    const imported = currentImport;
+    let content;
+    try {
+      const plan = PlecotusManualWorkflow.build(imported, currentDecisions, { settings: uiPreferences.reviewSettings });
+      content = PlecotusResultsFile.build(imported, plan, currentDecisions.snapshot());
+    } catch (error) {
+      showResultsStatus(error.message || 'Impossible de préparer le fichier de résultats.', true);
+      return;
+    }
+    const blob = new Blob([content.text], { type: 'text/csv;charset=utf-8' });
+    const clock = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    savingResults = true;
+    saveResultsButton.disabled = true;
+    showResultsStatus('Enregistrement des résultats…', false);
+    try {
+      if (typeof window.showSaveFilePicker === 'function') {
+        let handle = resultsHandle;
+        if (!handle) {
+          handle = await window.showSaveFilePicker({ suggestedName: content.fileName,
+            types: [{ description: 'Fichier CSV', accept: { 'text/csv': ['.csv'] } }] });
+          if (version !== importVersion) return;
+          // Le fichier id d'origine n'est jamais remplacé (un fichier résultats rechargé peut l'être).
+          if (!PlecotusResultsFile.isResultsFile(imported)
+            && handle.name.toLowerCase() === String(imported.fileName || '').toLowerCase()) {
+            showResultsStatus('Choisissez un autre nom : le fichier id d’origine « ' + handle.name + ' » ne doit pas être remplacé.', true);
+            return;
+          }
+          resultsHandle = handle;
+        } else if (typeof handle.queryPermission === 'function'
+          && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted'
+          && await handle.requestPermission({ mode: 'readwrite' }) !== 'granted') {
+          throw new Error('autorisation d’écriture refusée');
+        }
+        const writable = await handle.createWritable();
+        try {
+          await writable.write(blob);
+          await writable.close();
+        } catch (error) {
+          try { await writable.abort(); } catch {}
+          throw error;
+        }
+        if (version !== importVersion) return;
+        showResultsStatus('Résultats enregistrés dans « ' + handle.name + ' » à ' + clock()
+          + '. Les prochains enregistrements mettront à jour ce fichier.' + resultsContentText(content.counts), false);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = content.fileName;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showResultsStatus('Ce navigateur ne permet pas de choisir l’emplacement : « ' + content.fileName
+          + ' » a été téléchargé à ' + clock() + '.' + resultsContentText(content.counts), false);
+      }
+    } catch (error) {
+      if (version !== importVersion) return;
+      if (error && error.name === 'AbortError') showResultsStatus('Enregistrement annulé.', false);
+      else showResultsStatus('Le fichier de résultats n’a pas pu être enregistré'
+        + (resultsHandle ? ' dans « ' + resultsHandle.name + ' »' : '')
+        + '. S’il est ouvert dans Excel, fermez-le puis réessayez. (' + (error && error.message || 'erreur inconnue') + ')', true);
+    } finally {
+      savingResults = false;
+      saveResultsButton.disabled = false;
+    }
   }
 
   async function readFile(file, sheetName) {
     const version = ++importVersion;
     currentFile = file;
     currentImport = null;
+    unresolvedCount = 0;
+    unresolvedPass?.reset();
+    stepOneExports?.reset();
+    contactContext?.reset();
     currentDecisions = null;
     currentBestContacts = [];
     currentManualPlan = null;
+    unresolvedSignature = null;
+    unresolvedList.replaceChildren();
+    unresolvedPanel.hidden = true;
+    resultsHandle = null;
+    saveResultsButton.hidden = true;
+    resultsSaveStatus.hidden = true;
     finalScreens.hide();
     manualScreens.hide();
     updateDebugControls();
     chartData = null;
+    timeline?.reset();
     overview.hidden = true;
     speciesOverview.hidden = true;
     sheetPicker.hidden = true;
@@ -343,15 +687,37 @@
     fileStatus.hidden = false;
     fileStatus.textContent = 'Lecture du fichier : ' + file.name + '…';
     try {
-      const result = await PlecotusFileImport.read(file, { sheetName });
+      const loaded = await PlecotusFileImport.read(file, { sheetName });
       if (version !== importVersion) return;
+      // Un fichier « resultats » enregistré par Plecotus redonne ses décisions.
+      const resume = PlecotusResultsFile.prepareResume(loaded);
+      const result = resume ? resume.imported : loaded;
       const decisions = await PlecotusContactDecisions.create(result);
       if (version !== importVersion) return;
+      let resumed = { restored: 0, fromBrowser: false }, resumeProblem = '';
+      try { resumed = PlecotusResultsFile.applyResume(decisions, resume); }
+      catch (error) { resumeProblem = error.message || 'décisions illisibles'; }
       currentImport = result;
       currentDecisions = decisions;
       currentImport.reviewDecisions = decisions.snapshot();
       renderImport(result);
-      fileStatus.textContent = 'Fichier chargé : ' + result.fileName;
+      renderUnresolvedContacts();
+      let loadedText = 'Fichier chargé : ' + result.fileName;
+      if (resume) {
+        const count = currentImport.reviewDecisions.decisions.length;
+        document.getElementById('file-kind').textContent = 'Fichier de résultats Plecotus';
+        if (count && result.summary.vanilla) {
+          document.getElementById('manual-summary').textContent = numbers.format(count)
+            + (count > 1 ? ' contacts déjà vérifiés dans Plecotus ont été repris.' : ' contact déjà vérifié dans Plecotus a été repris.')
+            + ' Reprenez la vérification là où elle en était.';
+        }
+        if (resumeProblem) loadedText += '. Les décisions du fichier de résultats n’ont pas pu être reprises : ' + resumeProblem;
+        else if (resumed.fromBrowser) loadedText += '. Décisions reprises depuis la mémoire de ce navigateur (travail poursuivi après le dernier chargement de ce même fichier).';
+        else if (resumed.restored) loadedText += '. ' + numbers.format(resumed.restored) + (resumed.restored > 1 ? ' décisions reprises' : ' décision reprise') + ' depuis le fichier de résultats.';
+        if (resume.ignored) loadedText += ' ' + numbers.format(resume.ignored) + (resume.ignored > 1 ? ' lignes ignorées' : ' ligne ignorée') + ' (MANUAL ID vide ou invalide).';
+      }
+      fileStatus.textContent = loadedText;
+      saveResultsButton.hidden = false;
     } catch (error) {
       if (version !== importVersion) return;
       if (error.code === 'SHEET_SELECTION_REQUIRED') {
@@ -379,6 +745,7 @@
   }
 
   function appendContactContent(card, contact, label, isBest = false) {
+    const imported = currentImport;
     const filename = document.createElement('p');
     filename.className = 'best-contact-file';
     filename.append(document.createTextNode(isBest ? 'Meilleur contact : ' : 'Fichier WAV : '));
@@ -392,6 +759,22 @@
       wavLink.addEventListener('click', () => wavOpening.openContact(imported, contact));
       filename.append(wavLink);
     } else filename.append(document.createTextNode('Fichier non renseigné'));
+    if (contactContext) {
+      const contextButton = document.createElement('button');
+      contextButton.type = 'button';
+      contextButton.className = 'contact-context-button';
+      contextButton.dataset.contextIndex = String(contact.recordIndex);
+      contextButton.textContent = 'Contexte';
+      contextButton.title = 'Afficher les 10 contacts précédents et les 10 suivants chronologiquement';
+      contextButton.setAttribute('aria-label', 'Contexte chronologique du contact de la ligne ' + contact.lineNumber);
+      contextButton.setAttribute('aria-controls', 'contact-context');
+      contextButton.setAttribute('aria-haspopup', 'dialog');
+      const imported = currentImport;
+      contextButton.addEventListener('click', () => {
+        if (imported === currentImport) contactContext.show(contact.recordIndex, contextButton);
+      });
+      filename.append(contextButton);
+    }
     card.append(filename);
     const wrapper = document.createElement('div');
     wrapper.className = 'best-contact-table-wrap';
@@ -402,7 +785,9 @@
     table.className = 'best-contact-table';
     const header = document.createElement('thead');
     const labels = document.createElement('tr');
-    for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', 'Date', 'Heure', 'Décision']) {
+    const optionalCriteria = new Set((uiPreferences.reviewSettings?.ranking || []).map(item => item.key));
+    const extraValues = [['matching', 'MATCHING'], ['margin', 'MARGIN']].filter(([key]) => optionalCriteria.has(key));
+    for (const label of ['Ligne source', 'MATCH RATIO', 'Qual', 'PULSES', ...extraValues.map(([, label]) => label), 'Date', 'Heure', 'Décision']) {
       const cell = document.createElement('th');
       cell.scope = 'col';
       cell.textContent = label;
@@ -416,6 +801,7 @@
       contact.ratio == null ? '—' : rankingNumbers.format(contact.ratio),
       contact.qual == null ? '—' : rankingNumbers.format(contact.qual),
       contact.pulses == null ? '—' : rankingNumbers.format(contact.pulses),
+      ...extraValues.map(([key]) => contact[key] == null ? '—' : rankingNumbers.format(contact[key])),
       contact.dateValue == null ? '—' : contact.date,
       contact.timeValue == null ? '—' : contact.time];
     for (const value of values) {
@@ -428,13 +814,19 @@
     const actionGroup = document.createElement('div');
     actionGroup.setAttribute('role', 'group');
     actionGroup.setAttribute('aria-label', 'Décision pour le contact de la ligne ' + contact.lineNumber);
-    for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider']]) {
+    for (const [status, label] of [['validated', 'Valider'], ['invalidated', 'Invalider'], ['unresolved', 'À revoir']]) {
       const control = document.createElement('button');
       control.type = 'button';
       control.className = 'contact-decision-button';
       control.dataset.decision = status;
       control.textContent = label;
-      control.addEventListener('click', () => decideContact(contact.recordIndex, status, card));
+      if (status === 'unresolved') {
+        control.title = unresolvedLabel;
+        control.setAttribute('aria-label', unresolvedLabel + ' — à revoir, ligne ' + contact.lineNumber);
+      }
+      control.addEventListener('click', () => {
+        if (imported === currentImport && card.isConnected !== false) decideContact(contact.recordIndex, status, card);
+      });
       actionGroup.append(control);
     }
     actions.append(actionGroup);
@@ -445,12 +837,13 @@
     wrapper.append(table);
     card.append(wrapper);
     appendIdentificationEditor(card, contact);
+    appendCommentEditor(card, contact);
   }
 
-  function showSpecies() {
-    if (!currentImport || !currentImport.summary.vanilla || !currentImport.summary.totalContacts) return;
+  function renderSpecies() {
+    if (!currentImport || !currentImport.summary.totalContacts) return;
     let review;
-    try { review = PlecotusBestContacts.build(currentImport); }
+    try { review = PlecotusBestContacts.build(currentImport, uiPreferences.reviewSettings); }
     catch (error) {
       importError.textContent = error.message || 'Impossible de sélectionner les meilleurs contacts.';
       importError.hidden = false;
@@ -500,6 +893,11 @@
       empty.textContent = 'Aucun groupe hors Noise à vérifier dans ce fichier.';
       list.append(empty);
     }
+    return true;
+  }
+
+  function showSpecies() {
+    if (!renderSpecies()) return;
     overview.hidden = true;
     manualScreens.hide();
     speciesOverview.hidden = false;
@@ -585,7 +983,8 @@
     const pending = pendingBestContacts();
     if (pending.length) {
       nextReviewStatus.textContent = 'Impossible de continuer : validez l’AUTO-ID ou renseignez l’identification réelle de chaque meilleur contact ('
-        + numbers.format(pending.length) + (pending.length === 1 ? ' restant).' : ' restants).');
+        + numbers.format(pending.length) + (pending.length === 1 ? ' restant).' : ' restants).')
+        + ' « À revoir » permet de poursuivre et de reprendre une identification incertaine avant de finaliser.';
       return;
     }
     try {
@@ -607,12 +1006,15 @@
     reviewSaveStatus.hidden = false;
   });
   updateDebugControls();
+  renderReviewerHeader();
+  renderReviewMethods();
   for (const button of chartModes) button.addEventListener('click', () => {
     chartMode = button.dataset.chartMode;
     chartStatus.textContent = '';
     renderDistribution();
   });
   for (const button of chartExports) button.addEventListener('click', () => exportDistribution(button.dataset.chartExport));
+  saveResultsButton.addEventListener('click', saveResultsFile);
   chartHost.addEventListener('click', event => {
     const button = event.target.closest('button[data-chart-key]');
     if (!button || !chartHost.contains(button)) return;

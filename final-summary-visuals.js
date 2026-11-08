@@ -59,6 +59,8 @@
 
   function comparisonSvg(input, options = {}) {
     const rows = checkedRows(input, ['before', 'after']);
+    const totals = rows.reduce((total, row) => ({ before: total.before + row.before, after: total.after + row.after }), { before: 0, after: 0 });
+    if (!Number.isSafeInteger(totals.before) || !Number.isSafeInteger(totals.after)) throw new RangeError('Le total des contacts du graphique est trop élevé.');
     const title = options.title || 'Nombre de contacts par espèce · avant / après';
     const maximum = Math.max(0, ...rows.flatMap(row => [row.before, row.after]));
     const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, maximum / 4))));
@@ -92,12 +94,13 @@
       const names = [row.scientificName, row.frenchName].filter(Boolean).join(' · ');
       const tooltip = (names || row.code || 'Sans identification') + ' : avant ' + numbers.format(row.before)
         + ' ; après ' + numbers.format(row.after) + ' contacts';
+      const hover = series => `data-species-tooltip="true" data-species-name="${escape(row.scientificName || row.code || row.frenchName || 'Sans identification')}" data-french-name="${escape(row.frenchName)}" data-contacts="${row[series]}" data-percentage="${totals[series] ? row[series] / totals[series] * 100 : 0}" data-series-label="${series === 'before' ? 'Avant · AUTO-ID' : 'Après · vérification manuelle'}" tabindex="0"`;
       for (const [series, x] of [['before', centre - gap / 2 - barWidth], ['after', centre + gap / 2]]) {
         const value = row[series], barHeight = value / upper * plotHeight, y = baseline - barHeight;
-        parts.push(`<g data-comparison-key="${escape(row.key || row.code || row.scientificName || index)}" data-series="${series}"><title>${escape(tooltip)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${colors[series]}"/>`,
+        parts.push(`<g data-comparison-key="${escape(row.key || row.code || row.scientificName || index)}" data-series="${series}"><title>${escape(tooltip)}</title><rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${colors[series]}" ${hover(series)}/>`,
           text(x + barWidth / 2, y - 7, numbers.format(value), 'text-anchor="middle" font-size="12" font-weight="600"'), '</g>');
       }
-      parts.push(`<g><title>${escape(names || row.code)}</title>`);
+      parts.push(`<g ${hover('after')}><title>${escape(names || row.code)}</title>`);
       labels[index].forEach((line, lineIndex) => parts.push(text(centre, baseline + 25 + lineIndex * 17, line, 'text-anchor="middle" font-size="12"')));
       parts.push('</g>');
     });
@@ -150,5 +153,52 @@
 
   function exportTable(rows, format, options) { return ImageExport.rasterize(tableSvg(rows, options), format, options); }
   function exportComparison(rows, format, options) { return ImageExport.rasterize(comparisonSvg(rows, options), format, options); }
-  return Object.freeze({ comparisonSvg, tableSvg, csv, exportTable, exportComparison, COLORS: colors });
+
+  function namesCsv(input) {
+    const rows = checkedRows(input, []);
+    return '\ufeff' + Core.stringifyCSV(headers.slice(0, 2), rows.map(row => [
+      Core.spreadsheetSafe(row.scientificName), Core.spreadsheetSafe(row.frenchName)
+    ]), ';');
+  }
+
+  function namesTableSvg(input, options = {}) {
+    const rows = checkedRows(input, []);
+    const width = 1200, left = 32, right = width - 32, second = width / 2;
+    const title = options.title || 'Espèces et catégories identifiées après l’étape 1';
+    const note = 'Liste provisoire établie à partir des meilleurs contacts, avant les contrôles complémentaires.';
+    const parts = [];
+    let y = 45;
+    for (const line of wrap(title, width - 64, 25)) {
+      parts.push(text(left, y, line, 'font-size="25" font-weight="600"')); y += 32;
+    }
+    for (const line of wrap((options.fileName ? options.fileName + ' · ' : '') + note, width - 64, 14)) {
+      parts.push(text(left, y + 3, line, 'font-size="14" fill="#677066"')); y += 23;
+    }
+    y += 15;
+    parts.push(`<rect x="${left}" y="${y}" width="${right - left}" height="45" fill="#f1f4ed"/>`,
+      text(left + 12, y + 28, headers[0], 'font-weight="600"'),
+      text(second + 12, y + 28, headers[1], 'font-weight="600"'));
+    y += 45;
+    rows.forEach((row, index) => {
+      const scientific = wrap(row.scientificName || 'Identification non renseignée', second - left - 24, 15);
+      const french = wrap(row.frenchName || 'Nom non renseigné', right - second - 24, 15);
+      const rowHeight = Math.max(scientific.length, french.length) * 22 + 24;
+      parts.push(`<g data-table-row="${index}"><rect x="${left}" y="${y}" width="${right - left}" height="${rowHeight}" fill="${index % 2 ? '#f9faf7' : '#fff'}"/>`);
+      scientific.forEach((line, lineIndex) => parts.push(text(left + 12, y + 28 + lineIndex * 22, line, row.isSpecies ? 'font-style="italic"' : '')));
+      french.forEach((line, lineIndex) => parts.push(text(second + 12, y + 28 + lineIndex * 22, line)));
+      parts.push(`<line x1="${left}" y1="${y + rowHeight}" x2="${right}" y2="${y + rowHeight}" stroke="#e5e9df" stroke-width="1"/></g>`);
+      y += rowHeight;
+    });
+    if (!rows.length) {
+      parts.push(text(left + 12, y + 30, 'Aucune espèce ou catégorie identifiée à cette étape.')); y += 56;
+    }
+    y += 32;
+    return sourceSvg(width, Math.ceil(y), title,
+      note + ' ' + rows.map(row => `${label(row.scientificName)} · ${label(row.frenchName)}`).join(' ; '), parts, 'step-one-names-table');
+  }
+
+  function exportNamesTable(rows, format, options) { return ImageExport.rasterize(namesTableSvg(rows, options), format, options); }
+
+  return Object.freeze({ comparisonSvg, tableSvg, csv, exportTable, exportComparison,
+    namesCsv, namesTableSvg, exportNamesTable, COLORS: colors });
 });

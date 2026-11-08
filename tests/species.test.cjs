@@ -73,6 +73,16 @@ test('activity totals merge code, Latin and French aliases and count summary tot
   assert.equal(rows.reduce((total, row) => total + row.contacts, 0), 27);
 });
 
+test('uncertain or unresolved identifications are distinct from finalized NoID', () => {
+  for (const label of ['Identification incertaine/non résolue', 'Identification incertaine / non résolue', 'Uncertain / unresolved', 'Unresolved', 'Non résolue']) {
+    assert.equal(Names.resolve(label).category, 'uncertain');
+    assert.notEqual(Names.resolve(label).key, Names.resolve('NoID').key);
+    assert.equal(Names.isActivitySummaryEntry({ category: 'taxon', label }), false);
+  }
+  assert.equal(Names.resolve('NoAutoID').key, Names.resolve('NoID').key);
+  assert.equal(Names.resolve('No Identification').key, Names.resolve('NoID').key);
+});
+
 test('activity report excludes pending, noise and uncertain outcomes while counting finalized NoID', () => {
   const rows = Names.activityRows([
     { category: 'noise', label: 'Noise', total: 10 },

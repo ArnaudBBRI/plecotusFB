@@ -1,0 +1,30 @@
+.unresolved-pass { margin-top: 1rem; padding: 1rem; border: 1px solid #dfc780; border-radius: .5rem; background: #fffdf7; }
+.unresolved-pass[hidden] { display: none; }
+.unresolved-pass-header { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+#unresolved-pass-heading { margin: 0; color: #67501c; font-size: 1rem; font-weight: 600; line-height: 1.5; }
+#unresolved-pass-progress { margin: .5rem 0; color: #745e2a; font-size: .82rem; font-variant-numeric: tabular-nums; }
+#unresolved-pass-card { min-width: 0; }
+#unresolved-pass-card .species-group { margin: .75rem 0 0; }
+.unresolved-pass-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+#unresolved-pass-start, #unresolved-pass-previous, #unresolved-pass-next, #unresolved-pass-restart, #unresolved-pass-close {
+  padding: .55rem .8rem;
+  border: 1px solid #c8b67d;
+  border-radius: .4rem;
+  background: #fff;
+  color: #6d531b;
+  font: inherit;
+  font-size: .8rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+#unresolved-pass-start, #unresolved-pass-next, #unresolved-pass-restart { border-color: #8a681d; background: #8a681d; color: #fff; }
+#unresolved-pass-start:hover, #unresolved-pass-next:hover, #unresolved-pass-restart:hover { background: #745617; }
+#unresolved-pass-previous:hover, #unresolved-pass-close:hover { background: #fff3d6; }
+#unresolved-pass-previous:disabled, #unresolved-pass-next:disabled { border-color: #dfd6bd; background: #f6f2e7; color: #9b927b; cursor: default; }
+.unresolved-pass :is(button, [tabindex]):focus-visible, #unresolved-pass-start:focus-visible { outline: 2px solid #996535; outline-offset: 3px; }
+#unresolved-pass-status { margin: .75rem 0 0; color: #745e2a; font-size: .82rem; line-height: 1.6; }
+@media (max-width: 480px) {
+  .unresolved-pass { padding: .75rem; }
+  .unresolved-pass-navigation { align-items: stretch; }
+  .unresolved-pass-navigation button { flex: 1 1 auto; }
+}

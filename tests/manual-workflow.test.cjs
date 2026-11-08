@@ -26,17 +26,17 @@ test('import, review persistence and recalculated working IDs agree throughout t
   choices.setManualId(eptser, 'MYODAU');
   const plan = Workflow.build(source, choices);
   assert.equal(plan.ready, true);
-  assert.equal(plan.remaining, 8);
+  assert.equal(plan.remaining, 7);
   assert.equal(plan.groups.find(group => group.label === 'PIPPIP').mode, 'auto');
   assert.equal(plan.groups.find(group => group.label === 'NYCNOC').requiredIndices.length, 4);
   assert.equal(plan.groups.find(group => group.label === 'MYODAS').requiredIndices.length, 1);
-  assert.equal(plan.groups.find(group => group.label === 'NoID').requiredIndices.length, 2);
+  assert.equal(plan.groups.find(group => group.label === 'NoID').requiredIndices.length, 1);
   assert.equal(plan.automaticAssignments.length, 10);
   const firstAdditional = plan.requiredIndices[0];
   choices.set(firstAdditional, 'invalidated');
-  assert.equal(Workflow.build(source, choices).remaining, 8);
-  choices.setManualId(firstAdditional, 'Noise');
   assert.equal(Workflow.build(source, choices).remaining, 7);
+  choices.setManualId(firstAdditional, 'Noise');
+  assert.equal(Workflow.build(source, choices).remaining, 6);
   choices.setMany(plan.requiredIndices, 'validated');
   const reimported = await Import.read(file);
   const restored = await Decisions.create(reimported, { storage, crypto: webcrypto });
@@ -109,7 +109,7 @@ test('missing, negative, infinite and over-one source ratios stay in the denomin
 });
 
 test('all nine excluded species and recognized scientific aliases prevent direct validation', () => {
-  const codes = Workflow.EXCLUDED_SPECIES;
+  const codes = Workflow.EXCLUDED_SPECIES.filter(code => Names.resolve(code).isSpecies);
   const aliases = ['Barbastella barbastellus', 'Rhinolophus ferrumequinum', 'Rhinolophus hipposideros',
     'Myotis bechsteinii', 'Myotis dasycneme', 'Myotis myotis', 'Myotis emarginatus', 'Nyctalus noctula', 'Nyctalus leisleri'];
   const source = imported([...codes, ...aliases].map(code => [code, 1]));
@@ -181,17 +181,17 @@ test('small groups can require no additional manual controls once their referenc
   assert.equal(group.progress, 1);
 });
 
-test('NoID, missing identities, unknown codes and generic species groups remain individual work', () => {
-  const source = imported([['NoID', .9], ['NoID', .7], ['', .9], ['', .8], ['UNKNOWN', .9], ['Myotis sp.', .9], ['Noise', .9]]);
+test('NoID uses a sample while missing identities, unknown codes and generic species groups remain individual work', () => {
+  const source = imported([['NoID', .9], ['NoID', .7], ['', .9], ['', .8], ['UNRECOGNIZED', .9], ['Myotis sp.', .9], ['Noise', .9]]);
   const result = Workflow.build(source, bestDecisions(source));
   assert.equal(result.groups.length, 4);
-  for (const group of result.groups) assert.equal(group.mode, 'individual');
+  for (const group of result.groups) assert.equal(group.mode, group.label === 'NoID' ? 'sample' : 'individual');
   assert.equal(result.automaticAssignments.length, 0);
-  assert.equal(result.requiredIndices.length, 2, 'already-reviewed bests do not need reviewing again');
+  assert.equal(result.requiredIndices.length, 1, 'the small NoID sample includes only its already-reviewed best');
 });
 
 test('groups without an eligible best have no impossible gate and still receive manual controls', () => {
-  const source = imported([['NoID', '', ''], ['NoID', '', '']]);
+  const source = imported([['UNRECOGNIZED', '', ''], ['UNRECOGNIZED', '', '']]);
   for (const record of source.records) record[7] = '';
   const result = Workflow.build(source, decisions());
   assert.equal(result.ready, true);
@@ -322,7 +322,7 @@ test('a small sensitive group still extrapolates its corrected reference when no
 });
 
 test('individual categories preserve actual identifications without extrapolating unchecked rows', () => {
-  const source = imported([['NoID', .9], ['NoID', .5], ['NoID', .2]]);
+  const source = imported([['UNRECOGNIZED', .9], ['UNRECOGNIZED', .5], ['UNRECOGNIZED', .2]]);
   const best = Best.build(source).groups[0].best.recordIndex;
   const result = Workflow.build(source, decisions([best, 'invalidated', 'PIPPIP']));
   const group = result.groups[0];

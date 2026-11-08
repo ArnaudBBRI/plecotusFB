@@ -1,7 +1,7 @@
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'));
-  else root.PlecotusBestContacts = factory(root.BatReviewCore);
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./core.js'), require('./review-settings.js'));
+  else root.PlecotusBestContacts = factory(root.BatReviewCore, root.PlecotusReviewSettings);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Core, Settings) {
   'use strict';
 
   const day = 86400000;
@@ -72,23 +72,29 @@
     return left - right;
   }
 
-  function compare(left, right) {
-    return descending(left.ratio, right.ratio) || descending(left.qual, right.qual)
-      || descending(left.pulses, right.pulses) || ascending(left.dateValue, right.dateValue)
-      || ascending(left.timeValue, right.timeValue) || left.recordIndex - right.recordIndex;
+  function compare(left, right, ranking) {
+    for (const criterion of ranking) {
+      const order = (criterion.direction === 'asc' ? ascending : descending)(left[criterion.key], right[criterion.key]);
+      if (order) return order;
+    }
+    return left.recordIndex - right.recordIndex;
   }
 
-  function build(imported) {
+  function build(imported, inputSettings = {}) {
     if (!imported || !Array.isArray(imported.headers) || !Array.isArray(imported.records)) {
       throw new TypeError('La sélection des meilleurs contacts exige les en-têtes et les lignes importées.');
     }
+    const settings = Settings.normalize(inputSettings);
     const columns = Core.canonicalColumns(imported.headers);
     const quality = imported.headers.map((header, index) => ({ index, name: text(header).toUpperCase().replace(/[^A-Z0-9]/g, '') })).filter(item => item.name === 'QUAL');
     if (quality.length > 1) throw new Error('Plusieurs en-têtes désignent Qual. Gardez une seule colonne sans ambiguïté.');
     columns.qual = quality.length ? quality[0].index : -1;
-    const missingColumns = [['ratio', 'MATCH RATIO'], ['qual', 'Qual'], ['pulses', 'PULSES'], ['date', 'DATE'], ['time', 'TIME']]
+    const missingColumns = settings.ranking.map(item => {
+      const key = item.key === 'dateValue' ? 'date' : item.key === 'timeValue' ? 'time' : item.key;
+      return [key, Settings.CRITERIA.find(criterion => criterion.key === item.key).label];
+    })
       .filter(([key]) => columns[key] < 0).map(([, label]) => label);
-    const excel = imported.sheetName != null || /\.xlsx?$/i.test(imported.fileName || '');
+    const excel = imported.excelDates === true || imported.sheetName != null || /\.xlsx?$/i.test(imported.fileName || '');
     const groups = new Map();
     let excludedNoiseCount = 0, excludedCandidateCount = 0;
 
@@ -103,23 +109,24 @@
       if (!groups.has(key)) groups.set(key, { key, label: text(rawAuto) || 'Sans identification automatique', kind: auto.kind, count: 0, eligibleCount: 0, best: null });
       const group = groups.get(key);
       group.count++;
-      const raw = Object.fromEntries(['ratio', 'qual', 'pulses', 'matching', 'date', 'time'].map(name => [name, text(at(name))]));
+      const raw = Object.fromEntries(['ratio', 'qual', 'pulses', 'matching', 'margin', 'date', 'time'].map(name => [name, text(at(name))]));
       const ratio = numeric(raw.ratio), qual = numeric(raw.qual), matching = numeric(raw.matching);
-      // MATCHING affects eligibility only; it never breaks a ranking tie.
+      // Eligibility stays independent of the configured ranking: pulses or
+      // margin alone do not make a contact eligible for the reference.
       if (ratio == null && qual == null && matching == null) { excludedCandidateCount++; return; }
       const sourceRow = imported.sourceRows && imported.sourceRows[recordIndex];
       const parsedDate = dateValue(raw.date, excel, imported.excelDate1904 === true);
       const parsedTime = timeValue(raw.time, excel);
       const candidate = { recordIndex, lineNumber: Number.isInteger(sourceRow) && sourceRow > 0 ? sourceRow : recordIndex + 2,
-        fileName: text(at('file')), ratio, qual, pulses: numeric(raw.pulses), matching,
+        fileName: text(at('file')), ratio, qual, pulses: numeric(raw.pulses), matching, margin: numeric(raw.margin),
         date: displayDate(raw.date, parsedDate), time: displayTime(raw.time, parsedTime),
         dateValue: parsedDate, timeValue: parsedTime, raw, record };
       group.eligibleCount++;
-      if (!group.best || compare(candidate, group.best) < 0) group.best = candidate;
+      if (!group.best || compare(candidate, group.best, settings.ranking) < 0) group.best = candidate;
     });
 
     return { groups: [...groups.values()].sort((left, right) => left.label.localeCompare(right.label, 'fr') || left.key.localeCompare(right.key, 'fr')),
-      excludedNoiseCount, excludedCandidateCount, missingColumns };
+      excludedNoiseCount, excludedCandidateCount, missingColumns, settings };
   }
 
   return Object.freeze({ build });

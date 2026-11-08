@@ -1,0 +1,11 @@
+.contact-timeline { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #e0e6d9; border-radius: .6rem; background: #fff; }
+.timeline-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: .75rem; }
+.timeline-heading h3 { margin: 0; color: #30432c; font-size: 1rem; font-weight: 550; }
+.timeline-scroll { width: 100%; overflow-x: auto; border-radius: .3rem; }
+.timeline-svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.timeline-data-point { cursor: help; }
+.timeline-data-point:hover, .timeline-data-point:focus-visible { r: 5; stroke: #1b3a1d; stroke-width: 2; outline: none; }
+.timeline-caption, .timeline-detail, .timeline-export-status { margin: .6rem 0 0; color: #646f5d; font-size: .8rem; line-height: 1.65; }
+.timeline-detail { min-height: 1.65em; color: #3f5b37; }
+.timeline-export-status { color: #3f5b37; }
+@media (max-width: 480px) { .contact-timeline { padding: .85rem; } }

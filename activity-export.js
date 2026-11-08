@@ -210,20 +210,70 @@
     return { parts, bottom: y };
   }
 
+  function columns(data, top) {
+    const parts = [], left = 80, right = 40, plotWidth = WIDTH - left - right;
+    const maximum = Math.max(...data.rows.map(row => row.contacts));
+    const magnitude = Math.pow(10, Math.floor(Math.log10(Math.max(1, maximum / 4))));
+    const step = Math.max(1, [1, 2, 5, 10].map(value => value * magnitude).find(value => value >= maximum / 4));
+    const upper = Math.max(step, Math.ceil(maximum / step) * step);
+    const plotTop = top + 26, plotHeight = 320, baseline = plotTop + plotHeight;
+    const slot = plotWidth / data.rows.length;
+    const columnWidth = Math.min(64, slot * .65);
+    parts.push(text(left, plotTop - 13, 'Contacts', 14, 'fill="#607269"'));
+    for (let tick = 0; tick <= Math.round(upper / step); tick++) {
+      const value = tick * step, y = baseline - value / upper * plotHeight;
+      parts.push(`<line x1="${left}" y1="${y}" x2="${WIDTH - right}" y2="${y}" stroke="${value ? '#e4ebe6' : '#687c70'}"/>`,
+        text(left - 12, y + 5, counts.format(value), 13, 'text-anchor="end" fill="#607269"'));
+    }
+    parts.push(`<line x1="${left}" y1="${plotTop}" x2="${left}" y2="${baseline}" stroke="#687c70"/>`);
+    data.rows.forEach((row, index) => {
+      const x = left + slot * index + (slot - columnWidth) / 2;
+      const height = row.contacts / upper * plotHeight, y = baseline - height;
+      parts.push(`<rect data-series="${index}" x="${x}" y="${y}" width="${columnWidth}" height="${height}" fill="${row.color}"><title>${escape(tooltip(row))}</title></rect>`,
+        text(x + columnWidth / 2, baseline + 24, String(index + 1), 12, 'text-anchor="middle" fill="#607269"'));
+      if (slot >= 40) parts.push(text(x + columnWidth / 2, y - 8, counts.format(row.contacts), 13, 'text-anchor="middle" font-weight="700"'));
+    });
+
+    // Numbered categories link the axis to a complete, wrapping legend. Even
+    // narrow columns and very long imported names retain all their labels.
+    const legendColumns = 3, gap = 26, legendWidth = (1120 - gap * (legendColumns - 1)) / legendColumns;
+    let y = baseline + 68;
+    for (let start = 0; start < data.rows.length; start += legendColumns) {
+      const entries = data.rows.slice(start, start + legendColumns).map(row => ({ row, lines: [
+        ...wrapWidth(row.scientificName || row.frenchName || 'Identification non renseignée', legendWidth - 50, 15)
+          .map(value => ({ value, scientific: true })),
+        ...(row.scientificName && row.frenchName ? wrapWidth(row.frenchName, legendWidth - 50, 14)
+          .map(value => ({ value, scientific: false })) : [])
+      ] }));
+      entries.forEach(({ row, lines }, column) => {
+        const x = 40 + column * (legendWidth + gap);
+        parts.push(`<g data-legend="${escape(row.scientificName || row.frenchName)}"><rect x="${x}" y="${y - 12}" width="15" height="15" rx="2" fill="${row.color}"/>`,
+          text(x + 22, y, String(start + column + 1) + '.', 14, 'fill="#607269"'),
+          rowLabels(row, lines, x + 48, y, 20),
+          text(x + 48, y + lines.length * 20 + 2, `${counts.format(row.contacts)} contacts · ${percentages.format(row.percentage)} %`, 14, 'font-weight="700"'), '</g>');
+      });
+      y += Math.max(...entries.map(entry => entry.lines.length)) * 20 + 32;
+    }
+    return { parts, bottom: y };
+  }
+
   function svg(rows, mode, options) {
     options = options || {};
+    mode = Chart.normalizeMode(mode);
     const data = Chart.prepare(rows), parts = [];
     const title = options.title || 'Répartition des contacts par espèce';
     let y = 54;
     for (const line of wrap(title, 38)) { parts.push(text(40, y, line, 28, 'font-weight="700"')); y += 34; }
-    parts.push(text(40, y, mode === 'bar' ? 'Graphique en barres' : 'Camembert', 15, 'fill="#607269"')); y += 28;
+    const modeTitle = { pie: 'Camembert', bar: 'Graphique en barres', vertical: 'Barres verticales' }[mode];
+    parts.push(text(40, y, modeTitle, 15, 'fill="#607269"')); y += 28;
     const details = metadata(options, data.total);
     for (const line of details.flatMap(value => wrap(value, 74))) {
       parts.push(text(40, y, line, 14, 'fill="#607269"')); y += 22;
     }
     y += 22;
     if (data.total) {
-      const chart = mode === 'bar' ? bars(data, y) : pie(data, y, options);
+      const chart = mode === 'bar' ? bars(data, y) : mode === 'vertical'
+        ? columns(data, y) : pie(data, y, options);
       parts.push(...chart.parts); y = chart.bottom;
     } else {
       parts.push(text(40, y + 24, 'Aucun contact attribué à une espèce à afficher.', 16));

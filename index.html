@@ -14,23 +14,42 @@
   <link rel="stylesheet" href="review-actions.css">
   <link rel="stylesheet" href="manual-review.css">
   <link rel="stylesheet" href="final-summary.css">
+  <link rel="stylesheet" href="species-tooltip.css">
+  <link rel="stylesheet" href="timeline.css">
+  <link rel="stylesheet" href="contact-context.css">
+  <link rel="stylesheet" href="unresolved-review.css">
   <script defer src="vendor/sheetjs/xlsx.full.min.js"></script>
   <script defer src="core.js"></script>
   <script defer src="kaleidoscope.js"></script>
   <script defer src="file-import.js"></script>
   <script defer src="species.js"></script>
+  <script defer src="species-photos.js"></script>
+  <script defer src="species-tooltip.js"></script>
+  <script defer src="review-settings.js"></script>
   <script defer src="activity-chart.js"></script>
   <script defer src="activity-export.js"></script>
   <script defer src="import-chart.js"></script>
+  <script defer src="timeline-data.js"></script>
+  <script defer src="timeline-chart.js"></script>
+  <script defer src="timeline-ui.js"></script>
+  <script defer src="contact-context-data.js"></script>
+  <script defer src="contact-context-ui.js"></script>
   <script defer src="best-contacts.js"></script>
   <script defer src="contact-decisions.js"></script>
   <script defer src="proportional-allocation.js"></script>
   <script defer src="manual-workflow.js"></script>
   <script defer src="manual-review-ui.js"></script>
+  <script defer src="unresolved-review-ui.js"></script>
   <script defer src="final-summary-data.js"></script>
   <script defer src="final-summary-visuals.js"></script>
+  <script defer src="step-one-species.js"></script>
+  <script defer src="step-one-species-ui.js"></script>
   <script defer src="final-summary-ui.js"></script>
+  <script defer src="review-settings-ui.js"></script>
+  <script defer src="settings-report.js"></script>
+  <script defer src="settings-report-ui.js"></script>
   <script defer src="wav-opening.js"></script>
+  <script defer src="results-file.js"></script>
   <script defer src="welcome.js"></script>
 </head>
 <body>
@@ -54,8 +73,11 @@
           <span>Charger un fichier csv</span>
         </button>
         <button class="file-button" id="open-settings" type="button" aria-haspopup="dialog">Réglages</button>
+        <button class="file-button" id="save-results" type="button" hidden title="Enregistre toutes les lignes du fichier avec MANUAL ID, SEMIMANUAL ID et l’origine de chaque identification. Ce fichier peut être rechargé pour reprendre la vérification.">Enregistrer les résultats (CSV)</button>
+        <span class="header-reviewer" id="header-reviewer" aria-live="polite">Vérificateur : <span id="header-reviewer-name" data-unspecified="true">non spécifié</span></span>
         <input id="data-file" type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="Choisir un fichier CSV ou Excel" hidden>
         <p class="selected-file" id="selected-file" role="status" hidden></p>
+        <p class="selected-file" id="results-save-status" role="status" hidden></p>
       </nav>
       <span class="dashboard-brand">
         <span class="header-bat" aria-hidden="true"><span class="header-bat-flight"><span></span></span></span>
@@ -66,6 +88,26 @@
     <div class="dashboard-content">
       <p class="wav-opening-status" id="wav-opening-status" role="status" hidden></p>
       <p class="import-error" id="import-error" role="alert" hidden></p>
+      <details class="unresolved-review-panel" id="unresolved-review-panel" hidden>
+        <summary id="unresolved-review-heading" aria-live="polite">Identifications à reprendre (0)</summary>
+        <p>Les contacts marqués « À revoir » ont une identification incertaine/non résolue. Vous pouvez continuer la vérification, puis revenir ici pour les identifier avant de finaliser. Ils sont exclus du prorata tant qu’ils restent à reprendre ; une identification finale NoID est une décision distincte.</p>
+        <button id="unresolved-pass-start" type="button" aria-controls="unresolved-pass">Revoir un par un</button>
+        <section class="unresolved-pass" id="unresolved-pass" aria-labelledby="unresolved-pass-heading" hidden>
+          <header class="unresolved-pass-header">
+            <h2 id="unresolved-pass-heading" tabindex="-1">Revoir les identifications une par une</h2>
+            <button id="unresolved-pass-close" type="button">Retour à la liste</button>
+          </header>
+          <p id="unresolved-pass-progress" role="status" aria-live="polite"></p>
+          <div id="unresolved-pass-card"></div>
+          <nav class="unresolved-pass-navigation" aria-label="Parcours des identifications à reprendre">
+            <button id="unresolved-pass-previous" type="button" disabled>← Précédent</button>
+            <button id="unresolved-pass-next" type="button" disabled>Suivant →</button>
+            <button id="unresolved-pass-restart" type="button" hidden>Reprendre les contacts restants</button>
+          </nav>
+          <p id="unresolved-pass-status" role="status" aria-live="polite"></p>
+        </section>
+        <div id="unresolved-review-list"></div>
+      </details>
       <section class="sheet-picker" id="sheet-picker" aria-labelledby="sheet-picker-heading" hidden>
         <h2 id="sheet-picker-heading">Choisir une feuille</h2>
         <p>Ce classeur contient plusieurs feuilles de contacts. Choisissez celle à analyser.</p>
@@ -89,7 +131,8 @@
             <div class="chart-actions">
               <div class="chart-toggle" role="group" aria-label="Type de graphique">
                 <button type="button" data-chart-mode="pie" aria-pressed="true">Camembert</button>
-                <button type="button" data-chart-mode="bar" aria-pressed="false">Barres</button>
+                <button type="button" data-chart-mode="bar" aria-pressed="false">Barres horizontales</button>
+                <button type="button" data-chart-mode="vertical" aria-pressed="false">Barres verticales</button>
               </div>
               <div class="chart-exports" role="group" aria-label="Exporter le graphique">
                 <button type="button" data-chart-export="png" aria-label="Exporter le graphique en PNG" disabled>PNG</button>
@@ -101,6 +144,19 @@
           <div class="distribution-chart" id="distribution-chart"></div>
           <p class="chart-export-status" id="chart-export-status" role="status"></p>
         </section>
+        <section class="import-distribution contact-timeline" aria-labelledby="timeline-heading">
+          <div class="distribution-toolbar">
+            <div class="distribution-heading"><h3 id="timeline-heading">Les contacts au fil du temps</h3><p id="timeline-caption"></p></div>
+            <div class="chart-exports" role="group" aria-label="Exporter la chronologie des contacts">
+              <button type="button" data-timeline-export="png" aria-label="Exporter la chronologie en PNG" disabled>PNG</button>
+              <button type="button" data-timeline-export="jpeg" aria-label="Exporter la chronologie en JPEG" disabled>JPEG</button>
+              <button type="button" data-timeline-export="svg" aria-label="Exporter la chronologie en SVG" disabled>SVG</button>
+            </div>
+          </div>
+          <div id="timeline-chart"></div>
+          <p class="timeline-detail" id="timeline-detail" role="status" aria-live="polite" hidden></p>
+          <p class="chart-export-status" id="timeline-export-status" role="status"></p>
+        </section>
         <details class="import-warnings" id="import-warnings" hidden><summary>Remarques sur le fichier</summary><ul id="import-warning-list"></ul></details>
         <div class="overview-actions"><button class="start-review" id="start-review" type="button" hidden>Commencer la vérification manuelle par espèce</button></div>
       </section>
@@ -110,7 +166,7 @@
           <button id="debug-validate-all" type="button">Valider tous les meilleurs contacts</button>
           <p>Mode débogage : valide les meilleurs contacts affichés, hors Noise.</p>
         </div>
-        <h2 id="species-heading" tabindex="-1">Vérification manuelle par espèce</h2>
+        <h2 id="species-heading" tabindex="-1">1/ Vérification manuelle de chaque meilleur contact</h2>
         <p class="species-review-summary" id="species-review-summary"></p>
         <p class="review-save-status" id="review-save-status" role="status" hidden></p>
         <div class="species-review-layout">
@@ -119,7 +175,7 @@
           <aside class="best-method" aria-labelledby="best-method-heading" tabindex="0">
             <h3 id="best-method-heading">Comment le meilleur contact est-il choisi ?</h3>
             <p>Un meilleur contact par <strong>AUTO-ID</strong>, sur tout le fichier. Ordre de tri :</p>
-            <ol>
+            <ol id="best-ranking-criteria">
               <li><strong>MATCH RATIO</strong> le plus élevé.</li>
               <li>En cas d’égalité, <strong>Qual</strong> le plus élevé.</li>
               <li>Puis <strong>PULSES</strong> le plus élevé.</li>
@@ -127,11 +183,20 @@
               <li>Enfin, l’<strong>heure</strong> la plus tôt dans la journée.</li>
             </ol>
             <p>Égalité complète : le premier contact dans l’ordre du fichier est retenu.</p>
-            <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. MATCHING n’est pas un critère de tri.</p>
+            <p>Les valeurs absentes ou invalides passent après les valeurs valides. Les contacts où <strong>MATCHING, MATCH RATIO et Qual</strong> sont tous manquants sont écartés de la sélection. Modifiez les critères et leur priorité dans <strong>Réglages</strong>.</p>
             <p><strong>Noise</strong> est exclu de la liste. Les compteurs du fichier ne changent pas.</p>
             <p class="best-contact-note">« Ligne source » : début du contact dans le CSV ou numéro de ligne Excel. « Valider » confirme l’AUTO-ID. Après « Invalider », renseignez l’identification réelle pour terminer le contrôle. Chaque choix remplace le précédent.</p>
             <p class="best-contact-note" id="best-missing-columns" hidden></p>
           </aside>
+          <section class="step-one-species-exports" aria-labelledby="best-species-export-heading">
+            <h3 id="best-species-export-heading">Espèces identifiées à l’étape 1</h3>
+            <p data-step-one-species-help>Terminez l’identification des meilleurs contacts pour exporter cette liste provisoire, sans nombre de contacts.</p>
+            <div class="step-one-species-actions" role="group" aria-label="Exporter les noms des espèces après l’étape 1">
+              <button type="button" data-step-one-species-export="csv" disabled>Exporter en CSV</button>
+              <button type="button" data-step-one-species-export="jpeg" disabled>Exporter en JPEG</button>
+            </div>
+            <p data-step-one-species-status role="status" aria-live="polite"></p>
+          </section>
           <div class="review-next-step">
             <button id="review-next-button" type="button" aria-disabled="true" aria-describedby="review-next-status">Étape suivante →</button>
             <p id="review-next-status" role="status"></p>
@@ -150,6 +215,15 @@
           <p id="manual-plan-debug-result" role="status" hidden></p>
         </div>
         <p id="manual-plan-summary" role="status"></p>
+        <section class="step-one-species-exports" aria-labelledby="manual-species-export-heading">
+          <h3 id="manual-species-export-heading">Espèces identifiées à l’étape 1</h3>
+          <p data-step-one-species-help>Liste provisoire des noms scientifiques et vernaculaires, sans nombre de contacts. Disponible avant la fin des contrôles complémentaires.</p>
+          <div class="step-one-species-actions" role="group" aria-label="Exporter les noms des espèces après l’étape 1">
+            <button type="button" data-step-one-species-export="csv" disabled>Exporter en CSV</button>
+            <button type="button" data-step-one-species-export="jpeg" disabled>Exporter en JPEG</button>
+          </div>
+          <p data-step-one-species-status role="status" aria-live="polite"></p>
+        </section>
         <div class="manual-plan-layout">
           <div class="manual-species-list">
             <table class="manual-species-table">
@@ -163,15 +237,15 @@
             <p>Les AUTO-ID d’une espèce sont repris dans <strong>SEMIMANUAL ID</strong> lorsque ces trois conditions sont remplies :</p>
             <ol>
               <li>Le meilleur contact est <strong>validé</strong> : son identification manuelle confirme l’AUTO-ID.</li>
-              <li><strong>Au moins 50 %</strong> des contacts de l’espèce ont un <strong>MATCH RATIO ≥ 0,6</strong>. Les ratios absents ou invalides restent dans le total.</li>
+              <li id="manual-ratio-condition"><strong>Au moins 50 %</strong> des contacts de l’espèce ont un <strong>MATCH RATIO ≥ 0,6</strong>. Les ratios absents ou invalides restent dans le total.</li>
               <li>L’espèce ne figure pas dans la liste d’exclusion du projet.</li>
             </ol>
-            <p class="manual-method-codes">Espèces exclues : BARBAR, RHIFER, RHIHIP, MYOBEC, MYODAS, MYOMYO, MYOEMA, NYCNOC, NYCLEI.</p>
+            <p class="manual-method-codes" id="manual-excluded-species">Espèces exclues : BARBAR, RHIFER, RHIHIP, MYOBEC, MYODAS, MYOMYO, MYOEMA, NYCNOC, NYCLEI.</p>
             <p>Sinon, un échantillon d’au moins <strong>20 %</strong> des contacts est contrôlé, arrondi au supérieur. Le meilleur contact déjà contrôlé est compris dans ce quota.</p>
             <p>La sélection est répartie proportionnellement entre les classes de MATCH RATIO : [0 ; 0,2], ]0,2 ; 0,4], ]0,4 ; 0,6], ]0,6 ; 0,8], ]0,8 ; 1], plus une classe pour les ratios absents ou invalides. Les quotas entiers utilisent les plus forts restes et incluent le meilleur contact.</p>
-            <p>Après « Invalider », choisissez <strong>l’identification réelle</strong> du contact. Le contrôle n’est terminé qu’une fois cette identification renseignée. Le meilleur contact contribue aussi aux proportions.</p>
+            <p>Après « Invalider », choisissez <strong>l’identification réelle</strong> du contact. Si elle reste incertaine, choisissez <strong>À revoir</strong> : vous pouvez poursuivre, puis retrouver ce contact dans <strong>Identifications à reprendre</strong>. Sa résolution est requise avant la finalisation ; il ne contribue pas au prorata tant qu’il est à reprendre.</p>
             <p>Une fois l’échantillon entièrement identifié, les contacts restants reçoivent une identification dans <strong>SEMIMANUAL ID au prorata des identifications manuelles</strong> du groupe. Les arrondis par les plus forts restes conservent le nombre total de contacts. Les contacts déjà identifiés à la main gardent leur identification.</p>
-            <p>Les barres suivent les <strong>contrôles supplémentaires terminés</strong>. Sans contrôle supplémentaire, la barre est pleine. NoID et les contacts sans AUTO-ID sont vérifiés individuellement ; Noise est exclu. L’attribution au prorata est une estimation des effectifs sur les contacts non écoutés.</p>
+            <p>Les barres suivent les <strong>contrôles supplémentaires terminés</strong>. Sans contrôle supplémentaire, la barre est pleine. Le groupe AUTO-ID <strong>NoID</strong> exige toujours un échantillon d’au moins <strong>20 %</strong>, puis une attribution au prorata des identifications terminées. Une identification manuelle finale NoID est conservée comme résultat. Les contacts sans AUTO-ID restent individuels ; Noise est exclu. L’attribution au prorata est une estimation des effectifs sur les contacts non écoutés.</p>
           </aside>
           <div class="manual-finalize">
             <button id="manual-finalize-button" type="button" aria-describedby="manual-finalize-status" disabled>Finaliser la vérification →</button>
@@ -197,7 +271,8 @@
           <span>Répartition avant / après</span>
           <div class="final-summary-mode" role="group" aria-label="Présentation des répartitions">
             <button type="button" data-summary-mode="pie" aria-pressed="true">Camemberts</button>
-            <button type="button" data-summary-mode="bar" aria-pressed="false">Barres</button>
+            <button type="button" data-summary-mode="bar" aria-pressed="false">Barres horizontales</button>
+            <button type="button" data-summary-mode="vertical" aria-pressed="false">Barres verticales</button>
           </div>
         </div>
         <p class="final-filter-note" id="final-filter-note"></p>
@@ -259,11 +334,29 @@
       </section>
     </div>
   </main>
+  <section class="contact-context" id="contact-context" role="dialog" aria-modal="false" aria-labelledby="contact-context-heading" aria-describedby="contact-context-summary" hidden>
+    <header class="contact-context-header">
+      <h2 id="contact-context-heading">Contexte chronologique</h2>
+      <button id="contact-context-close" type="button" aria-label="Fermer le contexte chronologique">Fermer ×</button>
+    </header>
+    <p class="contact-context-summary" id="contact-context-summary"></p>
+    <div class="contact-context-scroll" tabindex="0" role="region" aria-label="Contacts précédents et suivants, tableau défilant">
+      <table>
+        <thead><tr><th scope="col">Date et heure</th><th scope="col">Fichier WAV</th><th scope="col">AUTO-ID</th><th scope="col">MATCH RATIO</th><th scope="col">PULSES</th><th scope="col">MANUAL ID</th></tr></thead>
+        <tbody id="contact-context-table-body"></tbody>
+      </table>
+    </div>
+    <p class="contact-context-status" id="contact-context-status" role="status" aria-live="polite"></p>
+  </section>
   <dialog class="wav-settings" id="wav-settings" aria-labelledby="wav-settings-heading">
     <form id="wav-settings-form">
       <header><h2 id="wav-settings-heading">Réglages</h2></header>
       <fieldset class="settings-general">
         <legend>Options de l’interface</legend>
+        <div class="settings-reviewer">
+          <label for="settings-reviewer">Nom du vérificateur</label>
+          <input id="settings-reviewer" type="text" autocomplete="name" placeholder="Nom et prénom">
+        </div>
         <label class="settings-checkbox" for="settings-debug-mode"><input id="settings-debug-mode" type="checkbox"> Mode débogage</label>
         <label for="settings-common-pipistrelle">Afficher la Pipistrelle commune par défaut dans les graphiques</label>
         <select id="settings-common-pipistrelle">
@@ -271,6 +364,8 @@
           <option value="no">Non</option>
         </select>
       </fieldset>
+      <section id="review-settings-fields" class="settings-review-fields" aria-label="Critères de vérification"></section>
+      <section id="settings-report" class="settings-general" aria-label="Rapport des réglages"></section>
       <label for="wav-settings-viewer">Logiciel d’ouverture des WAV</label>
       <select id="wav-settings-viewer">
         <option value="kaleidoscope">Kaleidoscope</option>
@@ -279,6 +374,9 @@
       <label for="wav-settings-executable" id="wav-settings-executable-label">Chemin de l’exécutable Kaleidoscope</label>
       <input id="wav-settings-executable" type="text" spellcheck="false" autocomplete="off" aria-describedby="wav-settings-help">
       <p class="settings-help" id="wav-settings-help"></p>
+      <label for="wav-settings-search-folders">Dossiers où rechercher les WAV déplacés (un chemin par ligne)</label>
+      <textarea id="wav-settings-search-folders" rows="3" spellcheck="false" autocomplete="off" aria-describedby="wav-settings-search-help" placeholder="C:\Chiro\Enregistrements"></textarea>
+      <p class="settings-help" id="wav-settings-search-help">Si un WAV n’est plus à l’emplacement indiqué dans le fichier id, Plecotus le cherche par son nom dans ces dossiers et leurs sous-dossiers. Si plusieurs fichiers portent le même nom, rien n’est ouvert et les chemins trouvés sont affichés.</p>
       <p class="settings-connection" id="wav-settings-connection"></p>
       <p class="settings-error" id="wav-settings-error" role="alert" hidden></p>
       <footer class="settings-actions">

@@ -35,7 +35,7 @@
 
     function canFinalize(plan) {
       return Boolean(plan && plan.ready && plan.assignmentReady === true && plan.remaining === 0
-        && !(plan.pendingIdentificationIndices || []).length);
+        && !(plan.pendingIdentificationIndices || []).length && !(plan.unresolvedIndices || []).length);
     }
 
     function updateFinalization(plan) {
@@ -44,6 +44,9 @@
         finalizeStatus.textContent = 'Tous les contrôles sont terminés. Vous pouvez finaliser et consulter le récapitulatif.';
       } else if (!plan || !plan.ready) {
         finalizeStatus.textContent = 'Terminez l’identification de chaque meilleur contact avant de finaliser.';
+      } else if ((plan.unresolvedIndices || []).length) {
+        finalizeStatus.textContent = count(plan.unresolvedIndices.length, 'identification incertaine/non résolue reste à reprendre', 'identifications incertaines/non résolues restent à reprendre')
+          + ' dans « Identifications à reprendre » avant de finaliser. Une décision « À revoir » ne participe pas au prorata.';
       } else if (plan.remaining > 0) {
         finalizeStatus.textContent = count(plan.remaining, 'contrôle supplémentaire reste à terminer', 'contrôles supplémentaires restent à terminer')
           + '. Après une invalidation, renseignez l’identification réelle.';
@@ -58,6 +61,10 @@
     function assignmentStatus(group, compact = false) {
       if (typeof group.assignmentReady !== 'boolean') return '';
       if (!group.assignmentReady) {
+        if ((group.unresolvedIndices || []).length) {
+          return count(group.unresolvedIndices.length, 'identification à reprendre', 'identifications à reprendre')
+            + (compact ? '' : ' ; aucun prorata n’est appliqué avant leur résolution.');
+        }
         const pending = (group.pendingIdentificationIndices || []).length;
         return count(pending, 'identification réelle à renseigner', 'identifications réelles à renseigner')
           + (compact ? '' : (group.mode === 'sample' ? ' avant de calculer le prorata.' : '.'));
@@ -153,10 +160,13 @@
       if (typeof plan.assignmentReady === 'boolean') {
         const assigned = (plan.proportionalAssignments || []).length;
         const pending = (plan.pendingIdentificationIndices || []).length;
+        const unresolved = (plan.unresolvedIndices || []).length;
         if (assigned) node('manual-plan-summary').textContent += ' · '
           + count(assigned, 'contact attribué au prorata', 'contacts attribués au prorata');
-        if (pending) node('manual-plan-summary').textContent += ' · '
-          + count(pending, 'identification réelle à renseigner', 'identifications réelles à renseigner');
+        if (unresolved) node('manual-plan-summary').textContent += ' · '
+          + count(unresolved, 'identification à reprendre', 'identifications à reprendre');
+        if (pending > unresolved) node('manual-plan-summary').textContent += ' · '
+          + count(pending - unresolved, 'identification réelle à renseigner', 'identifications réelles à renseigner');
       }
       debug.hidden = !options.getPreferences().debugMode;
       debugButton.disabled = !plan.requiredIndices.length;
@@ -198,7 +208,8 @@
       return true;
     }
 
-    function refresh() {
+    function refresh({ resetDetail = false } = {}) {
+      if (resetDetail) detailSignature = null;
       const plan = options.getPlan();
       if (!plan) return;
       renderOverview(plan);
