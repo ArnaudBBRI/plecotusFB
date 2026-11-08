@@ -1,0 +1,88 @@
+Plecotus v22
+Paquet préparé le 2026-10-26 (Europe/Brussels).
+Interface : branche codex/gui-redesign, base Git a118628.
+Construit depuis l’état de travail courant, incluant le titre
+« 1/ Vérification manuelle de chaque meilleur contact ».
+Fondu d’accueil de 3 secondes avec yeux conservés ; chauve-souris animée
+sur la barre supérieure ; contrôles par espèce, prorata, simulation debug,
+récapitulatif avant/après et exports CSV / PNG / JPEG / SVG.
+Aucune donnée utilisateur ni préférence de navigateur incluse.
+
+v22 (2026-11-02) : recherche des WAV déplacés. Nouveau champ « Dossiers où
+rechercher les WAV déplacés » dans Réglages ; si le chemin du fichier id
+n’existe plus, le lanceur cherche le WAV par son nom dans ces dossiers
+(doublons signalés, rien n’est ouvert). Lanceur local version 2.
+Mise à jour v22 (2026-11-02) : bouton « Enregistrer les résultats (CSV) »
+à toutes les étapes (colonnes d’origine + MANUAL ID, SEMIMANUAL ID, ORIGINE ID
+PLECOTUS) et reprise de la vérification en rechargeant ce fichier.
+
+Amélioration v22 (2026-11-02) : critères modifiables dans Réglages.
+Ajout/retrait des espèces exclues de la validation globale, seuil MATCH RATIO
+et pourcentage minimal personnalisables, classement du meilleur contact
+avec critères, priorité et sens de tri au choix. Valeurs initiales conservées
+par défaut ; réglages mémorisés dans le navigateur. Recalcul des contrôles et
+attributions, avec conservation des identifications manuelles.
+Reprise CSV : échantillon stable et calendrier Excel conservé.
+Aucune nouvelle archive ZIP préparée.
+
+Amélioration v22 (2026-11-02) : statut « Identification incertaine/non résolue »
+(À revoir) avec liste dédiée et reprise CSV ; distinct d’une identification
+NoID terminée. Les groupes AUTO-ID NoID suivent un échantillon de 20 % et
+restent exclus de la validation globale. Copie pour Word et exports TXT/HTML
+des paramètres enregistrés et de la méthode, datés en Europe/Brussels.
+
+Amélioration v22 (2026-11-08) : mise à jour immédiate du texte de méthode
+dans Réglages à chaque modification des paramètres, sans quitter le menu.
+Copie et exports suivent le formulaire en cours ; les changements non encore
+enregistrés sont signalés. Un seuil invalide suspend la copie et l’export.
+
+Amélioration v22 (2026-11-08) : commentaire facultatif pour chaque contact
+dès l’étape 1, conservé lors des validations et corrections, dans les contrôles
+supplémentaires et les identifications à reprendre. Conservation locale et
+reprise par la colonne COMMENTAIRE PLECOTUS du CSV de résultats.
+
+Amélioration v22 (2026-11-08) : indication du vérificateur dans la barre du
+haut, « non spécifié » en rouge si le nom est vide. Le nom se règle dans
+Réglages, est mémorisé dans le navigateur et figure dans le rapport de méthode.
+
+Amélioration v22 (2026-11-08) : histogrammes à colonnes accolées par espèce et
+barres verticales espacées pour les graphiques d’import et avant/après, avec
+exports PNG/JPEG/SVG correspondants. Infobulles avec noms, contacts, pourcentages
+et photos des 31 espèces du catalogue, intégrées pour un usage hors ligne ;
+crédits Wikimedia Commons/iNaturalist et licences conservés. Les groupes et
+NoID n’affichent pas de photo d’espèce supposée. Aucune nouvelle archive ZIP.
+
+Amélioration v22 (2026-11-08) : courbe chronologique des contacts dans le
+résumé du fichier, avec dates et heures, intervalles horaires (élargis pour
+les longues périodes), détail au survol/clavier et exports PNG/JPEG/SVG.
+Prise en charge des dates européennes, ISO et Excel ; heures du fichier
+conservées, Noise et dates/heures invalides décomptés séparément.
+
+Amélioration v22 (2026-11-08) : bouton « Contexte » sur les contacts à
+vérifier, fenêtre flottante avec 10 contacts chronologiques avant et après,
+référence jaune, dates/heures et colonnes WAV/AUTO-ID/MATCH RATIO/PULSES/
+MANUAL ID. Tous les contacts et Noise inclus, identifications actualisées,
+ouverture des voisins dans le logiciel WAV configuré, sans changer les décisions.
+
+Ajustement v22 (2026-11-08) : retrait du mode Histogramme. Les graphiques
+d’import et avant/après proposent désormais trois représentations : camembert,
+barres horizontales et barres verticales, avec leurs exports PNG/JPEG/SVG.
+Suppression du petit triangle parasite dans les graphiques à barres verticales.
+
+Amélioration v22 (2026-11-08) : exports CSV et JPEG de la liste des espèces
+identifiées à l’étape 1, avant la fin des contrôles supplémentaires. Deux
+colonnes, Nom scientifique et Nom vernaculaire, sans effectifs ; corrections
+manuelles et classement courant pris en compte. Les identifications des
+meilleurs contacts encore à reprendre bloquent cette liste provisoire.
+
+Ajustement v22 (2026-11-08) : chronologie à granularité fixe de 10 minutes,
+y compris pour les longues périodes et les exports. Les plages vides sont
+tracées à zéro sans élargir les tranches occupées. Les graphiques à barres
+verticales gardent une hauteur bornée et des colonnes de largeur limitée,
+même lorsqu’il ne reste qu’une ou deux espèces à afficher.
+
+Amélioration v22 (2026-11-08) : parcours « Revoir un par un » dans les
+identifications à reprendre. Une fiche à la fois, historique Précédent/Suivant,
+passage après identification ou nouveau report, bilan et reprise des contacts
+restants. Commentaires, WAV et Contexte conservés ; tentatives incomplètes
+gardées à reprendre et réinitialisation sûre lors d’un nouvel import.

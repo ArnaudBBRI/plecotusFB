@@ -1,0 +1,208 @@
+﻿PLECOTUS v22 — 8 novembre 2026
+Refonte de l’interface : vérification des contacts de chauves-souris
+
+DÉMARRAGE SIMPLE
+1. Décompressez toute l’archive dans un dossier de votre ordinateur.
+2. Double-cliquez sur Plecotus.html pour l’ouvrir dans Edge ou Chrome.
+3. Cliquez sur la chauve-souris, puis sur « Charger un fichier csv ».
+
+L’application fonctionne hors ligne. Aucun serveur, aucune installation de
+Node.js et aucun droit administrateur ne sont nécessaires pour ce mode.
+Les fichiers CSV, XLS et XLSX sont lus directement dans votre navigateur.
+
+OUVERTURE DES WAV DANS UN LOGICIEL WINDOWS
+Pour ouvrir les WAV dans Kaleidoscope ou ChiroSurf depuis l’application :
+1. Conservez Plecotus.html, Demarrer-Plecotus.cmd et plecotus-local.ps1 ensemble.
+2. Double-cliquez sur Demarrer-Plecotus.cmd.
+3. Dans « Réglages », choisissez le logiciel et indiquez le chemin de son .exe.
+
+Le logiciel choisi doit déjà être installé et les WAV accessibles sur cet
+ordinateur. Le lanceur utilise Windows PowerShell déjà présent et un petit
+compagnon local sur http://127.0.0.1:4174 ; il ne nécessite pas d’installation.
+
+WAV DÉPLACÉS (nouveauté v22)
+Si vos WAV ne sont plus à l’emplacement indiqué dans le fichier id (colonnes
+INDIR, FOLDER et IN FILE), indiquez dans « Réglages » un ou plusieurs dossiers
+de recherche (un chemin par ligne). Le lanceur ouvre d’abord le chemin du
+fichier id ; s’il n’existe plus, il cherche le WAV par son nom dans ces
+dossiers et leurs sous-dossiers. Si plusieurs fichiers portent le même nom,
+rien n’est ouvert et les chemins trouvés sont affichés.
+La première recherche dans un grand dossier peut prendre du temps ; la liste
+des WAV est ensuite gardée en mémoire 5 minutes. Le fichier id n’est pas modifié.
+Si une version précédente du lanceur est encore active, fermez-la (redémarrage
+de l’ordinateur ou « Windows PowerShell » dans le Gestionnaire des tâches)
+avant de lancer Demarrer-Plecotus.cmd de la v22.
+
+PARCOURS DE VÉRIFICATION
+- Charger le fichier et consulter les compteurs et les AUTO-ID.
+- Contrôler les meilleurs contacts de chaque espèce.
+- Après « Invalider », choisir l’identification réelle.
+- Dès l’étape 1, le champ facultatif « Commentaire » permet de décrire le son
+  pour chaque contact. La saisie est conservée automatiquement et accompagne
+  le contact dans les contrôles suivants, y compris la liste « À revoir ».
+- Pour demander un avis ou reprendre un contact plus tard, choisir « À revoir »
+  ou « Identification incertaine/non résolue ». Le panneau « Identifications
+  à reprendre » conserve ces contacts pendant la suite des vérifications.
+- Effectuer les contrôles supplémentaires demandés, puis finaliser.
+- Comparer les graphiques avant/après et exporter le tableau final en CSV,
+  PNG, JPEG ou SVG, avec les noms scientifiques et vernaculaires.
+
+Les attributions au prorata estiment les effectifs sur les contacts non écoutés.
+Les identifications faites à la main sont conservées. Le fichier source n’est
+pas modifié ; les exports sont téléchargés depuis l’interface.
+
+GRAPHIQUES ET PHOTOS DES ESPÈCES
+Les graphiques d’import et avant/après proposent trois représentations :
+camembert, barres horizontales et barres verticales.
+Les barres verticales sont espacées par espèce. L’axe représente le nombre
+de contacts et commence à zéro.
+La légende numérotée garde tous les noms et les colonnes peuvent défiler sur
+les petits écrans. Les filtres, les couleurs et les exports PNG/JPEG/SVG suivent
+la représentation choisie.
+Au survol ou au clavier, les graphiques affichent les noms, les contacts et
+pourcentages avec une photographie de l’espèce. Les photos des 31 espèces
+du catalogue sont intégrées et restent disponibles hors ligne. Les auteurs,
+sources et licences figurent dans les infobulles et licences/Species-Photos.md.
+Les catégories NoID, groupes et noms non reconnus gardent leurs données,
+sans photographie attribuée à une espèce supposée.
+
+CHRONOLOGIE DES CONTACTS
+Le résumé du fichier affiche « Les contacts au fil du temps » : une courbe
+avec les dates et heures du fichier et le nombre de contacts par tranche
+de 10 minutes, alignée sur l’horloge (00, 10, 20, 30, 40 et 50 minutes).
+La granularité reste fixe, même pour les longues périodes et les exports.
+Les longues plages sans contact sont tracées à zéro sans fusionner les
+tranches occupées. Le survol ou le clavier donne l’intervalle et le nombre exacts.
+Ce graphique est indépendant des filtres par espèce et des validations.
+Les AUTO-ID Noise sont exclus ; sans AUTO-ID, tous les contacts datés sont
+représentés. Les dates/heures absentes ou invalides sont comptées à part.
+Les heures restent celles du fichier, sans conversion de fuseau horaire.
+Les formats de dates ISO, jour-mois-année et Excel sont acceptés ; DATE-12
+ne remplace pas une vraie date. Pour les années à deux chiffres, 00–69
+signifient 2000–2069 et 70–99 signifient 1970–1999.
+Un intervalle à zéro signifie aucun contact dans le fichier, sans présumer
+que l’enregistrement était continu. Exports PNG, JPEG et SVG disponibles.
+
+EXPORTER LA LISTE DES ESPÈCES APRÈS L’ÉTAPE 1
+Une fois tous les meilleurs contacts identifiés, les boutons CSV et JPEG
+du bloc « Espèces identifiées à l’étape 1 » exportent uniquement les colonnes
+Nom scientifique et Nom vernaculaire, sans nombre de contacts. Ce bloc est
+présent près d’« Étape suivante » et avant les contrôles supplémentaires.
+Il n’est pas nécessaire d’avoir terminé ces contrôles. Les meilleurs contacts
+à revoir ou invalidés sans identification doivent en revanche être complétés.
+La liste reprend les corrections manuelles et regroupe les alias d’une même
+espèce. Les catégories NoID et groupes explicites suivent les noms du tableau
+final ; Noise et les attributions calculées ne sont pas ajoutés. La liste est
+provisoire et pourra évoluer avec les contrôles complémentaires. Le JPEG
+ressemble au tableau final, avec seulement deux colonnes. Les changements de
+classement ou d’identification mettent à jour cet export avant son téléchargement.
+
+ÉCOUTER LE CONTEXTE CHRONOLOGIQUE
+Le petit bouton « Contexte », près de chaque WAV à vérifier, ouvre un tableau
+flottant avec les 10 contacts précédents et les 10 suivants, toutes espèces
+et Noise compris. Le contact d’origine reste surligné en jaune et marqué
+« Référence ». Le tableau donne date/heure, WAV, AUTO-ID, MATCH RATIO, PULSES
+et MANUAL ID. Les identifications manuelles déjà saisies sont actualisées.
+Cliquez sur un WAV pour l’ouvrir dans le logiciel choisi dans Réglages,
+avec le lanceur local habituel. Écouter les voisins ne change aucune décision.
+Le reste de l’application reste accessible. Utilisez « Fermer » ou Échap
+depuis la fenêtre pour la fermer. Charger un autre fichier la ferme aussi.
+L’ordre utilise DATE et TIME, avec l’ordre source pour les égalités. Les
+contacts non datés sont signalés ; une référence non datée reste seule,
+sans voisins supposés. Les bords du fichier peuvent fournir moins de 10 voisins.
+
+IDENTIFICATION INCERTAINE ET NOID
+« Identification incertaine/non résolue » est un statut temporaire distinct de
+NoID : le contact doit être réexaminé. Vous pouvez continuer les autres contrôles,
+mais il ne compte pas comme terminé, ne contribue pas au prorata et bloque les
+attributions de son groupe ainsi que la finalisation jusqu’à sa résolution.
+Le CSV de résultats conserve ce statut pour une reprise ultérieure.
+NoID, choisi manuellement, est une identification terminée de chauve-souris
+non identifiée. Les groupes AUTO-ID NoID de Kaleidoscope sont toujours exclus
+de la validation globale : un échantillon de 20 % est contrôlé, arrondi au
+supérieur, avec au moins un contact et le meilleur contact compris dans ce quota.
+
+FICHIER DE RÉSULTATS (nouveauté v22)
+Dès qu’un fichier est chargé, le bouton « Enregistrer les résultats (CSV) »
+de la barre du haut enregistre, à n’importe quelle étape, toutes les lignes
+du fichier id avec leurs colonnes d’origine, MANUAL ID, SEMIMANUAL ID et
+ORIGINE ID PLECOTUS (Vérification Plecotus, Invalidé à identifier, Validation
+directe de l’espèce, Prorata, Bruit, Non attribuée…).
+Au premier clic, choisissez l’emplacement (nom proposé : <fichier>_resultats.csv) ;
+les clics suivants mettent à jour ce même fichier. Le fichier id d’origine
+ne peut pas être choisi. Fermez le fichier dans Excel avant d’enregistrer.
+Pour reprendre la vérification (autre navigateur, autre ordinateur), chargez
+ce fichier de résultats avec « Charger un fichier csv » : les vérifications
+déjà faites sont reprises. SEMIMANUAL ID est recalculé par Plecotus.
+Les commentaires figurent dans COMMENTAIRE PLECOTUS lorsqu’ils sont renseignés,
+avec leurs accents et sauts de ligne, et sont retrouvés au rechargement. Une
+colonne NOTES d’origine est conservée. La validation ou la correction d’une
+identification conserve le commentaire du contact.
+
+CRITÈRES MODIFIABLES DANS RÉGLAGES
+- « Nom du vérificateur » définit le nom affiché dans la barre du haut après
+  « Enregistrer ». Si aucun nom n’est renseigné, « non spécifié » apparaît en
+  rouge. Le nom est mémorisé dans ce navigateur et figure dans le rapport
+  copiable des paramètres.
+- Validation globale : ajoutez ou retirez les espèces de la liste d’exclusion,
+  choisissez le MATCH RATIO minimal (0 à 1) et le pourcentage minimal de
+  contacts atteignant ce ratio (0 à 100 %). Les seuils sont inclusifs.
+- Classement du meilleur contact : ajoutez ou retirez des critères, réordonnez-les
+  avec les flèches, puis choisissez le sens croissant ou décroissant. Au moins
+  un critère doit rester. Les valeurs absentes passent toujours en dernier.
+- « Rétablir les critères par défaut » restaure les règles initiales dans le
+  formulaire. « Enregistrer » applique les changements ; « Annuler » les abandonne.
+Les réglages sont mémorisés dans ce navigateur. Les meilleurs contacts, les
+contrôles demandés et les attributions calculées sont recalculés. Toutes les
+identifications manuelles sont conservées. L’application revient aux meilleurs
+contacts si un nouveau meilleur contact reste à identifier.
+
+COPIER OU EXPORTER LA MÉTHODE POUR UN RAPPORT
+Dans Réglages, « Paramètres et méthode pour vos rapports » suit immédiatement
+les valeurs du formulaire, sans fermer le menu ni enregistrer. Les boutons de
+copie et d’export utilisent ces mêmes valeurs. Le rapport signale les modifications
+non encore enregistrées ; « Enregistrer » reste nécessaire pour les appliquer
+à la vérification. Un seuil incomplet ou invalide efface l’ancien aperçu et
+suspend la copie et l’export jusqu’à sa correction.
+- « Copier pour Word » copie le texte et sa mise en forme si le navigateur le permet.
+- « Exporter en TXT » ou « Exporter en HTML » crée un document daté avec les
+  seuils, les exclusions, le classement, l’échantillonnage, le prorata, les
+  statuts à reprendre et tous les paramètres d’interface et d’ouverture des WAV.
+- Le texte reste sélectionnable : si la copie automatique échoue, utilisez Ctrl+C.
+
+La reprise du fichier de résultats conserve les contacts de l’échantillon.
+Pour un classeur Excel, une colonne CALENDRIER EXCEL PLECOTUS conserve le
+calendrier 1900/1904, sans modifier les cellules DATE et TIME d’origine.
+
+REVOIR LES IDENTIFICATIONS INCERTAINES UNE PAR UNE
+Dans « Identifications à reprendre », cliquez sur « Revoir un par un ».
+Le parcours affiche une seule fiche, son commentaire, son WAV cliquable,
+le bouton Contexte, un compteur et les boutons Précédent/Suivant.
+Valider ou renseigner une identification réelle terminée fait passer au
+prochain contact à traiter. « À revoir » le diffère encore et avance ;
+« Suivant » avance sans modifier son identification. Précédent peut revenir
+sur un contact déjà traité pendant ce passage.
+Dans ce parcours, Invalider garde le contact « À revoir » jusqu’au choix
+de l’identification réelle : une tentative incomplète reste donc retrouvable,
+y compris après enregistrement/reprise du CSV. Les commentaires sont conservés.
+À la fin, « Reprendre les contacts restants » relance seulement les fiches
+encore incertaines. « Retour à la liste » ferme le parcours. Un nouvel import
+le réinitialise. Les autres contrôles requis restent nécessaires pour finaliser.
+
+REPRISE LOCALE
+Les réglages et décisions sont mémorisés dans ce navigateur lorsque son
+stockage le permet. Réimportez le même fichier pour retrouver ses décisions.
+L’ouverture directe du HTML et le lanceur local ont des mémoires distinctes.
+Ces décisions ne sont pas transférées à une autre personne avec cette archive.
+
+MODE DÉBOGAGE
+Le mode débogage est désactivé par défaut. Ses boutons servent aux simulations :
+« Valider / invalider au hasard » peut attribuer des espèces aléatoires.
+
+CONTENU
+- Plecotus.html : application complète, images et bibliothèques intégrées.
+- Demarrer-Plecotus.cmd et plecotus-local.ps1 : compagnon Windows optionnel.
+- licences/ : mentions et licences des composants tiers.
+- VERSION.txt et MANIFEST.sha256 : version et empreintes des fichiers.
+
+Cette archive ne contient aucun CSV, WAV ni résultat personnel.
