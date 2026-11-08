@@ -101,6 +101,12 @@
     return pathText(parsed);
   }
 
+  function normalizeFolder(input) {
+    const path = cleanInput(input, true);
+    if (!path) return '';
+    return pathText(parseAbsolute(path));
+  }
+
   function recordingPath(row) {
     if (!row || typeof row !== 'object') throw new TypeError('Le contact à ouvrir est manquant.');
     const file = cleanInput(row.file);
@@ -132,5 +138,5 @@
     return pathText(parsed);
   }
 
-  return Object.freeze({ viewerInfo, normalizeExecutable, recordingPath });
+  return Object.freeze({ viewerInfo, normalizeExecutable, normalizeFolder, recordingPath });
 });

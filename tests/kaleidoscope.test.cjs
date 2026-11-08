@@ -133,5 +133,6 @@ test('exposes the same pure viewer and path functions in the standalone browser 
   assert.equal(Object.isFrozen(context.BatKaleidoscope.viewerInfo('chirosurf')), true);
   assert.equal(context.BatKaleidoscope.normalizeExecutable('C:\\Applis\\ChiroSurf_4.6.exe', 'chirosurf'), 'C:\\Applis\\ChiroSurf_4.6.exe');
   assert.equal(context.BatKaleidoscope.recordingPath({ file: 'C:\\Sons\\son.wav' }), 'C:\\Sons\\son.wav');
-  assert.deepEqual(Object.keys(context.BatKaleidoscope).sort(), ['normalizeExecutable', 'recordingPath', 'viewerInfo']);
+  assert.equal(context.BatKaleidoscope.normalizeFolder('"C:\\Sons de terrain"'), 'C:\\Sons de terrain');
+  assert.deepEqual(Object.keys(context.BatKaleidoscope).sort(), ['normalizeExecutable', 'normalizeFolder', 'recordingPath', 'viewerInfo']);
 });

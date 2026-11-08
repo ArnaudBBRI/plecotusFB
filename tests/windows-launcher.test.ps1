@@ -45,10 +45,11 @@ $script:MockLaunchCount = 0
 $script:MockViewer = ''
 $script:MockStartInfo = $null
 function Start-PlecotusRecording {
-    param([string]$Executable, [string]$File, [string]$Viewer = 'kaleidoscope')
+    param([string]$Executable, [string]$File, [string]$Viewer = 'kaleidoscope', [object[]]$SearchFolders = @())
     $script:MockStartInfo = Get-PlecotusStartInfo -Executable $Executable -File $File -Viewer $Viewer
     $script:MockViewer = $Viewer
     $script:MockLaunchCount++
+    return @{ Path = $File; Relocated = $false }
 }
 try {
     Assert-Equal (Get-PlecotusAbsolutePath $exePath executable) $exePath 'Chemin exe absolu existant'
@@ -93,7 +94,8 @@ try {
     $status = (Invoke-PlecotusRequest $request).Body | ConvertFrom-Json
     Assert-Equal $status.app 'plecotus-local' 'Marqueur de compagnon'
     Assert-Equal $status.launchAvailable $true 'Etat disponible'
-    Assert-Equal $status.version 1 'Version historique du compagnon conservee'
+    Assert-Equal $status.version 2 'Version du compagnon avec recherche des WAV'
+    Assert-Equal $status.wavSearch $true 'Recherche des WAV declaree'
     Assert-Equal ($status.supportedViewers -join ',') 'kaleidoscope,chirosurf' 'Logiciels declares par le compagnon'
     $request.Headers.host = 'malicious.example:4174'
     Assert-Equal (Invoke-PlecotusRequest $request).StatusCode 403 'Protection Host / DNS rebinding'

@@ -12,16 +12,23 @@ $script:PlecotusPort = 4174
 $script:PlecotusOrigin = 'http://127.0.0.1:4174'
 $script:PlecotusDirectory = $PSScriptRoot
 $script:PlecotusToken = ''
+# Recherche des WAV deplaces : index nom de fichier -> chemins, par dossier de recherche.
+$script:PlecotusSearchIndexes = @{}
+$script:PlecotusIndexMaxAgeSeconds = 300
+$script:PlecotusIndexRetrySeconds = 30
+$script:PlecotusMaxSearchFolders = 20
+$script:PlecotusMaxSearchDepth = 40
 
 function Get-PlecotusAbsolutePath {
     param(
         [string]$Path,
-        [ValidateSet('executable', 'audio')][string]$Kind,
-        [ValidateSet('kaleidoscope', 'chirosurf')][string]$Viewer = 'kaleidoscope'
+        [ValidateSet('executable', 'audio', 'folder')][string]$Kind,
+        [ValidateSet('kaleidoscope', 'chirosurf')][string]$Viewer = 'kaleidoscope',
+        [switch]$AllowMissing
     )
 
     $viewerName = if ($Viewer -eq 'chirosurf') { 'ChiroSurf' } else { 'Kaleidoscope' }
-    $description = if ($Kind -eq 'executable') { $viewerName } else { 'du fichier WAV' }
+    $description = if ($Kind -eq 'executable') { $viewerName } elseif ($Kind -eq 'folder') { 'du dossier de recherche' } else { 'du fichier WAV' }
     if ([string]::IsNullOrWhiteSpace($Path) -or $Path -match '[\x00-\x1F\x7F"<>|?*]') {
         throw "Le chemin $description est vide ou contient des caractères interdits."
     }
@@ -49,10 +56,133 @@ function Get-PlecotusAbsolutePath {
     if ($Kind -eq 'audio' -and [System.IO.Path]::GetExtension($fullPath) -ine '.wav') {
         throw 'Choisissez un fichier audio dont le nom se termine par .wav.'
     }
-    if (-not [System.IO.File]::Exists($fullPath)) {
+    if ($Kind -eq 'folder') {
+        if (-not $AllowMissing -and -not [System.IO.Directory]::Exists($fullPath)) {
+            throw "Le dossier de recherche est introuvable : $fullPath"
+        }
+        return $fullPath
+    }
+    if (-not $AllowMissing -and -not [System.IO.File]::Exists($fullPath)) {
         throw "Le fichier $description est introuvable : $fullPath"
     }
     return $fullPath
+}
+
+function New-PlecotusSearchIndex {
+    param([string]$Root)
+    # Parcourt le dossier et ses sous-dossiers ; les dossiers illisibles sont ignores.
+    # Les jonctions et liens symboliques sont ignores (boucles et doublons artificiels),
+    # mais les dossiers OneDrive « a la demande » sont parcourus.
+    $map = New-Object 'System.Collections.Generic.Dictionary[string,System.Collections.Generic.List[string]]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $pending = New-Object 'System.Collections.Generic.Stack[object]'
+    $pending.Push(@($Root, 0))
+    while ($pending.Count -gt 0) {
+        $item = $pending.Pop()
+        $directory = [string]$item[0]
+        $depth = [int]$item[1]
+        $files = @()
+        try { $files = [System.IO.Directory]::GetFiles($directory, '*.wav') } catch { $files = @() }
+        foreach ($path in $files) {
+            # Le motif *.wav de .NET accepte aussi des extensions plus longues (.wave, .wavx).
+            if ([System.IO.Path]::GetExtension($path) -ine '.wav') { continue }
+            $name = [System.IO.Path]::GetFileName($path)
+            $list = $null
+            if (-not $map.TryGetValue($name, [ref]$list)) {
+                $list = New-Object 'System.Collections.Generic.List[string]'
+                $map[$name] = $list
+            }
+            $list.Add($path)
+        }
+        if ($depth -ge $script:PlecotusMaxSearchDepth) { continue }
+        $children = @()
+        try { $children = [System.IO.Directory]::GetDirectories($directory) } catch { $children = @() }
+        foreach ($child in $children) {
+            try { $attributes = [System.IO.File]::GetAttributes($child) } catch { continue }
+            if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                $linkType = $null
+                try { $linkType = (Get-Item -LiteralPath $child -Force -ErrorAction Stop).LinkType } catch { $linkType = $null }
+                if ($linkType -in @('Junction', 'SymbolicLink')) { continue }
+            }
+            $pending.Push(@($child, ($depth + 1)))
+        }
+    }
+    return @{ Built = [DateTime]::UtcNow; Map = $map }
+}
+
+function Get-PlecotusSearchIndex {
+    param([string]$Root, [switch]$Refresh)
+    $entry = $script:PlecotusSearchIndexes[$Root]
+    if ($Refresh -or $null -eq $entry -or
+        ([DateTime]::UtcNow - $entry.Built).TotalSeconds -gt $script:PlecotusIndexMaxAgeSeconds) {
+        $entry = New-PlecotusSearchIndex -Root $Root
+        $script:PlecotusSearchIndexes[$Root] = $entry
+    }
+    return $entry
+}
+
+function Get-PlecotusSearchCandidates {
+    param([string]$Name, [string[]]$Roots, [switch]$RefreshStale)
+    $found = New-Object System.Collections.Generic.List[string]
+    $stale = $false
+    foreach ($root in $Roots) {
+        $refresh = $false
+        if ($RefreshStale) {
+            $entry = $script:PlecotusSearchIndexes[$root]
+            $refresh = $null -ne $entry -and ([DateTime]::UtcNow - $entry.Built).TotalSeconds -gt $script:PlecotusIndexRetrySeconds
+        }
+        $index = Get-PlecotusSearchIndex -Root $root -Refresh:$refresh
+        $paths = $null
+        if (-not $index.Map.TryGetValue($Name, [ref]$paths)) { continue }
+        foreach ($path in $paths) {
+            if (-not [System.IO.File]::Exists($path)) { $stale = $true; continue }
+            # Deux dossiers de recherche imbriques peuvent livrer le meme fichier.
+            if (-not ($found -contains $path)) { $found.Add($path) }
+        }
+    }
+    return @{ Paths = $found; Stale = $stale }
+}
+
+function Find-PlecotusRecording {
+    param([string]$File, [object[]]$SearchFolders = @())
+    $wavPath = Get-PlecotusAbsolutePath -Path $File -Kind audio -AllowMissing
+    if ([System.IO.File]::Exists($wavPath)) { return @{ Path = $wavPath; Relocated = $false } }
+
+    $roots = New-Object System.Collections.Generic.List[string]
+    $unavailable = New-Object System.Collections.Generic.List[string]
+    foreach ($folder in @($SearchFolders)) {
+        $folderPath = Get-PlecotusAbsolutePath -Path ([string]$folder) -Kind folder -AllowMissing
+        if (-not [System.IO.Directory]::Exists($folderPath)) {
+            if (-not ($unavailable -contains $folderPath)) { $unavailable.Add($folderPath) }
+            continue
+        }
+        if (-not ($roots -contains $folderPath)) { $roots.Add($folderPath) }
+    }
+    $missing = "Le fichier WAV est introuvable à l'emplacement indiqué dans le fichier id : $wavPath."
+    $unavailableText = if ($unavailable.Count) { "`nDossiers de recherche inaccessibles (disque débranché ?) : " + ($unavailable -join ' ; ') } else { '' }
+    if ($roots.Count -eq 0) {
+        if ($unavailable.Count -eq 0) {
+            throw "$missing`nS'il a été déplacé, indiquez dans Réglages le ou les dossiers où Plecotus doit le rechercher."
+        }
+        throw "$missing$unavailableText"
+    }
+
+    $name = [System.IO.Path]::GetFileName($wavPath)
+    $search = Get-PlecotusSearchCandidates -Name $name -Roots $roots.ToArray()
+    if ($search.Paths.Count -eq 0 -or $search.Stale) {
+        # Index peut-etre perime (fichiers deplaces depuis) : reconstruction puis nouvel essai.
+        $search = Get-PlecotusSearchCandidates -Name $name -Roots $roots.ToArray() -RefreshStale
+    }
+    $candidates = $search.Paths
+    if ($candidates.Count -eq 0) {
+        throw ("$missing`nAucun fichier « $name » trouvé dans les dossiers de recherche : " + ($roots -join ' ; ') + $unavailableText)
+    }
+    if ($candidates.Count -gt 1) {
+        $shown = @($candidates | Select-Object -First 10)
+        $more = if ($candidates.Count -gt 10) { "`n… et " + ($candidates.Count - 10) + ' autres.' } else { '' }
+        throw ("Plusieurs fichiers « $name » ont été trouvés ($($candidates.Count)) ; aucun n'a été ouvert. " +
+            "Retirez les copies en double ou limitez les dossiers de recherche dans Réglages :`n" + ($shown -join "`n") + $more)
+    }
+    return @{ Path = $candidates[0]; Relocated = $true }
 }
 
 function Get-PlecotusWavArgument {
@@ -83,9 +213,13 @@ function Start-PlecotusRecording {
     param(
         [string]$Executable,
         [string]$File,
-        [ValidateSet('kaleidoscope', 'chirosurf')][string]$Viewer = 'kaleidoscope'
+        [ValidateSet('kaleidoscope', 'chirosurf')][string]$Viewer = 'kaleidoscope',
+        [object[]]$SearchFolders = @()
     )
-    $startInfo = Get-PlecotusStartInfo -Executable $Executable -File $File -Viewer $Viewer
+    # Le logiciel est verifie avant une eventuelle recherche, plus longue.
+    $null = Get-PlecotusAbsolutePath -Path $Executable -Kind executable -Viewer $Viewer
+    $resolution = Find-PlecotusRecording -File $File -SearchFolders $SearchFolders
+    $startInfo = Get-PlecotusStartInfo -Executable $Executable -File $resolution.Path -Viewer $Viewer
     $viewerName = if ($Viewer -eq 'chirosurf') { 'ChiroSurf' } else { 'Kaleidoscope' }
     try {
         $process = [System.Diagnostics.Process]::Start($startInfo)
@@ -95,6 +229,7 @@ function Start-PlecotusRecording {
     catch {
         throw "$viewerName n'a pas pu démarrer. Vérifiez le chemin et les autorisations Windows. $($_.Exception.Message)"
     }
+    return $resolution
 }
 
 function Start-PlecotusKaleidoscope {
@@ -185,7 +320,7 @@ function Invoke-PlecotusRequest {
         return New-PlecotusResult -StatusCode 403 -Data @{ ok = $false; error = 'Adresse locale non autorisée.' }
     }
     if ($Request.Method -eq 'GET' -and $Request.Target -eq '/api/status') {
-        return New-PlecotusResult -Data @{ ok = $true; app = 'plecotus-local'; version = 1; launchAvailable = $true; supportedViewers = @('kaleidoscope', 'chirosurf') }
+        return New-PlecotusResult -Data @{ ok = $true; app = 'plecotus-local'; version = 2; launchAvailable = $true; wavSearch = $true; supportedViewers = @('kaleidoscope', 'chirosurf') }
     }
     if ($Request.Method -eq 'GET' -and $Request.Target -eq '/METHODS.md') {
         $methodsPath = Join-Path $script:PlecotusDirectory 'METHODS.md'
@@ -248,8 +383,20 @@ function Invoke-PlecotusRequest {
                 ($payload.viewer -isnot [string] -or $payload.viewer -cne 'kaleidoscope')) {
                 throw 'Cette adresse historique est réservée à Kaleidoscope.'
             }
-            Start-PlecotusRecording -Executable $payload.executable -File $payload.file -Viewer $viewer
-            return New-PlecotusResult -Data @{ ok = $true }
+            $searchFolders = @()
+            if ($null -ne $payload.PSObject.Properties['searchFolders'] -and $null -ne $payload.searchFolders) {
+                $value = $payload.searchFolders
+                if ($value -isnot [array]) { throw 'Les dossiers de recherche doivent former une liste de chemins.' }
+                if ($value.Count -gt $script:PlecotusMaxSearchFolders) {
+                    throw "Indiquez au maximum $($script:PlecotusMaxSearchFolders) dossiers de recherche."
+                }
+                foreach ($folder in $value) {
+                    if ($folder -isnot [string]) { throw 'Chaque dossier de recherche doit être un chemin.' }
+                }
+                $searchFolders = $value
+            }
+            $resolution = Start-PlecotusRecording -Executable $payload.executable -File $payload.file -Viewer $viewer -SearchFolders $searchFolders
+            return New-PlecotusResult -Data @{ ok = $true; file = $resolution.Path; relocated = [bool]$resolution.Relocated }
         }
         catch {
             return New-PlecotusResult -StatusCode 422 -Data @{ ok = $false; error = $_.Exception.Message }
@@ -306,7 +453,7 @@ function Test-ExistingPlecotus {
             finally { $reader.Dispose() }
         }
         finally { $response.Dispose() }
-        return ($status.ok -eq $true -and $status.app -ceq 'plecotus-local' -and $status.version -eq 1)
+        return ($status.ok -eq $true -and $status.app -ceq 'plecotus-local' -and $status.version -eq 2)
     }
     catch { return $false }
 }
@@ -339,7 +486,7 @@ try {
             if (-not $NoBrowser) { Open-PlecotusBrowser }
             return
         }
-        throw "Le port local 4174 est déjà utilisé ou indisponible. Fermez l'autre application qui l'utilise, puis relancez Demarrer-Plecotus.cmd."
+        throw "Le port local 4174 est déjà utilisé ou indisponible. Fermez l'autre application qui l'utilise (par exemple une version précédente de Plecotus encore active : redémarrez l'ordinateur ou fermez « Windows PowerShell » dans le Gestionnaire des tâches), puis relancez Demarrer-Plecotus.cmd."
     }
     if (-not [System.IO.File]::Exists((Join-Path $script:PlecotusDirectory 'Plecotus.html'))) {
         throw 'Plecotus.html est introuvable. Décompressez tous les fichiers du paquet dans le même dossier.'
